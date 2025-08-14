@@ -1,0 +1,59 @@
+﻿@page "/demoauth"
+@rendermode InteractiveWebAssembly
+
+@using LMS.Blazor.Client.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@attribute [Authorize]
+
+<h1>Demo calling a protected endpoint in LMS.API</h1>
+
+<button class="btn btn-primary" @onclick="CallAPIAsync">Call API</button>
+<AuthMessage/>
+
+<AuthorizeView Roles="Teacher">
+    <Authorized>
+        <p>Hello you are authenticated and have the role <strong>Teacher</strong></p>
+    </Authorized>
+</AuthorizeView>
+
+@if (demo == null)
+{
+    <p>API not called yet</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in demo)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+@code {
+
+    [Inject]
+    private IApiService _apiService { get; set; } = default!;
+    [Inject]
+    private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+
+    private List<DemoAuthDto>? demo; 
+
+    private async Task CallAPIAsync()
+    {
+        demo = (await _apiService.CallApiAsync<IEnumerable<DemoAuthDto>>())?.ToList();
+    } 
+}
