@@ -24,7 +24,7 @@ public class Program
         builder.Services.ConfigureCors();
         builder.Services.ConfigureOpenApi();
 
-        //Hello
+        //Hello World
        
 
         var app = builder.Build();
