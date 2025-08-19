@@ -1,0 +1,200 @@
+﻿@page "/Login"
+@using System.ComponentModel.DataAnnotations
+@using LMS.Blazor.Components.Account
+@using LMS.Shared.DTOs.AuthDtos
+@using LMS.Blazor.Services
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+@inject UserManager<ApplicationUser> UserManager
+@inject IHttpClientFactory HttpClientFactory
+@inject ITokenStorage TokenStorage
+
+<PageTitle>Logga in – Lexicon LMS</PageTitle>
+
+<style>
+    /* Figma → CSS */
+    :root {
+        --lms-primary: #004651;
+        --lms-border: #D9D9D9;
+        --lms-input-text: #5B7480;
+        --lms-link: #004651;
+    }
+
+    .font-inter {
+        font-family: 'Inter', sans-serif;
+    }
+
+    .font-instrument {
+        font-family: 'Instrument Sans', sans-serif;
+    }
+
+    .login-card {
+        width: 422px;
+        background: #FFFFFF;
+        border: 1px solid var(--lms-border);
+        border-radius: 8px;
+        padding: 46px 40px;
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="login-card shadow">
+        <h1 class="font-inter fw-bold mb-1" style="font-size:40px;color:var(--lms-primary);">LEXICON</h1>
+        <h2 class="font-inter fw-bold mb-2" style="font-size:36px;color:var(--lms-primary);">Logga in</h2>
+        <p class="font-inter fw-semibold mb-4" style="font-size:20px;color:#124342;">Välkommen tillbaka till Lexicon LMS</p>
+
+        <!-- Global alert -->
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mb-3" role="alert">@errorMessage</div>
+        }
+
+        <EditForm Model="Input"
+                  OnValidSubmit="LoginUser"
+                  FormName="LoginForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <!-- E-post -->
+            <div class="mb-3">
+                <label class="visually-hidden">E-post</label>
+                <InputText @bind-Value="Input.Email"
+                           class="form-control"
+                           placeholder="E-post"
+                           style="height:61px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+
+            <!-- Lösenord -->
+            <div class="mb-3">
+                <label class="visually-hidden">Lösenord</label>
+                <InputText type="password"
+                           @bind-Value="Input.Password"
+                           class="form-control"
+                           placeholder="Lösenord"
+                           style="height:59px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
+                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            </div>
+
+            <!-- Remember me + Forgot password -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" id="remember" />
+                    <label class="form-check-label font-inter" style="font-size:20px;" for="remember">Kom ihåg mig</label>
+                </div>
+                <a href="Account/ForgotPassword" class="font-instrument link-primary" style="font-size:18px;color:var(--lms-link);text-decoration:none;">Glömt lösenord?</a>
+            </div>
+
+            <!-- Submit button -->
+            <button type="submit"
+                    class="btn w-100 text-white fw-bold font-inter"
+                    style="height:58px;font-size:24px;background:var(--lms-primary);border-color:var(--lms-primary);border-radius:8px;">
+                Logga in
+            </button>
+        </EditForm>
+
+        <div class="text-center mt-3">
+            <small class="font-instrument" style="font-size:18px;color:#212529;">
+                Har du inget konto?
+                <a href="Account/Register"
+                   class="link-primary font-instrument"
+                   style="font-size:18px;color:var(--lms-link);text-decoration:none;">
+                    Registrera dig
+                </a>
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+    }
+
+    public async Task LoginUser()
+    {
+        var user = await UserManager.FindByEmailAsync(Input.Email);
+        if (user == null)
+        {
+            errorMessage = "E-postadressen eller lösenordet är felaktigt.";
+            return;
+        }
+
+        var tokens = await GetTokensFromApi(user.UserName!, Input.Password);
+        if (tokens == null)
+        {
+            errorMessage = "Inloggning misslyckades, försök igen.";
+            return;
+        }
+
+        var result = await SignInManager.PasswordSignInAsync(user,
+                                                             Input.Password,
+                                                             Input.RememberMe,
+                                                             lockoutOnFailure: false);
+
+        switch (result)
+        {
+            case var r when r.Succeeded:
+                await TokenStorage.StoreTokensAsync(user.Id, tokens);
+                Logger.LogInformation("User logged in.");
+                RedirectManager.RedirectTo(ReturnUrl);
+                break;
+
+            case var r when r.RequiresTwoFactor:
+                RedirectManager.RedirectTo("Account/LoginWith2fa",
+                    new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+                break;
+
+            case var r when r.IsLockedOut:
+                Logger.LogWarning("User account locked out.");
+                RedirectManager.RedirectTo("Account/Lockout");
+                break;
+
+            default:
+                errorMessage = "Felaktiga inloggningsuppgifter.";
+                break;
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "E-post krävs")]
+        [EmailAddress(ErrorMessage = "Ange en giltig e-postadress")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Lösenord krävs")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Kom ihåg mig?")]
+        public bool RememberMe { get; set; }
+    }
+
+    private async Task<TokenDto?> GetTokensFromApi(string username, string password)
+    {
+        var client = HttpClientFactory.CreateClient("LmsAPIClient");
+        var response = await client.PostAsJsonAsync("api/auth/login",
+            new UserAuthDto { UserName = username, Password = password });
+
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadFromJsonAsync<TokenDto>()
+            : null;
+    }
+}
