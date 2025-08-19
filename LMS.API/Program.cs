@@ -23,6 +23,8 @@ public class Program
         builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
         builder.Services.ConfigureCors();
         builder.Services.ConfigureOpenApi();
+
+        //Hello
        
 
         var app = builder.Build();
