@@ -14,5 +14,9 @@ namespace Domain.Models.Entities
         public string? Description { get; set; }
         public DateOnly Starts { get; set; }
         public DateOnly Ends { get; set; }
+
+        public ICollection<Module> Modules { get; set; } = new List<Module>();
+        public ICollection<CourseUser> CourseUsers { get; set; } = new List<CourseUser>();
+        public ICollection<ProjDocument> Documents { get; set; } = new List<ProjDocument>();
     }
 }
