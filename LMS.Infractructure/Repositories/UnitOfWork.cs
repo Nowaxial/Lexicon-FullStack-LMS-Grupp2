@@ -1,15 +1,21 @@
 ﻿using Domain.Contracts.Repositories;
 using LMS.Infractructure.Data;
+using LMS.Infractructure.Repositories;
 
-namespace LMS.Infractructure.Repositories;
-public class UnitOfWork : IUnitOfWork
+public class UnitOfWork : IUnitOfWork, IDisposable
 {
-    private readonly ApplicationDbContext context;
+    private readonly ApplicationDbContext _context;
+
+    private CourseRepository? _courseRepository;
 
     public UnitOfWork(ApplicationDbContext context)
     {
-        this.context = context ?? throw new ArgumentNullException(nameof(context));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task CompleteAsync() => await context.SaveChangesAsync();
+    public ICourseRepository CourseRepository =>
+        _courseRepository ??= new CourseRepository(_context);
+
+    public async Task CompleteAsync() => await _context.SaveChangesAsync();
+    public void Dispose() => _context.Dispose();
 }
