@@ -1,15 +1,22 @@
 .page {
     position: relative;
-    display: flex;
-    flex-direction: column;
 }
 
 main {
     flex: 1;
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+/* kill the sidebar layout from the template */
+.page, .sidebar, .main, .top-row {
+    all: unset;
+}
+/* neutralize template classes */
+
+/* simple vertical layout */
+.lms-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
 }
 
 .top-row {

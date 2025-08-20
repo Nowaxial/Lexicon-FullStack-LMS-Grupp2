@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "API+Blazor",
+    "Projects": [
+      {
+        "Path": "LMS.API\\LMS.API.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "LMS.Blazor\\LMS.Blazor.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
