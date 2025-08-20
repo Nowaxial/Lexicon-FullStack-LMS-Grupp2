@@ -21,7 +21,7 @@
 }
 
 .lms-navbar .navbar-brand {
-    color: #FEFFFF;
+    color: #FEFFFF !important; 
     font-weight: 700;
     font-size: 20px;
     line-height: 24px;

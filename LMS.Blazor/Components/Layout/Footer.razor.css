@@ -29,16 +29,9 @@
 
 .footer-link {
     display: inline-block;
-    color: #FEFFFF !important;
     text-decoration: none;
     padding: .15rem 0;
 }
-
-    .footer-link:hover,
-    .footer-link.active {
-        color: var(--base);
-        text-decoration: underline;
-    }
 
 /* Social icons */
 .icon-link {
@@ -55,4 +48,8 @@
 .footer-divider {
     border: 0;
     border-top: 1px solid var(--muted);
+}
+
+.footer-text {
+    color: var(--muted);
 }

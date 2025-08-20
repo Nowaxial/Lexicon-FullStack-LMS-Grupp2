@@ -3,9 +3,14 @@ html, body {
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: var(--muted);
+    text-decoration: none;
 }
 
+a:hover, .btn-link:hover {
+    color: var(--base);
+    text-decoration: underline;
+}
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
