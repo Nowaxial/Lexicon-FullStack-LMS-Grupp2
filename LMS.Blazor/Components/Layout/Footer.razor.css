@@ -1,0 +1,55 @@
+﻿/*:root {
+    --primary: #2B7A78;
+    --accent: #3AAFA9;
+    --text: #17252A;
+    --muted: #DEF2F1;
+    --base: #FEFFFF;
+    --bg-main: #004651; 
+}
+*/
+
+/* Bar */
+.lms-footer {
+    background: var(--bg-main);
+    color: var(--base);
+    font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Center the 1440px frame like your header */
+.lms-container {
+    max-width: 1440px;
+    margin: auto;
+}
+
+/* Text + links */
+.lms-footer h5, .lms-footer h6 {
+    color: var(--base);
+}
+
+
+.footer-link {
+    display: inline-block;
+    text-decoration: none;
+    padding: .15rem 0;
+}
+
+/* Social icons */
+.icon-link {
+    color: var(--base);
+    opacity: .9;
+    text-decoration: none;
+}
+
+    .icon-link:hover {
+        opacity: 1;
+    }
+
+/* Divider */
+.footer-divider {
+    border: 0;
+    border-top: 1px solid var(--muted);
+}
+
+.footer-text {
+    color: var(--muted);
+}

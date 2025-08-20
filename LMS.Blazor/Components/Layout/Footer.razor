@@ -1,0 +1,69 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<footer class="lms-footer" role="contentinfo">
+    <div class="container-fluid lms-container py-4">
+
+        <div class="row g-4 align-items-start">
+
+            <!-- Brand + About -->
+            <div class="col-12 col-md-5 px-2 px-sm-0">
+                <h5 class="fw-bold">LEXICON LMS</h5>
+                <p class="mb-3 footer-text">Kurser, moduler och uppgifter – samlat på ett ställe.</p>
+
+                <div class="d-flex gap-4 fs-5 mt-4">
+                    <a class="icon-link" href="mailto:support@lexicon.com" aria-label="E-post">
+                        <i class="bi bi-envelope-fill"></i>
+                    </a>
+                    <a class="icon-link" href="#" aria-label="LinkedIn">
+                        <i class="bi bi-linkedin"></i>
+                    </a>
+                    <a class="icon-link" href="#" aria-label="Facebook">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                </div>
+
+                
+            </div>
+
+            <!-- Quick links -->
+            <div class="col-6 col-md-3">
+                <h6 class="fw-bold mb-2">Snabblänkar</h6>
+                <ul class="list-unstyled m-0">
+                    <li><NavLink class="footer-link" href="#">Kurser</NavLink></li>
+                    <li><NavLink class="footer-link" href="#">Moduler</NavLink></li>
+                    <li><NavLink class="footer-link" href="#">Aktiviteter</NavLink></li>
+                    <li><NavLink class="footer-link" href="#">Dokument</NavLink></li>
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div class="col-6 col-md-4">
+                <h6 class="fw-bold mb-2">Kontakt</h6>
+                <p class="m-0">
+                    <a class="footer-link" href="mailto:support@lexicon.com">support@lexicon.com</a><br />
+                    <span class="footer-text">+46 (0)8 123 45 67</span>
+                </p>
+            </div>
+            <hr class="footer-divider my-3" />
+            <div class="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2">
+
+                <div class="d-flex gap-3 small order-1 order-sm-2 justify-content-sm-end">
+                    <a class="footer-link" href="#">Integritet</a>
+                    <a class="footer-link" href="#">Villkor</a>
+                    <a class="footer-link" href="#">Tillgänglighet</a>
+                </div>
+
+
+                <small class="order-2 order-sm-1 text-center text-sm-start text-nowrap mt-2 mt-sm-0">
+                    © @DateTime.Now.Year Lexicon&nbsp;LMS
+                </small>
+            </div>
+
+        </div>
+        </div>
+
+        
+
+   
+
+</footer>
