@@ -10,13 +10,12 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    
     public async Task<T?> CallApiAsync<T>(string endpoint, CancellationToken ct = default)
     {
         await authReady.WaitAsync();
 
         var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"proxy?endpoint={endpoint}");
-        var response = await httpClient.SendAsync(requestMessage);
+        var response = await httpClient.SendAsync(requestMessage, ct);
 
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden
            || response.StatusCode == System.Net.HttpStatusCode.Unauthorized)

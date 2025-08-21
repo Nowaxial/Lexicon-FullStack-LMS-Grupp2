@@ -69,6 +69,11 @@ builder.Services.Configure<PasswordHasherOptions>(options => options.IterationCo
 // Token storage service
 builder.Services.AddSingleton<ITokenStorage, TokenStorageService>();
 
+// API service
+builder.Services.AddScoped<IApiService, ClientApiService>();
+builder.Services.AddScoped<IAuthReadyService, AuthReadyService>();
+
+
 var app = builder.Build();
 
 
