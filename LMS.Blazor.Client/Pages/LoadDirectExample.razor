@@ -2,7 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 
 @page "/demoauth2"
-@rendermode InteractiveWebAssembly
+@* @rendermode InteractiveWebAssembly  *@  
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
 
 @attribute [Authorize(Roles = "Teacher")]
 
@@ -16,7 +17,7 @@ else
 {
     @foreach (var dto in dtos)
     {
-        <DemoAuthComponent DemoDto="dto" />
+        <DemoAuthComponent DTO="dto" />
     }
 }
 

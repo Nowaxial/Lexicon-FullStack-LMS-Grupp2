@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace LMS.Blazor.Client.Services;
 
-public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationManager navigationManager) : IApiService
+public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationManager navigationManager, IAuthReadyService authReady) : IApiService
 {
     private readonly HttpClient httpClient = httpClientFactory.CreateClient("BffClient");
 
@@ -11,9 +11,10 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     
-    public async Task<T?> CallApiAsync<T>(string endpoint)
+    public async Task<T?> CallApiAsync<T>(string endpoint, CancellationToken ct = default)
     {
-        
+        await authReady.WaitAsync();
+
         var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"proxy?endpoint={endpoint}");
         var response = await httpClient.SendAsync(requestMessage);
 
