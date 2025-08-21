@@ -13,7 +13,7 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ITokenStorage _tokenService = tokenService;
 
-    public async Task<IActionResult> Proxy(string endpoint)
+    public async Task<IActionResult> Proxy(string endpoint, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -59,7 +59,7 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
             }
         }
 
-        var response = await client.SendAsync(requestMessage);
+        var response = await client.SendAsync(requestMessage, ct);
 
         return !response.IsSuccessStatusCode
             ? Unauthorized()

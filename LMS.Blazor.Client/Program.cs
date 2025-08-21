@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 builder.Services.AddScoped<IApiService, ClientApiService>();
+builder.Services.AddScoped<IAuthReadyService, AuthReadyService>();
 
 builder.Services.AddHttpClient("BffClient", cfg =>
 {
@@ -20,5 +21,5 @@ builder.Services.AddAuthorizationCore();
 
 await builder.Build().RunAsync();
 
-//test Maria Toledo
+
 

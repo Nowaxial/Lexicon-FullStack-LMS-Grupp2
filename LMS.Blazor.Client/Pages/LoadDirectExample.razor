@@ -1,0 +1,36 @@
+﻿@using LMS.Blazor.Client.Services
+@using Microsoft.AspNetCore.Authorization
+
+@page "/demoauth2"
+@* @rendermode InteractiveWebAssembly  *@  
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+
+@attribute [Authorize(Roles = "Teacher")]
+
+<h3>LoadDirectExample</h3>
+
+@if (dtos == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @foreach (var dto in dtos)
+    {
+        <DemoAuthComponent DTO="dto" />
+    }
+}
+
+@code {
+
+    [Inject]
+    private IApiService _apiService { get; set; } = default!;
+
+    private List<DemoAuthDto>? dtos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await _apiService.CallApiAsync<IEnumerable<DemoAuthDto>>("api/demoauth");
+        dtos = response?.ToList();
+    }
+}
