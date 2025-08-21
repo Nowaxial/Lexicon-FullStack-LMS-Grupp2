@@ -10,9 +10,11 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public async Task<T?> CallApiAsync<T>()
+    
+    public async Task<T?> CallApiAsync<T>(string endpoint)
     {
-        var requestMessage = new HttpRequestMessage(HttpMethod.Get, "proxy?endpoint=api/demoauth");
+        
+        var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"proxy?endpoint={endpoint}");
         var response = await httpClient.SendAsync(requestMessage);
 
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden
