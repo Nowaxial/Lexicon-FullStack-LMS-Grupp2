@@ -1,6 +1,11 @@
-﻿namespace Domain.Contracts.Repositories;
+﻿using Domain.Models.Entities;
 
-public interface IUnitOfWork
+namespace Domain.Contracts.Repositories
 {
-    Task CompleteAsync();
+    public interface IUnitOfWork : IDisposable
+    {
+        ICourseRepository CourseRepository { get; }
+
+        Task CompleteAsync();
+    }
 }
