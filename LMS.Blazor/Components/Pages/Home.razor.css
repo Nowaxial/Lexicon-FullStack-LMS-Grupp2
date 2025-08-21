@@ -40,7 +40,13 @@
     color: var(--bg-main);
 }
 
-
+.btn-hero:focus,
+.btn-hero:active,
+.btn-outline-light:focus,
+.btn-outline-light:active {
+    box-shadow: none !important;
+    outline: none !important;
+}
 
 /* ===== STATS ===== */
 .bg-base {
@@ -80,7 +86,7 @@
 }
 .course-card__body{ padding: 1rem; }
 .badge.bg-accent-subtle{
-  background: rgba(58,175,169,.15);
+  background: var(--muted);
 }
 .text-accent{ color: var(--accent) !important; }
 
@@ -107,7 +113,4 @@ a.link-accent:visited {
   border-radius: .75rem;
 }
 
-    /* Make sure icons look crisp on dark bg */
-    .text-white-50 {
-        color: rgba(255,255,255,.7) !important;
-    }
+
