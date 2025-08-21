@@ -1,0 +1,113 @@
+﻿
+/*:root {
+    --primary: #2B7A78;
+    --accent: #3AAFA9;
+    --text: #17252A;
+    --muted: #DEF2F1;
+    --base: #FEFFFF;
+    --bg-main: #004651; 
+}
+*/
+
+.lms-container{ max-width:1440px; margin:0 auto; }
+
+/* HERO */
+.lms-hero{
+  background: linear-gradient(135deg, var(--bg-main), var(--primary));
+  color: var(--base);
+  padding: 48px 0;
+}
+
+    .lms-hero .lead {
+        color: var(--base);
+    }
+
+.btn-hero {
+    background: var(--bg-main);
+    border: 1px solid var(--bg-main);
+    color: var(--base);
+    text-decoration: none;
+}
+
+    .btn-hero:hover {
+        background: var(--muted);
+        border-color: var(--primary);
+        color: var(--bg-main);
+    }
+
+.btn-outline-light:hover {
+    text-decoration: none;
+    color: var(--bg-main);
+}
+
+
+
+/* ===== STATS ===== */
+.bg-base {
+    background: #f8f9fa;
+}
+
+.stat {
+    padding: .75rem 0;
+}
+
+    .stat i {
+        font-size: 1.5rem;
+        color: var(--accent);
+    }
+
+.stat__num {
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.stat__label {
+    color: #6c757d;
+}
+
+
+/* COURSE CARDS */
+.course-card {
+    background: var(--base);
+    border: 1px solid #e6e6e6;
+    border-radius: .75rem;
+    transition: transform .15s ease, box-shadow .15s ease;
+    position: relative;
+}
+.course-card:hover{
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.08);
+}
+.course-card__body{ padding: 1rem; }
+.badge.bg-accent-subtle{
+  background: rgba(58,175,169,.15);
+}
+.text-accent{ color: var(--accent) !important; }
+
+a.link-accent,
+a.link-accent:visited {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+    a.link-accent:hover {
+     transform: translateY(-3px);
+    }
+
+/* Accent button used on cards */
+.btn-accent.btn-sm {
+    color: var(--bg-main);
+    background: var(--muted);
+}
+
+
+/* CTA BANNER */
+.cta-banner {
+  background: linear-gradient(135deg, var(--bg-main), var(--primary));
+  border-radius: .75rem;
+}
+
+    /* Make sure icons look crisp on dark bg */
+    .text-white-50 {
+        color: rgba(255,255,255,.7) !important;
+    }
