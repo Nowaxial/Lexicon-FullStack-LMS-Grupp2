@@ -2,12 +2,135 @@
 
 <PageTitle>Home</PageTitle>
 
-<h1>LMS starter template</h1>
+<!-- Hero -->
+<section class="lms-hero">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center g-4">
+            <div class="col-12 col-lg-7">
+                <h2 class="display-5 fw-bold">Välkommen till</h2>
+                <h1 class="display-5 fw-bold mb-3">LEXICON LMS</h1>
+                <p class="lead mb-4">
+                    Kurser, moduler och uppgifter – samlat på ett ställe. Lär dig i din egen takt,
+                    följ din progression och nå dina mål.
+                </p>
 
-<h2>You can use this template as a starter template or build one from scratch!</h2>
+                <div class="d-flex flex-wrap gap-3">
 
-@* Olena is here again*@
-@* Olena is again*@
+                    <a class="btn btn-lg btn-light btn-hero" href="#" aria-label="Gå till kurser">
+                        <i class="bi bi-journal-text me-2"></i> Utforska kurser
+                    </a>
+                    <a class="btn btn-outline-light btn-lg" href="Account/Register" aria-label="Skapa konto">
+                        <i class="bi bi-person-plus me-2"></i> Skapa konto
+                    </a>
+                </div>
 
-<AuthMessage/>
+                <ul class="lms-hero__bullets mt-4">
+                    <li><i class="bi bi-check2-circle"></i> Strukturerade moduler & uppgifter</li>
+                    <li><i class="bi bi-check2-circle"></i> Tydlig översikt av din progression</li>
+                    <li><i class="bi bi-check2-circle"></i> Mobilvänligt & tillgängligt</li>
+                </ul>
+            </div>
+
+            <div class="col-12 col-lg-5">
+                <div class="lms-hero__card">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-lightning-charge fs-2 me-2"></i>
+                        <h2 class="h4 m-0">Kom igång på 3 steg</h2>
+                    </div>
+                    <ol class="m-0 ps-3">
+                        <li>Skapa ett konto</li>
+                        <li>Välj dina kurser</li>
+                        <li>Börja lära och följ din utveckling</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<section class="py-4 bg-base">
+    <div class="container-fluid lms-container">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-lg-4">
+                <div class="stat">
+                    <i class="bi bi-mortarboard"></i>
+                    <div class="stat__num">120+</div>
+                    <div class="stat__label">Aktiva kurser</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-4">
+                <div class="stat">
+                    <i class="bi bi-people"></i>
+                    <div class="stat__num">3 500+</div>
+                    <div class="stat__label">Studenter</div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="stat">
+                    <i class="bi bi-star"></i>
+                    <div class="stat__num">4.8/5</div>
+                    <div class="stat__label">Genomsnittligt betyg</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured courses -->
+<section class="py-5">
+    <div class="container-fluid lms-container">
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <h2 class="h3 m-0">Senaste kurser</h2>
+            <a class="link-accent" href="#">Visa alla</a>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var c in Courses)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <article class="course-card h-100">
+                        <div class="course-card__body">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge bg-accent-subtle text-accent">@c.Level</span>
+                                <small class="text-muted">@c.Duration</small>
+                            </div>
+                            <h3 class="h5 mb-2">@c.Title</h3>
+                            <p class="mb-3 text-muted">@c.Summary</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar-event me-1"></i>
+                                    Start @c.StartDate.ToString("yyyy-MM-dd")
+                                </small>
+                                <a class="stretched-link btn btn-sm btn-accent" href="@c.Link">Till kurs</a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- CTA banner -->
+<section class="py-5">
+    <div class="container-fluid lms-container">
+        <div class="cta-banner p-4 p-md-5 d-flex flex-column flex-md-row align-items-center justify-content-between">
+            <div class="mb-3 mb-md-0">
+                <h2 class="h4 mb-1 text-white">Redo att börja?</h2>
+                <p class="m-0 text-white-50">Skapa ett konto och gå din första kurs redan idag.</p>
+            </div>
+            <div class="d-flex gap-3">
+                <a class="btn btn-light btn-hero" href="Account/Register"><i class="bi bi-person-plus me-1"></i> Skapa konto</a>
+                <a class="btn btn-outline-light" href="#"><i class="bi bi-journal-text me-1"></i> Utforska kurser</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* <AuthMessage /> *@
+
+
+
+
 
