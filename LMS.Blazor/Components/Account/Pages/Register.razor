@@ -17,130 +17,107 @@
 
 <PageTitle>Register</PageTitle>
 
-<h1>Register</h1>
 
-<div class="row">
-    <div class="col-md-4">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+<style>
+    :root {
+        --lms-primary: #004651;
+        --lms-border: #D9D9D9;
+        --lms-input-text: #5B7480;
+        --lms-link: #004651;
+    }
+
+    .font-inter {
+        font-family: 'Inter', sans-serif;
+    }
+
+    .font-instrument {
+        font-family: 'Instrument Sans', sans-serif;
+    }
+
+    .register-card {
+        width: 422px;
+        background: #FFFFFF;
+        border: 1px solid var(--lms-border);
+        border-radius: 8px;
+        padding: 46px 40px;
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="register-card shadow">
+        <h1 class="font-inter fw-bold mb-1" style="font-size:40px;color:var(--lms-primary);">LEXICON</h1>
+        <h2 class="font-inter fw-bold mb-2" style="font-size:36px;color:var(--lms-primary);">Registrera dig</h2>
+        <p class="font-inter fw-semibold mb-4" style="font-size:20px;color:#124342;">Välkommen till Lexicon LMS</p>
+
+        
+
+        <EditForm Model="Input"
+                  OnValidSubmit="RegisterUser"
+                  FormName="RegisterForm">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
             <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="email">Email</label>
+
+            <!-- User Name -->
+            <div class="mb-3">
+                <label class="visually-hidden">User Name</label>
+                <InputText @bind-Value="Input.UserName"
+                           class="form-control"
+                           placeholder="Användarnamn"
+                           style="height:61px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
+                <ValidationMessage For="() => Input.UserName" class="text-danger" />
+            </div>
+
+            <!-- E-post -->
+            <div class="mb-3">
+                <label class="visually-hidden">E-post</label>
+                <InputText @bind-Value="Input.Email"
+                           class="form-control"
+                           placeholder="E-post"
+                           style="height:61px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="password">Password</label>
+
+            <!-- Lösenord -->
+            <div class="mb-3">
+                <label class="visually-hidden">Lösenord</label>
+                <InputText type="password"
+                           @bind-Value="Input.Password"
+                           class="form-control"
+                           placeholder="Lösenord"
+                           style="height:59px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="confirm-password">Confirm Password</label>
+
+            <!-- Lösenordsbekräftelse -->
+            <div class="mb-3">
+                <label class="visually-hidden">Lösenordsbekräftelse</label>
+                <InputText type="password"
+                           @bind-Value="Input.ConfirmPassword"
+                           class="form-control"
+                           placeholder="Lösenordsbekräftelse"
+                           style="height:59px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+
+            <!-- Submit button -->
+            <button type="submit"
+                    class="btn w-100 text-white fw-bold font-inter"
+                    style="height:58px;font-size:24px;background:var(--lms-primary);border-color:var(--lms-primary);border-radius:8px;">
+                Registrera
+            </button>
         </EditForm>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
+
+        <div class="text-center mt-3">
+            <small class="font-instrument" style="font-size:18px;color:#212529;">
+                Har du redan ett konto?
+                <a href="/Login"
+                   class="link-primary font-instrument"
+                   style="font-size:18px;color:var(--lms-link);text-decoration:none;">
+                    Logga in
+                </a>
+            </small>
+        </div>
     </div>
 </div>
 
-@code {
-    private IEnumerable<IdentityError>? identityErrors;
 
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
-
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
-
-    //Use API to add users!!!!
-    public async Task RegisterUser(EditContext editContext)
-    {
-        var user = CreateUser();
-
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-        var result = await UserManager.CreateAsync(user, Input.Password);
-
-        if (!result.Succeeded)
-        {
-            identityErrors = result.Errors;
-            return;
-        }
-
-        Logger.LogInformation("User created a new account with password.");
-
-        var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
-
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-        if (UserManager.Options.SignIn.RequireConfirmedAccount)
-        {
-            RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
-                new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
-        }
-
-        //await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
-    }
-
-    private ApplicationUser CreateUser()
-    {
-        try
-        {
-            return Activator.CreateInstance<ApplicationUser>();
-        }
-        catch
-        {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
-        }
-    }
-
-    private IUserEmailStore<ApplicationUser> GetEmailStore()
-    {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
-        return (IUserEmailStore<ApplicationUser>)UserStore;
-    }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; } = "";
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; } = "";
-    }
-}
