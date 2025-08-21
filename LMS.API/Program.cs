@@ -20,10 +20,10 @@ public class Program
         builder.Services.ConfigureIdentity();
 
         builder.Services.AddHostedService<DataSeedHostingService>();
-        //builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
-        builder.Services.AddAutoMapper(typeof(MapperProfile));
+        builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
         builder.Services.ConfigureCors();
         builder.Services.ConfigureOpenApi();
+
 
         //Hello World
        
