@@ -62,17 +62,21 @@
                             </NavLink>
                         </li>
                         <li class="nav-item">
+                           
                             <form action="Account/Logout" method="post" class="d-inline m-0">
                                 <AntiforgeryToken />
-                                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                                <button type="submit" class="btn nav-link lms-user">Logout</button>
+                                <NavLink href="/" class="">
+                                <input type="hidden" name="ReturnUrl" />
+                                </NavLink>
+                                <button type="submit" class="btn btn-link nav-link">Logout</button>
                             </form>
+                           
                         </li>
+
                     </Authorized>
                 </AuthorizeView>
             </ul>
         </div>
     </div>
 </nav>
-
 

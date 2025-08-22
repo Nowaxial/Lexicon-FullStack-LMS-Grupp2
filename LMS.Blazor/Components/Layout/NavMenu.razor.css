@@ -8,7 +8,7 @@
 }
 */
 .lms-navbar {
-    background: #004651;
+    background: var(--bg-main);
     min-height: 64px;
     padding-top: 0;
     padding-bottom: 0;
@@ -21,7 +21,7 @@
 }
 
 .lms-navbar .navbar-brand {
-    color: #FEFFFF !important; 
+    color: var(--base) !important; 
     font-weight: 700;
     font-size: 20px;
     line-height: 24px;
@@ -29,12 +29,12 @@
 }
 
     .lms-navbar .navbar-brand:hover {
-        color: #FEFFFF;
+        color: var(--base) !important;
     }
 
 
 .lms-link {
-    color: #FEFFFF !important;
+    color: var(--base) !important;
     font-weight: 500;
     font-size: 16px;
     line-height: 19px;
@@ -49,17 +49,23 @@
     }
 
 
-/*.lms-user {
-    color: #FEFFFF !important;
+.lms-user {
     font-weight: 400;
     font-size: 16px;
     line-height: 19px;
-}*/
-
-
-.navbar-dark .navbar-toggler {
-    border-color: rgba(255,255,255,.25);
 }
+
+.btn-link:focus,
+.btn-link:active,
+.nav-link:focus,
+.nav-link:active {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+    .navbar-dark .navbar-toggler {
+        border-color: rgba(255,255,255,.25);
+    }
 
 .navbar-dark .navbar-toggler-icon {
     filter: none;
