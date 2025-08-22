@@ -108,6 +108,11 @@ namespace LMS.Infractructure.Data
                 .HasOne(cu => cu.Course)
                 .WithMany(c => c.CourseUsers)
                 .HasForeignKey(cu => cu.CourseId);
+
+            builder.Entity<CourseUser>()
+                .HasOne(cu => cu.User)
+                .WithMany()
+                .HasForeignKey(cu => cu.UserId);
         }
     }
 }
