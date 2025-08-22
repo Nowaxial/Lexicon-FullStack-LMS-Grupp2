@@ -14,5 +14,6 @@ namespace Domain.Models.Entities
 
         // Navigation
         public Course Course { get; set; } = null!;
+        public ApplicationUser User { get; set; } = null!;
     }
 }
