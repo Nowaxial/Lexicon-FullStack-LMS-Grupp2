@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LMS.Shared.DTOs.EntitiesDtos
+namespace LMS.Shared.DTOs.EntitiesDtos.ModuleDto.ModuleDto
 {
     public record ModuleCreateDto
     {

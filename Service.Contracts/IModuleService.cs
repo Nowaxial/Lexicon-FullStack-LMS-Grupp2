@@ -1,4 +1,5 @@
 ﻿using Domain.Models.Entities;
+using LMS.Shared.DTOs.EntitiesDtos.ModuleDto.ModuleDto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,12 +11,12 @@ namespace Service.Contracts
     public interface IModuleService
     {
 
-        Task<IEnumerable<Module>> GetAllModulesAsync(bool trackChanges = false);
-        Task<Module?> GetModuleByIdAsync(int id, bool trackChanges = false);
+        Task<IEnumerable<ModuleDto>> GetAllModulesAsync(int courseId, bool trackChanges = false);
+        Task<ModuleDto?> GetModuleByIdAsync(int id, bool trackChanges = false);
 
-        Task CreateModuleAsync(Module module);
-        Task UpdateModuleAsync(Module module);
-        Task DeleteModuleAsync(Module module);
+        Task<ModuleDto> CreateModuleAsync(int courseId, ModuleCreateDto dto);
+        Task<bool> UpdateModuleAsync(int id, ModuleUpdateDto dto);
+        Task<bool> DeleteModuleAsync(int id);
 
     }
 }
