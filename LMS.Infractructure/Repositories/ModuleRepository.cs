@@ -18,15 +18,13 @@ namespace LMS.Infractructure.Repositories
         public async Task<IEnumerable<Module>> GetAllAsync(int courseId, bool trackChanges = false)
         {
             return await FindAll(trackChanges)
-                .Include(m => m.Course)
-                .OrderBy(m => m.Starts)
+                //.OrderBy(m => m.Starts)
                 .ToListAsync();
         }
 
         public async Task<Module?> GetByIdAsync(int id, bool trackChanges = false)
         {
             return await FindByCondition(m => m.Id.Equals(id), trackChanges)
-                .Include(m => m.Course)
                 .Include(m => m.Activities)
                 .Include(m => m.Documents)
                 .FirstOrDefaultAsync();
@@ -35,7 +33,6 @@ namespace LMS.Infractructure.Repositories
         public async Task<IEnumerable<Module>> GetByCourseAsync(int courseId, bool trackChanges = false)
         {
             return await FindByCondition(m => m.CourseId.Equals(courseId), trackChanges)
-                .Include(m => m.Course)
                 .Include(m => m.Activities)
                 .Include(m => m.Documents)
                 .OrderBy(m => m.Starts)
