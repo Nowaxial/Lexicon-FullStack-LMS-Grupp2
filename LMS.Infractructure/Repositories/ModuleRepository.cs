@@ -15,7 +15,7 @@ namespace LMS.Infractructure.Repositories
     {
         public ModuleRepository(ApplicationDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<Module>> GetAllAsync(bool trackChanges = false)
+        public async Task<IEnumerable<Module>> GetAllAsync(int courseId, bool trackChanges = false)
         {
             return await FindAll(trackChanges)
                 .Include(m => m.Course)

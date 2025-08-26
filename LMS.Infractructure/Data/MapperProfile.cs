@@ -2,6 +2,7 @@
 using Domain.Models.Entities;
 using LMS.Shared.DTOs.AuthDtos;
 using LMS.Shared.DTOs.EntitiesDtos;
+using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 
 namespace LMS.Infractructure.Data;
 

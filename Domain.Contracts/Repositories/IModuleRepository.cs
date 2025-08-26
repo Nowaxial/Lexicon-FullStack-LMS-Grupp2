@@ -9,7 +9,7 @@ namespace Domain.Contracts.Repositories
 {
     public interface IModuleRepository : IRepositoryBase<Module>
     {
-        Task<IEnumerable<Module>> GetAllAsync(bool trackChanges = false);
+        Task<IEnumerable<Module>> GetAllAsync(int courseId, bool trackChanges = false);
         Task<Module?> GetByIdAsync(int id, bool trackChanges = false);
         Task<IEnumerable<Module>> GetByCourseAsync(int courseId, bool trackChanges = false);
     }
