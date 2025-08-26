@@ -14,7 +14,10 @@ public class MapperProfile : Profile
         CreateMap<UserRegistrationDto, ApplicationUser>();
         
         // Map Entity → DTO
-        CreateMap<Course, CourseDto>();
+        CreateMap<Course, CourseDto>()
+            .ForMember(d => d.Modules,
+                opt => opt.MapFrom(s => s.Modules.OrderBy(m => m.Starts)));
+
         CreateMap<Module, ModuleDto>()
           .ForMember(dest => dest.ActivitiesCount, opt => opt.MapFrom(src => src.Activities.Count))
           .ForMember(dest => dest.DocumentsCount, opt => opt.MapFrom(src => src.Documents.Count));

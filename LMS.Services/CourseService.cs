@@ -14,18 +14,29 @@ namespace LMS.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<IEnumerable<Course>> GetAllCoursesAsync(bool trackChanges = false)
+        public async Task<IEnumerable<Course>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false)
         {
-            return await _unitOfWork.CourseRepository
-                .FindAll(trackChanges)
-                .ToListAsync();
+            var query = _unitOfWork.CourseRepository.FindAll(trackChanges);
+
+            if (includeModules)
+            {
+                query = query.Include(c => c.Modules);
+            }
+
+            return await query.ToListAsync();
         }
 
-        public async Task<Course?> GetCourseByIdAsync(int id, bool trackChanges = false)
+        public async Task<Course?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false)
         {
-            return await _unitOfWork.CourseRepository
-                .FindByCondition(c => c.Id == id, trackChanges)
-                .FirstOrDefaultAsync();
+            var query = _unitOfWork.CourseRepository
+                .FindByCondition(c => c.Id == id, trackChanges);
+
+            if (includeModules)
+            {
+                query = query.Include(c => c.Modules);
+            }
+
+            return await query.FirstOrDefaultAsync();
         }
 
         public async Task CreateCourseAsync(Course course)

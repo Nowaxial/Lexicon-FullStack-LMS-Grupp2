@@ -21,17 +21,17 @@ namespace LMS.Presentation.Controllers
 
         // GET: api/courses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses()
+        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules)
         {
-            var courses = await _courseService.GetAllCoursesAsync();
+            var courses = await _courseService.GetAllCoursesAsync(includeModules);
             return Ok(_mapper.Map<IEnumerable<CourseDto>>(courses));
         }
 
         // GET: api/courses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<CourseDto>> GetCourse(int id)
+        public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules)
         {
-            var course = await _courseService.GetCourseByIdAsync(id);
+            var course = await _courseService.GetCourseByIdAsync(id, includeModules);
             if (course == null)
                 return NotFound();
 
