@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
@@ -11,6 +12,8 @@ namespace Domain.Models.Entities
     public class Module
     {
         public int Id { get; set; }
+        [Required(ErrorMessage = "Modul name is a required field.")]
+        [MaxLength(60, ErrorMessage = "Maximum length for the Name is 60 characters.")]
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public DateOnly Starts { get; set; }

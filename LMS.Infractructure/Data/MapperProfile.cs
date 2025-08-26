@@ -13,9 +13,17 @@ public class MapperProfile : Profile
         
         // Map Entity → DTO
         CreateMap<Course, CourseDto>();
+        CreateMap<Module, ModuleDto>()
+          .ForMember(dest => dest.ActivitiesCount, opt => opt.MapFrom(src => src.Activities.Count))
+          .ForMember(dest => dest.DocumentsCount, opt => opt.MapFrom(src => src.Documents.Count));
 
         // Map DTO → Entity
         CreateMap<CreateCourseDto, Course>();
         CreateMap<UpdateCourseDto, Course>();
+
+        CreateMap<ModuleCreateDto, Module>();
+        CreateMap<ModuleUpdateDto, Module>();
     }
+
+
 }
