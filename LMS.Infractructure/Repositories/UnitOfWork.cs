@@ -1,6 +1,5 @@
 ﻿using Domain.Contracts.Repositories;
 using LMS.Infractructure.Data;
-using LMS.Infractructure.Repositories;
 
 public class UnitOfWork : IUnitOfWork, IDisposable
 {
@@ -12,6 +11,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     public ICourseRepository CourseRepository => _courseRepository.Value;
 
     public IModuleRepository ModuleRepository => _moduleRepository.Value;
+    
     public UnitOfWork(ApplicationDbContext context, Lazy<ICourseRepository> courseRepository, Lazy<IModuleRepository> moduleRepository)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));

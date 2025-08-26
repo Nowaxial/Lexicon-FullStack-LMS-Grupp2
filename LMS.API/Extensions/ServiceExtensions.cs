@@ -90,7 +90,7 @@ public static class ServiceExtensions
             new Lazy<ICourseRepository>(() => provider.GetRequiredService<ICourseRepository>()));
         services.AddScoped(provider => 
             new Lazy<IModuleRepository>(() => provider.GetRequiredService<IModuleRepository>()));
-
+      
         services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
 
