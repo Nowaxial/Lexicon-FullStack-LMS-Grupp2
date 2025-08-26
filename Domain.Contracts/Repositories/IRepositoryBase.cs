@@ -1,5 +1,5 @@
 ﻿namespace Domain.Contracts.Repositories;
-public interface IRepositoryBase<T> : IInternalRepositoryBase<T> where T : class
+public interface IRepositoryBase<T>
 {
     void Create(T entity);
     void Update(T entity);
