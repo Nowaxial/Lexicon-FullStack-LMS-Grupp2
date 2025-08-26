@@ -6,10 +6,12 @@ using System.Linq.Expressions;
 namespace LMS.Infractructure.Repositories;
 public abstract class RepositoryBase<T> : IRepositoryBase<T>, IInternalRepositoryBase<T> where T : class //Do Entitybase
 {
+    protected ApplicationDbContext Context { get; set; }
     protected DbSet<T> DbSet { get; }
 
     public RepositoryBase(ApplicationDbContext context)
     {
+        Context = context;
         DbSet = context.Set<T>();
     }
 
