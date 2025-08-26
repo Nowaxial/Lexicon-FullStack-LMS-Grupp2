@@ -63,6 +63,11 @@ builder.Services.AddHttpClient("LmsAPIClient", cfg =>
     cfg.BaseAddress = new Uri(builder.Configuration["LmsAPIBaseAddress"] ?? throw new Exception("LmsAPIBaseAddress is missing."));
 });
 
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri(builder.Configuration["BffClient"]
+        ?? throw new Exception("BffClient is missing."))
+});
 // Password hashing configuration
 builder.Services.Configure<PasswordHasherOptions>(options => options.IterationCount = 10000);
 

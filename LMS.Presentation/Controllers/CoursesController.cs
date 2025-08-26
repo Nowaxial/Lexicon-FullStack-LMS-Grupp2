@@ -1,21 +1,24 @@
 ﻿using AutoMapper;
 using Domain.Models.Entities;
 using LMS.Shared.DTOs.EntitiesDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
+using System.Security.Claims;
 
 namespace LMS.Presentation.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/courses")]
+    [Authorize]
     public class CoursesController : ControllerBase
     {
-        private readonly ICourseService _courseService;
+        private readonly IServiceManager _services;
         private readonly IMapper _mapper;
 
-        public CoursesController(ICourseService courseService, IMapper mapper)
+        public CoursesController(IServiceManager services, IMapper mapper)
         {
-            _courseService = courseService;
+            _services = services;
             _mapper = mapper;
         }
 
@@ -23,7 +26,7 @@ namespace LMS.Presentation.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules)
         {
-            var courses = await _courseService.GetAllCoursesAsync(includeModules);
+            var courses = await _services.CourseService.GetAllCoursesAsync();
             return Ok(_mapper.Map<IEnumerable<CourseDto>>(courses));
         }
 
@@ -31,11 +34,22 @@ namespace LMS.Presentation.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules)
         {
-            var course = await _courseService.GetCourseByIdAsync(id, includeModules);
+            var course = await _services.CourseService.GetCourseByIdAsync(id);
             if (course == null)
                 return NotFound();
 
             return Ok(_mapper.Map<CourseDto>(course));
+        }
+
+        [HttpGet("my")]
+        public async Task<ActionResult<IEnumerable<CourseDto>>> GetMyCourses()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized();
+
+            var courses = await _services.CourseService.GetCoursesByUserAsync(userId);
+            return Ok(courses);
         }
 
         // POST: api/courses
@@ -44,7 +58,7 @@ namespace LMS.Presentation.Controllers
         {
             var course = _mapper.Map<Course>(dto);
 
-            await _courseService.CreateCourseAsync(course);
+            await _services.CourseService.CreateCourseAsync(course);
 
             var result = _mapper.Map<CourseDto>(course);
             return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, result);
@@ -54,12 +68,12 @@ namespace LMS.Presentation.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCourse(int id, UpdateCourseDto dto)
         {
-            var course = await _courseService.GetCourseByIdAsync(id);
+            var course = await _services.CourseService.GetCourseByIdAsync(id);
             if (course == null)
                 return NotFound();
 
             _mapper.Map(dto, course);
-            await _courseService.UpdateCourseAsync(course);
+            await _services.CourseService.UpdateCourseAsync(course);
 
             return NoContent();
         }
@@ -68,12 +82,37 @@ namespace LMS.Presentation.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(int id)
         {
-            var course = await _courseService.GetCourseByIdAsync(id);
+            var course = await _services.CourseService.GetCourseByIdAsync(id);
             if (course == null)
                 return NotFound();
 
-            await _courseService.DeleteCourseAsync(course);
+            await _services.CourseService.DeleteCourseAsync(course);
             return NoContent();
         }
+
+        // POST: api/courses/{courseId}/users/{userId}
+        [HttpPost("{courseId}/users/{userId}")]
+        public async Task<IActionResult> AssignUserToCourse(int courseId, string userId)
+        {
+            var ok = await _services.CourseService.AssignUserAsync(courseId, userId);
+            return ok ? NoContent() : NotFound();
+        }
+
+        // DELETE: api/courses/{courseId}/users/{userId}
+        [HttpDelete("{courseId}/users/{userId}")]
+        public async Task<IActionResult> UnassignUserFromCourse(int courseId, string userId)
+        {
+            var ok = await _services.CourseService.UnassignUserAsync(courseId, userId);
+            return ok ? NotFound() : NoContent();
+        }
+
+        // GET: api/courses/{courseId}/users
+        [HttpGet("{courseId}/users")]
+        public async Task<IActionResult> GetUsersForCourse(int courseId)
+        {
+            var users = await _services.CourseService.GetUsersForCourseAsync(courseId);
+            return Ok(users);
+        }
+
     }
 }

@@ -10,27 +10,28 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.ConfigureSql(builder.Configuration);
-        builder.Services.ConfigureControllers();
+        // --- Services ---
+        builder.Services.ConfigureSql(builder.Configuration);      // DbContext
+        builder.Services.ConfigureControllers();                   // MVC / JSON options
 
-        builder.Services.AddRepositories();
-        builder.Services.AddServiceLayer();
+        builder.Services.AddRepositories();                        // UoW + repos (Course, Module, etc.)
+        builder.Services.AddServiceLayer();                        // AuthService, CourseService, UserService (+ Lazy<>)
 
-        builder.Services.ConfigureAuthentication(builder.Configuration);
-        builder.Services.ConfigureIdentity();
+        // Identity first, then Authentication (JWT)
+        builder.Services.ConfigureIdentity();                      // Identity + UserManager/RoleManager
+        builder.Services.ConfigureAuthentication(builder.Configuration); // JWT bearer
+
+        builder.Services.AddAuthorization();                       // (policies optional; attributes will work)
 
         builder.Services.AddHostedService<DataSeedHostingService>();
         builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
-        builder.Services.ConfigureCors();
-        builder.Services.ConfigureOpenApi();
-
-
+        builder.Services.ConfigureCors();                          // "AllowAll"
+        builder.Services.ConfigureOpenApi();                       // Swagger + JWT support (per your extension)
 
         var app = builder.Build();
 
-
-        // Configure the HTTP request pipeline.
-        app.ConfigureExceptionHandler();
+        // --- Middleware ---
+        app.ConfigureExceptionHandler();                           // global error handler
 
         if (app.Environment.IsDevelopment())
         {
@@ -42,7 +43,8 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-        app.UseCors("AllowAll"); 
+
+        app.UseCors("AllowAll");
 
         app.UseAuthentication();
         app.UseAuthorization();
@@ -51,5 +53,9 @@ public class Program
 
         app.Run();
 
+        //hej
+
+
+        //Showing
     }
 }
