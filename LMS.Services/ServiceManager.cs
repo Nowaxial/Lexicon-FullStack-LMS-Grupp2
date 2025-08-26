@@ -23,6 +23,6 @@ public class ServiceManager : IServiceManager
         _authService = authService;
         _courseService = courseService;
         _moduleService = moduleService;
-        _projActivityService = projActivityService)
+        _projActivityService = projActivityService;
     }
 }
