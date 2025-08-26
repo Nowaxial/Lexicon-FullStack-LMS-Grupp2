@@ -89,11 +89,14 @@ public static class ServiceExtensions
 
         // Concrete repo
         services.AddScoped<ICourseRepository, CourseRepository>();
+        services.AddScoped<ICourseUserRepository, CourseUserRepository>();
         services.AddScoped<IModuleRepository, ModuleRepository>();
 
         // Lazy<ICourseRepository> for UnitOfWork ctor
         services.AddScoped(provider =>
             new Lazy<ICourseRepository>(() => provider.GetRequiredService<ICourseRepository>()));
+        services.AddScoped(provider =>
+            new Lazy<ICourseUserRepository>(() => provider.GetRequiredService<ICourseUserRepository>()));
 
         services.AddScoped(provider =>
            new Lazy<IModuleRepository>(() => provider.GetRequiredService<IModuleRepository>()));
@@ -107,10 +110,20 @@ public static class ServiceExtensions
     {
         services.AddScoped<IServiceManager, ServiceManager>();
 
+        // Auth
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped(provider => new Lazy<IAuthService>(() => provider.GetRequiredService<IAuthService>()));
+        services.AddScoped(provider => new Lazy<IAuthService>(() =>
+            provider.GetRequiredService<IAuthService>()));
 
+        // Courses
         services.AddScoped<ICourseService, CourseService>();
+        services.AddScoped(provider => new Lazy<ICourseService>(() =>
+            provider.GetRequiredService<ICourseService>()));
+
+        // NEW: Users
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped(provider => new Lazy<IUserService>(() =>
+            provider.GetRequiredService<IUserService>()));
         services.AddScoped(provider => new Lazy<ICourseService>(() => provider.GetRequiredService<ICourseService>()));
 
         services.AddScoped<IModuleService, ModuleService>();
