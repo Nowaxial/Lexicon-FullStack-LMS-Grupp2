@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace LMS.Presentation.Controllers
 {
     [ApiController]
-    [Route("api/course/{courseId}/Modules")]
+    [Route("api/course/{courseId:int}/Modules")]
     public class ModuleController : ControllerBase
     {
         private readonly IServiceManager _serviceManager;

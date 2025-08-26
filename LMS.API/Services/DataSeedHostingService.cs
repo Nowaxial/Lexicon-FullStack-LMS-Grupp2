@@ -34,7 +34,7 @@ public class DataSeedHostingService : IHostedService
         if (!env.IsDevelopment()) return;
 
         dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        if (await dbContext.Users.AnyAsync(cancellationToken)) return;
+        //if (await dbContext.Users.AnyAsync(cancellationToken)) return;
 
         userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -44,7 +44,10 @@ public class DataSeedHostingService : IHostedService
 
         try
         {
-            var courses = new[]
+            // --- Course seeding (only if missing) ---
+            if (!await dbContext.Courses.AnyAsync(cancellationToken))
+            {
+                var courses = new[]
 {
                 new Course { Name = "C# Fundamentals", Description = "Introduktion till C#", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-7)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(60)) },
                 new Course { Name = "JavaScript Basics", Description = "Grundläggande JavaScript", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-14)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(45)) },
@@ -53,11 +56,15 @@ public class DataSeedHostingService : IHostedService
                 new Course { Name = "ASP.NET Core", Description = "Webbutveckling med ASP.NET Core", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-35)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(15)) }
             };
 
-            dbContext.Courses.AddRange(courses);
-            await AddRolesAsync([TeacherRole, StudentRole]);
-            await AddDemoUsersAsync();
-            await AddUsersAsync(20);
-            await dbContext.SaveChangesAsync();
+                dbContext.Courses.AddRange(courses);
+                await AddRolesAsync([TeacherRole, StudentRole]);
+                await AddDemoUsersAsync();
+                await AddUsersAsync(20);
+                await dbContext.SaveChangesAsync();
+            }
+
+            // --- Module seeding (per course) ---
+            await EnsureModulesSeededAsync(dbContext, cancellationToken);
 
             logger.LogInformation("Seed complete");
         }
@@ -68,6 +75,63 @@ public class DataSeedHostingService : IHostedService
         }
     }
 
+    private static async Task EnsureModulesSeededAsync(ApplicationDbContext context, CancellationToken ct)
+    {
+        var faker = new Faker("sv");
+
+        var courses = await context.Courses
+            .AsNoTracking()
+            .Select(c => new { c.Id, c.Starts, c.Ends, c.Name })
+            .ToListAsync(ct);
+
+        var newModules = new List<Module>();
+
+        foreach (var c in courses)
+        {
+            // Skip if this course already has modules
+            bool hasModules = await context.Modules.AnyAsync(m => m.CourseId == c.Id, ct);
+            if (hasModules) continue;
+
+            int segments = new Faker().Random.Int(3, 5);
+            int totalDays = Math.Max((c.Ends.DayNumber - c.Starts.DayNumber + 1), 7);
+
+            int baseLen = Math.Max(3, totalDays / segments);
+            int remainder = totalDays - baseLen * segments;
+
+            var currentStart = c.Starts;
+
+            for (int i = 1; i <= segments; i++)
+            {
+                int len = baseLen + (remainder-- > 0 ? 1 : 0);
+                var currentEnd = currentStart.AddDays(len - 1);
+
+                // Clamp to course end without relying on '>' operator
+                if (currentEnd.DayNumber > c.Ends.DayNumber)
+                    currentEnd = c.Ends;
+
+                newModules.Add(new Module
+                {
+                    CourseId = c.Id,
+                    Name = $"Modul {i}: {CapFirst(faker.Hacker.Verb())} {faker.Hacker.Noun()}",
+                    Description = faker.Lorem.Sentences(2),
+                    Starts = currentStart,
+                    Ends = currentEnd
+                });
+
+                if (currentEnd.DayNumber >= c.Ends.DayNumber) break;
+                currentStart = currentEnd.AddDays(1);
+            }
+        }
+
+        if (newModules.Count > 0)
+        {
+            context.Modules.AddRange(newModules);
+            await context.SaveChangesAsync(ct);
+        }
+    }
+
+    private static string CapFirst(string s)
+        => string.IsNullOrWhiteSpace(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
     private async Task AddRolesAsync(string[] rolenames)
     {
         foreach (string rolename in rolenames)

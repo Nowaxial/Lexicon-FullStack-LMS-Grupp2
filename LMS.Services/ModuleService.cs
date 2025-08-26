@@ -23,7 +23,7 @@ namespace LMS.Services
 
         public async Task<IEnumerable<ModuleDto>> GetAllModulesAsync(int courseId, bool trackChanges = false)
         {
-            var modules = await _unitOfWork.ModuleRepository.GetAllAsync(courseId, trackChanges);
+            var modules = await _unitOfWork.ModuleRepository.GetByCourseAsync(courseId, trackChanges);
             return _mapper.Map<IEnumerable<ModuleDto>>(modules);
         }
 
