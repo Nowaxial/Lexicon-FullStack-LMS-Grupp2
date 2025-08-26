@@ -14,6 +14,8 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
         public DateOnly Starts { get; init; }
         public DateOnly Ends { get; init; }
 
+        public int CourseId { get; init; }
+
         public int ActivitiesCount { get; init; }
         public int DocumentsCount { get; init; }
 
