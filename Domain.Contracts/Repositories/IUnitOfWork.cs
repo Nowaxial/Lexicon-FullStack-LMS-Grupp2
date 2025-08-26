@@ -7,6 +7,8 @@ namespace Domain.Contracts.Repositories
         ICourseRepository CourseRepository { get; }
         IModuleRepository ModuleRepository { get; }
 
+        IProjActivityRepository ProjActivityRepository { get; }
+
         Task CompleteAsync();
     }
 }
