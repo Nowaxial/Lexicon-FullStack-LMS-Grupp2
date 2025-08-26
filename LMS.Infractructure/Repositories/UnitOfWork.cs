@@ -10,6 +10,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     private readonly Lazy<IModuleRepository> _moduleRepository;
 
     public ICourseRepository CourseRepository => _courseRepository.Value;
+
     public IModuleRepository ModuleRepository => _moduleRepository.Value;
     public UnitOfWork(ApplicationDbContext context, Lazy<ICourseRepository> courseRepository, Lazy<IModuleRepository> moduleRepository)
     {
