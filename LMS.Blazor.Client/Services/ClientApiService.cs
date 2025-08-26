@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
+using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 namespace LMS.Blazor.Client.Services;
@@ -10,6 +12,16 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
+    private async Task HandleUnauthorized(HttpResponseMessage response)
+    {
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden ||
+            response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            navigationManager.NavigateTo("AccessDenied");
+        }
+    }
+
+    // ---------------- GET ----------------
     public async Task<T?> CallApiAsync<T>(string endpoint, CancellationToken ct = default)
     {
         await authReady.WaitAsync();
@@ -17,15 +29,71 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
         var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"proxy?endpoint={endpoint}");
         var response = await httpClient.SendAsync(requestMessage, ct);
 
-        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden
-           || response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            navigationManager.NavigateTo("AccessDenied");
-        }
-
+        await HandleUnauthorized(response);
         response.EnsureSuccessStatusCode();
 
-        var demoDtos = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), _jsonSerializerOptions, CancellationToken.None) ?? default;
-        return demoDtos;
+        return await JsonSerializer.DeserializeAsync<T>(
+            await response.Content.ReadAsStreamAsync(),
+            _jsonSerializerOptions,
+            CancellationToken.None
+        ) ?? default;
+    }
+
+    // ---------------- POST ----------------
+    public async Task<T?> PostAsync<T>(string endpoint, object data, CancellationToken ct = default)
+    {
+        await authReady.WaitAsync();
+
+        var json = JsonSerializer.Serialize(data, _jsonSerializerOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"proxy?endpoint={endpoint}")
+        {
+            Content = content
+        };
+
+        var response = await httpClient.SendAsync(requestMessage, ct);
+        response.EnsureSuccessStatusCode();
+
+        return await JsonSerializer.DeserializeAsync<T>(
+            await response.Content.ReadAsStreamAsync(),
+            _jsonSerializerOptions,
+            ct
+        );
+    }
+
+    //// ---------------- PUT ----------------
+    //public async Task<T?> PutAsync<T>(string endpoint, object data, CancellationToken ct = default)
+    //{
+    //    await authReady.WaitAsync();
+
+    //    var json = JsonSerializer.Serialize(data, _jsonSerializerOptions);
+    //    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+    //    var requestMessage = new HttpRequestMessage(HttpMethod.Put, $"proxy?endpoint={endpoint}")
+    //    {
+    //        Content = content
+    //    };
+
+    //    var response = await httpClient.SendAsync(requestMessage, ct);
+    //    response.EnsureSuccessStatusCode();
+
+    //    return await JsonSerializer.DeserializeAsync<T>(
+    //        await response.Content.ReadAsStreamAsync(),
+    //        _jsonSerializerOptions,
+    //        ct
+    //    );
+    //}
+
+    // ---------------- DELETE ----------------
+    public async Task<bool> DeleteAsync(string endpoint, CancellationToken ct = default)
+    {
+        await authReady.WaitAsync();
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"proxy?endpoint={endpoint}");
+        var response = await httpClient.SendAsync(requestMessage, ct);
+
+        await HandleUnauthorized(response);
+        return response.IsSuccessStatusCode;
     }
 }

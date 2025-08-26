@@ -13,7 +13,12 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ITokenStorage _tokenService = tokenService;
 
-    public async Task<IActionResult> Proxy(string endpoint, CancellationToken ct)
+    // Support GET, POST, PUT, DELETE automatically
+    [HttpGet]
+    [HttpPost]
+    [HttpPut]
+    [HttpDelete]
+    public async Task<IActionResult> Proxy([FromQuery] string endpoint, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -23,37 +28,45 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
 
         var accessToken = await _tokenService.GetAccessTokenAsync(userId);
 
-        //ToDo: Before continue look for expired accesstoken and call refresh enpoint instead.
-        //Tip: Look in TokenStorageService whats allready implementet
-        //Use delegatinghandler on HttpClient or separate service to extract this logic!
-
         if (string.IsNullOrEmpty(accessToken))
             return Unauthorized();
 
         var client = _httpClientFactory.CreateClient("LmsAPIClient");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
+        // Build target URI
         var queryString = Request.QueryString.Value;
         var targetUriBuilder = new UriBuilder($"{client.BaseAddress}{endpoint}");
         if (!string.IsNullOrEmpty(queryString))
         {
             var queryParams = HttpUtility.ParseQueryString(queryString);
-            queryParams.Remove("endpoint");
-
+            queryParams.Remove("endpoint"); // don’t forward "endpoint" itself
             targetUriBuilder.Query = queryParams.ToString();
         }
 
+        // Forward request
         var method = new HttpMethod(Request.Method);
         var requestMessage = new HttpRequestMessage(method, targetUriBuilder.Uri);
 
         if (method != HttpMethod.Get && Request.ContentLength > 0)
         {
             requestMessage.Content = new StreamContent(Request.Body);
+
+            // Copy content headers (so Content-Type like application/json is preserved)
+            foreach (var header in Request.Headers)
+            {
+                if (header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                {
+                    requestMessage.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                }
+            }
         }
 
+        // Copy regular headers
         foreach (var header in Request.Headers)
         {
-            if (!header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase))
+            if (!header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase) &&
+                !header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase)) // skip content headers (already copied)
             {
                 requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
@@ -61,8 +74,7 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
 
         var response = await client.SendAsync(requestMessage, ct);
 
-        return !response.IsSuccessStatusCode
-            ? Unauthorized()
-            : StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+        var content = await response.Content.ReadAsStringAsync();
+        return StatusCode((int)response.StatusCode, content);
     }
 }
