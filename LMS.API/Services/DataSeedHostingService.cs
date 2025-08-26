@@ -214,10 +214,10 @@ public class DataSeedHostingService : IHostedService
             }
         }
 
-        await AddCourseUserRelationship(users);
+        await AddCourseUserRelationship(users,5);
     }
 
-    private async Task AddCourseUserRelationship(IEnumerable<ApplicationUser> users)
+    private async Task AddCourseUserRelationship(IEnumerable<ApplicationUser> users, int usersNoCourse = 0)
     {
         //Only 1 course per user. 
         var courses = await dbContext.Courses.ToListAsync();
@@ -228,7 +228,7 @@ public class DataSeedHostingService : IHostedService
             var courseUsers = new List<CourseUser>();
 
             // Pick 5 random users to NOT assign to any course
-            var excludedUsers = users.OrderBy(u => Guid.NewGuid()).Take(5).ToHashSet();
+            var excludedUsers = users.OrderBy(u => Guid.NewGuid()).Take(usersNoCourse).ToHashSet();
 
             foreach (var user in users)
             {
