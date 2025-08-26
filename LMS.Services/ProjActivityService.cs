@@ -38,9 +38,10 @@ namespace LMS.Services
             return _mapper.Map<IEnumerable<ProjActivityDto>>(activities);
         }
 
-        public async Task<ProjActivityDto> CreateActivityAsync(CreateProjActivityDto dto)
+        public async Task<ProjActivityDto> CreateActivityAsync(int moduleId, CreateProjActivityDto dto)
         {
             var activity = _mapper.Map<ProjActivity>(dto);
+            activity.ModuleId = moduleId;
             _unitOfWork.ProjActivityRepository.Create(activity);
             await _unitOfWork.CompleteAsync();
             return _mapper.Map<ProjActivityDto>(activity);
