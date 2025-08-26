@@ -25,8 +25,6 @@ public class Program
         builder.Services.ConfigureOpenApi();
 
 
-        //Hello World
-       
 
         var app = builder.Build();
 
@@ -53,9 +51,5 @@ public class Program
 
         app.Run();
 
-        //hej
-
-
-        //Showing
     }
 }
