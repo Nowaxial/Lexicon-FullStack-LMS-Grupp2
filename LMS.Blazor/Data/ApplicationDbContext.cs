@@ -12,9 +12,4 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         base.OnModelCreating(builder);
         builder.Entity<ApplicationUser>().ToTable("ApplicationUser");
     }
-
-    public static implicit operator ApplicationDbContext(LMS.Infractructure.Data.ApplicationDbContext v)
-    {
-        throw new NotImplementedException();
-    }
 }
