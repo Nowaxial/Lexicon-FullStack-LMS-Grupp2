@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using Domain.Models.Entities;
-using LMS.Shared.DTOs.EntitiesDtos;
+﻿using LMS.Shared.DTOs.EntitiesDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
@@ -14,67 +12,58 @@ namespace LMS.Presentation.Controllers
     public class CoursesController : ControllerBase
     {
         private readonly IServiceManager _services;
-        private readonly IMapper _mapper;
 
-        public CoursesController(IServiceManager services, IMapper mapper)
+        public CoursesController(IServiceManager services)
         {
             _services = services;
-            _mapper = mapper;
         }
 
         // GET: api/courses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules)
+        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules, bool trackChanges = false)
         {
-            var courses = await _services.CourseService.GetAllCoursesAsync(includeModules);
-            return Ok(_mapper.Map<IEnumerable<CourseDto>>(courses));
+            var coursesDtos = await _services.CourseService.GetAllCoursesAsync(includeModules, trackChanges);
+            return Ok(coursesDtos);
         }
 
         // GET: api/courses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules)
+        public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules, bool trackChanges = false)
         {
-            var course = await _services.CourseService.GetCourseByIdAsync(id, includeModules);
-            if (course == null)
-                return NotFound();
-
-            return Ok(_mapper.Map<CourseDto>(course));
+            var courseDto = await _services.CourseService.GetCourseByIdAsync(id, includeModules, trackChanges);
+            if (courseDto == null) return NotFound();
+            return Ok(courseDto);
         }
 
+        // GET: api/courses/my
         [HttpGet("my")]
-        public async Task<ActionResult<IEnumerable<CourseDto>>> GetMyCourses()
+        public async Task<ActionResult<IEnumerable<CourseDto>>> GetMyCourses(bool includeModules, bool trackChanges = false)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
-                return Unauthorized();
+            if (userId == null) return Unauthorized();
 
-            var courses = await _services.CourseService.GetCoursesByUserAsync(userId);
-            return Ok(courses);
+            var coursesDtos = await _services.CourseService.GetCoursesByUserAsync(userId, includeModules, trackChanges);
+            return Ok(coursesDtos);
         }
 
         // POST: api/courses
         [HttpPost]
         public async Task<ActionResult<CourseDto>> CreateCourse(CreateCourseDto dto)
         {
-            var course = _mapper.Map<Course>(dto);
-
-            await _services.CourseService.CreateCourseAsync(course);
-
-            var result = _mapper.Map<CourseDto>(course);
-            return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, result);
+            var created = await _services.CourseService.CreateCourseAsync(dto);
+            return CreatedAtAction(nameof(GetCourse), new { id = created.Id }, created);
         }
 
         // PUT: api/courses/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCourse(int id, UpdateCourseDto dto)
         {
-            var course = await _services.CourseService.GetCourseByIdAsync(id);
-            if (course == null)
-                return NotFound();
+            // check existence using DTO service
+            var existing = await _services.CourseService.GetCourseByIdAsync(id);
+            if (existing == null) return NotFound();
 
-            _mapper.Map(dto, course);
-            await _services.CourseService.UpdateCourseAsync(course);
-
+            var ok = await _services.CourseService.UpdateCourseAsync(id, dto);
+            if (!ok) return StatusCode(500, "A problem happened while handling your request.");
             return NoContent();
         }
 
@@ -82,11 +71,11 @@ namespace LMS.Presentation.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(int id)
         {
-            var course = await _services.CourseService.GetCourseByIdAsync(id);
-            if (course == null)
-                return NotFound();
+            var existing = await _services.CourseService.GetCourseByIdAsync(id);
+            if (existing == null) return NotFound();
 
-            await _services.CourseService.DeleteCourseAsync(course);
+            var ok = await _services.CourseService.DeleteCourseAsync(id);
+            if (!ok) return StatusCode(500, "A problem happened while handling your request.");
             return NoContent();
         }
 
@@ -113,6 +102,5 @@ namespace LMS.Presentation.Controllers
             var users = await _services.CourseService.GetUsersForCourseAsync(courseId);
             return Ok(users);
         }
-
     }
 }

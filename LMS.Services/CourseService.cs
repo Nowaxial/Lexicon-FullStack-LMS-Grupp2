@@ -1,4 +1,5 @@
-﻿using Domain.Contracts.Repositories;
+﻿using AutoMapper;
+using Domain.Contracts.Repositories;
 using Domain.Models.Entities;
 using LMS.Shared.DTOs.EntitiesDtos;
 using Microsoft.EntityFrameworkCore;
@@ -9,89 +10,102 @@ namespace LMS.Services
     public class CourseService : ICourseService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public CourseService(IUnitOfWork unitOfWork)
+        public CourseService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<Course>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false)
+        // ---------- Reads ----------
+        public async Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false)
         {
             var query = _unitOfWork.CourseRepository.FindAll(trackChanges);
-
             if (includeModules)
-            {
                 query = query.Include(c => c.Modules);
-            }
 
-            return await query.ToListAsync();
+            var courses = await query.ToListAsync();
+            return _mapper.Map<IEnumerable<CourseDto>>(courses);
         }
 
-        public async Task<Course?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false)
+        public async Task<CourseDto?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false)
         {
-            var query = _unitOfWork.CourseRepository
-                .FindByCondition(c => c.Id == id, trackChanges);
-
+            var query = _unitOfWork.CourseRepository.FindByCondition(c => c.Id == id, trackChanges);
             if (includeModules)
-            {
                 query = query.Include(c => c.Modules);
-            }
 
-            return await query.FirstOrDefaultAsync();
+            var course = await query.FirstOrDefaultAsync();
+            return course is null ? null : _mapper.Map<CourseDto>(course);
         }
 
-        public async Task<IEnumerable<Course>> GetCoursesByUserAsync(string userId)
+        public async Task<IEnumerable<CourseDto>> GetCoursesByUserAsync(string userId, bool includeModules = false, bool trackChanges = false)
         {
             var query = _unitOfWork.CourseUserRepository
-                .FindByCondition(cu => cu.UserId == userId, trackChanges: false)
+                .FindByCondition(cu => cu.UserId == userId, false)
                 .Include(cu => cu.Course)
                 .Select(cu => cu.Course);
 
-            return await query.ToListAsync();
+            if (!trackChanges)
+                query = query.AsNoTracking();
+
+            if (includeModules)
+                query = query.Include(c => c.Modules);
+
+            var courses = await query.ToListAsync();
+            return _mapper.Map<IEnumerable<CourseDto>>(courses);
         }
 
-        public async Task CreateCourseAsync(Course course)
+        // ---------- Writes ----------
+        public async Task<CourseDto> CreateCourseAsync(CreateCourseDto dto)
         {
+            var course = _mapper.Map<Course>(dto);
             _unitOfWork.CourseRepository.Create(course);
             await _unitOfWork.CompleteAsync();
+            return _mapper.Map<CourseDto>(course);
         }
 
-        public async Task UpdateCourseAsync(Course course)
+        public async Task<bool> UpdateCourseAsync(int id, UpdateCourseDto dto)
         {
+            var course = await _unitOfWork.CourseRepository
+                .FindByCondition(c => c.Id == id, true)
+                .FirstOrDefaultAsync();
+
+            if (course is null) return false;
+
+            _mapper.Map(dto, course);
             _unitOfWork.CourseRepository.Update(course);
             await _unitOfWork.CompleteAsync();
+            return true;
         }
 
-        public async Task DeleteCourseAsync(Course course)
+        public async Task<bool> DeleteCourseAsync(int id)
         {
+            var course = await _unitOfWork.CourseRepository
+                .FindByCondition(c => c.Id == id, true)
+                .FirstOrDefaultAsync();
+
+            if (course is null) return false;
+
             _unitOfWork.CourseRepository.Delete(course);
             await _unitOfWork.CompleteAsync();
+            return true;
         }
 
-        // ------------------------
-        // NEW: Enrollment features
-        // ------------------------
-
+        // ---------- Enrollments ----------
         public async Task<bool> AssignUserAsync(int courseId, string userId)
         {
-            // Ensure course exists
             var courseExists = await _unitOfWork.CourseRepository
-                .FindByCondition(c => c.Id == courseId, trackChanges: false)
+                .FindByCondition(c => c.Id == courseId, false)
                 .AnyAsync();
             if (!courseExists) return false;
 
-            // Idempotent: if already assigned, do nothing
             var already = await _unitOfWork.CourseUserRepository
-                .FindByCondition(cu => cu.CourseId == courseId && cu.UserId == userId, trackChanges: true)
+                .FindByCondition(cu => cu.CourseId == courseId && cu.UserId == userId, true)
                 .AnyAsync();
             if (already) return true;
 
-            _unitOfWork.CourseUserRepository.Create(new CourseUser
-            {
-                CourseId = courseId,
-                UserId = userId
-            });
-
+            _unitOfWork.CourseUserRepository.Create(new CourseUser { CourseId = courseId, UserId = userId });
             await _unitOfWork.CompleteAsync();
             return true;
         }
@@ -105,26 +119,18 @@ namespace LMS.Services
             if (ids.Length == 0) return 0;
 
             var courseExists = await _unitOfWork.CourseRepository
-                .FindByCondition(c => c.Id == courseId, trackChanges: false)
+                .FindByCondition(c => c.Id == courseId, false)
                 .AnyAsync();
             if (!courseExists) return 0;
 
-            var already = await _unitOfWork.CourseUserRepository
-                .FindByCondition(cu => cu.CourseId == courseId && ids.Contains(cu.UserId), trackChanges: false)
+            var existing = await _unitOfWork.CourseUserRepository
+                .FindByCondition(cu => cu.CourseId == courseId && ids.Contains(cu.UserId), false)
                 .Select(cu => cu.UserId)
                 .ToListAsync();
 
-            var toAdd = ids.Except(already, StringComparer.Ordinal).ToList();
-            if (toAdd.Count == 0) return 0;
-
+            var toAdd = ids.Except(existing, StringComparer.Ordinal).ToList();
             foreach (var uid in toAdd)
-            {
-                _unitOfWork.CourseUserRepository.Create(new CourseUser
-                {
-                    CourseId = courseId,
-                    UserId = uid
-                });
-            }
+                _unitOfWork.CourseUserRepository.Create(new CourseUser { CourseId = courseId, UserId = uid });
 
             await _unitOfWork.CompleteAsync();
             return toAdd.Count;
@@ -133,9 +139,8 @@ namespace LMS.Services
         public async Task<bool> UnassignUserAsync(int courseId, string userId)
         {
             var cu = await _unitOfWork.CourseUserRepository
-                .FindByCondition(x => x.CourseId == courseId && x.UserId == userId, trackChanges: true)
+                .FindByCondition(x => x.CourseId == courseId && x.UserId == userId, true)
                 .FirstOrDefaultAsync();
-
             if (cu is null) return false;
 
             _unitOfWork.CourseUserRepository.Delete(cu);
@@ -143,29 +148,26 @@ namespace LMS.Services
             return true;
         }
 
-        public async Task<bool> IsUserInCourseAsync(int courseId, string userId)
-        {
-            return await _unitOfWork.CourseUserRepository
-                .FindByCondition(cu => cu.CourseId == courseId && cu.UserId == userId, trackChanges: false)
+        public Task<bool> IsUserInCourseAsync(int courseId, string userId) =>
+            _unitOfWork.CourseUserRepository
+                .FindByCondition(cu => cu.CourseId == courseId && cu.UserId == userId, false)
                 .AnyAsync();
-        }
 
         public async Task<IEnumerable<UserDto>> GetUsersForCourseAsync(int courseId)
         {
-            var query = _unitOfWork.CourseUserRepository
-                .FindByCondition(cu => cu.CourseId == courseId, trackChanges: false)
-                .Include(cu => cu.User) // ApplicationUser navigation
+            var users = await _unitOfWork.CourseUserRepository
+                .FindByCondition(cu => cu.CourseId == courseId, false)
+                .Include(cu => cu.User)
                 .Select(cu => new UserDto
                 {
                     Id = cu.User.Id,
                     UserName = cu.User.UserName,
                     Email = cu.User.Email,
-                    FullName = null
-                });
+                    FullName = null // you opted not to store FullName
+                })
+                .ToListAsync();
 
-            return await query.ToListAsync();
+            return users;
         }
-
-
     }
 }
