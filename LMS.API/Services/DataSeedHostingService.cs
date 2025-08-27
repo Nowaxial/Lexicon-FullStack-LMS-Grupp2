@@ -66,6 +66,9 @@ public class DataSeedHostingService : IHostedService
             // --- Module seeding (per course) ---
             await EnsureModulesSeededAsync(dbContext, cancellationToken);
 
+            // --- Activity seeding (per module) ---
+            await EnsureActivitiesSeededAsync(dbContext, cancellationToken);
+
             logger.LogInformation("Seed complete");
         }
         catch (Exception ex)
@@ -74,6 +77,70 @@ public class DataSeedHostingService : IHostedService
             throw;
         }
     }
+
+    private static async Task EnsureActivitiesSeededAsync(ApplicationDbContext context, CancellationToken ct)
+    {
+        // Hämta moduler som saknar aktiviteter
+        var modules = await context.Modules
+            .Where(m => !context.Activities.Any(a => a.ModuleId == m.Id))
+            .Select(m => new { m.Id, m.Starts, m.Ends, m.Name })
+            .ToListAsync(ct);
+
+        if (!modules.Any()) return;
+
+        var newActivities = new List<ProjActivity>();
+        var activityTypes = new[] { "E-learning", "Föreläsning", "Övning", "Inlämningsuppgift", "Övrigt" };
+        var activityTitles = new[]
+        {
+            "Introduktion", "Grunderna", "Praktisk övning", "Fördjupade studier",
+            "Workshop", "Labbtillfälle", "Projektarbete", "Repetition",
+            "Kunskapskontroll", "Hemuppgift", "Grupparbete", "Redovisning"
+        };
+
+        var random = new Random();
+
+        foreach (var module in modules)
+        {
+            var moduleStart = module.Starts.ToDateTime(TimeOnly.MinValue);
+            var moduleEnd = module.Ends.ToDateTime(TimeOnly.MaxValue);
+
+            // Create 3-5 activities per modul
+            int activityCount = random.Next(3, 6);
+
+            for (int i = 0; i < activityCount; i++)
+            {
+                // Random start and duration within module
+                var totalHours = (moduleEnd - moduleStart).TotalHours;
+                var startOffset = random.NextDouble() * totalHours * 0.8;
+                var activityStart = moduleStart.AddHours(startOffset);
+
+                // 1-5 hours duration for each activity
+                var duration = random.Next(1, 5);
+                var activityEnd = activityStart.AddHours(duration);
+
+                // Don't go past module end
+                if (activityEnd > moduleEnd)
+                    activityEnd = moduleEnd;
+
+                newActivities.Add(new ProjActivity
+                {
+                    ModuleId = module.Id,
+                    Title = $"{activityTitles[random.Next(activityTitles.Length)]} {i + 1}",
+                    Description = $"Aktivitet för {module.Name} - Session {i + 1}",
+                    Type = activityTypes[random.Next(activityTypes.Length)],
+                    Starts = activityStart,
+                    Ends = activityEnd
+                });
+            }
+        }
+
+        if (newActivities.Count > 0)
+        {
+            context.Activities.AddRange(newActivities);
+            await context.SaveChangesAsync(ct);
+        }
+    }
+
 
     private static async Task EnsureModulesSeededAsync(ApplicationDbContext context, CancellationToken ct)
     {
