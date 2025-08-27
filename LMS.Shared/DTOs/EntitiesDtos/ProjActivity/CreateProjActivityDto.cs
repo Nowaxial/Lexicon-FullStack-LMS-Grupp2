@@ -12,6 +12,5 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ProjActivity
         public string? Description { get; set; }
         public DateTime Starts { get; set; }
         public DateTime Ends { get; set; }
-        public int ModuleId { get; set; }
     }
 }
