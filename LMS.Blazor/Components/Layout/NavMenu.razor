@@ -1,6 +1,7 @@
-@implements IDisposable
+﻿@implements IDisposable
 @inject NavigationManager NavigationManager
 @using Microsoft.AspNetCore.Components.Authorization
+
 
 <nav class="navbar navbar-expand-md navbar-dark lms-navbar" role="navigation" aria-label="Main">
     <div class="container-fluid lms-container">
@@ -31,13 +32,16 @@
                     <NavLink class="nav-link lms-link" href="#">Aktiviteter</NavLink>
                 </li>
 
-                <AuthorizeView>
+                <AuthorizeView Roles="Teacher,Admin">
                     <Authorized>
                         <li class="nav-item">
                             <NavLink class="nav-link lms-link" href="demoauth">DemoAuth</NavLink>
                         </li>
                         <li class="nav-item">
                             <NavLink class="nav-link lms-link" href="demoauth2">Load data OnInitialized</NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link lms-link" href="teacher">Lärare</NavLink>
                         </li>
                     </Authorized>
                 </AuthorizeView>
@@ -51,7 +55,7 @@
                             <NavLink class="nav-link lms-user" href="Account/Register">Register</NavLink>
                         </li>
                         <li class="nav-item">
-                            <NavLink class="nav-link lms-user" href="Account/Login">Login</NavLink>
+                            <NavLink class="nav-link lms-user" href="Account/Login">Logga in</NavLink>
                         </li>
                     </NotAuthorized>
 
@@ -68,7 +72,7 @@
                                 <NavLink href="/" class="">
                                 <input type="hidden" name="ReturnUrl" />
                                 </NavLink>
-                                <button type="submit" class="btn btn-link nav-link">Logout</button>
+                                <button type="submit" class="btn btn-link nav-link">Logga ut</button>
                             </form>
                            
                         </li>
