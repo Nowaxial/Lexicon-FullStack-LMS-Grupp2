@@ -1,21 +1,22 @@
-﻿using Domain.Models.Entities;
-using LMS.Shared.DTOs.EntitiesDtos;
+﻿using LMS.Shared.DTOs.EntitiesDtos;
 
 namespace Service.Contracts
 {
     public interface ICourseService
     {
-        Task<IEnumerable<Course>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false);
-        Task<Course?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false);
-        Task<IEnumerable<Course>> GetCoursesByUserAsync(string userId);
+        // Reads
+        Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false);
+        Task<CourseDto?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false);
+        Task<IEnumerable<CourseDto>> GetCoursesByUserAsync(string userId, bool includeModules = false, bool trackChanges = false);
 
-        Task CreateCourseAsync(Course course);
-        Task UpdateCourseAsync(Course course);
-        Task DeleteCourseAsync(Course course);
+        // Writes
+        Task<CourseDto> CreateCourseAsync(CreateCourseDto dto);
+        Task<bool> UpdateCourseAsync(int id, UpdateCourseDto dto);
+        Task<bool> DeleteCourseAsync(int id);
 
-        // NEW
+        // Enrollments
         Task<bool> AssignUserAsync(int courseId, string userId);
-        Task<int> AssignUsersAsync(int courseId, IEnumerable<string> userIds); // optional bulk
+        Task<int> AssignUsersAsync(int courseId, IEnumerable<string> userIds);
         Task<bool> UnassignUserAsync(int courseId, string userId);
         Task<bool> IsUserInCourseAsync(int courseId, string userId);
         Task<IEnumerable<UserDto>> GetUsersForCourseAsync(int courseId);
