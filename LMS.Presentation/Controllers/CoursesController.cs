@@ -26,7 +26,7 @@ namespace LMS.Presentation.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules)
         {
-            var courses = await _services.CourseService.GetAllCoursesAsync();
+            var courses = await _services.CourseService.GetAllCoursesAsync(includeModules);
             return Ok(_mapper.Map<IEnumerable<CourseDto>>(courses));
         }
 
@@ -34,7 +34,7 @@ namespace LMS.Presentation.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules)
         {
-            var course = await _services.CourseService.GetCourseByIdAsync(id);
+            var course = await _services.CourseService.GetCourseByIdAsync(id, includeModules);
             if (course == null)
                 return NotFound();
 
