@@ -1,0 +1,132 @@
+﻿@page "/teacher"
+@attribute [Authorize(Roles = "Teacher,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Lärare</PageTitle>
+
+<AuthorizeView Roles="Teacher,Admin" Context="ctx">
+    <Authorized>
+        <section class="container-fluid lms-container teacher-wrap py-4">
+            <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
+
+            <div class="row g-4">
+                <!-- Left column -->
+                <div class="col-12 col-lg-8">
+                    <!-- Mina kurser -->
+                    <article class="dash-card">
+                        <div class="d-flex flex-column">
+                        <div class="dash-card__head">Mina kurser</div>
+
+                        @foreach (var c in Courses)
+                        {
+                            <div class="course-row">
+                                <div class="course-row__title">@c.Title</div>
+                                <div class="course-row__meta">
+                                    <div><span class="label">Elever</span><span>@c.Students</span></div>
+                                    <div><span class="label">Skapare</span><span>@c.Author</span></div>
+                                    <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
+                                </div>
+                                <div class="course-row__actions">
+                                    <NavLink class="btn btn-sm btn-outline-light" href="@($"kurser/{c.Slug}")">Visa</NavLink>
+                                    <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="@($"kurser/{c.Slug}/edit")">Hantera</NavLink>
+                                </div>
+                            </div>
+                            }
+                            <div>
+                            <NavLink class="btn btn-sm btn-outline-secondary float-end" href="kurser/skapa">Skapa kurs</NavLink>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- Kommande aktiviteter -->
+                    <article class="dash-card mt-4">
+                        <div class="dash-card__head">Kommande aktiviteter</div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless align-middle m-0">
+                                <thead>
+                                    <tr class="text-muted">
+                                        <th style="width: 120px;">Datum</th>
+                                        <th>Aktivitet</th>
+                                        <th style="width: 160px;" class="text-end">Kurs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var a in Upcoming)
+                                    {
+                                        <tr class="rowline">
+                                            <td class="text-nowrap">@a.Date.ToString("dd MMM")</td>
+                                            <td>@a.Title</td>
+                                            <td class="text-end text-nowrap">
+                                                <a href="@($"kurser/{a.CourseSlug}")" class="link-accent">@a.Course</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- Right column -->
+                <div class="col-12 col-lg-4">
+                    <!-- Snabba åtgärder -->
+                    <article class="dash-card-muted">
+                        <div class="dash-card__head">Snabba åtgärder</div>
+                        <ul class="action-list list-unstyled m-0">
+                            <li><a href="kurser/skapa" class="action-link">Skapa kurs</a></li>
+                            <li><a href="moduler/skapa" class="action-link">Skapa modul</a></li>
+                            <li><a href="aktiviteter/skapa" class="action-link ">Skapa aktivitet</a></li>
+                        </ul>
+                    </article>
+
+                    <!-- Moduler -->
+                    <article class="dash-card mt-4">
+                        <div class="dash-card__head d-flex justify-content-between align-items-center">
+                            <span>Moduler</span>
+                            
+                        </div>
+                        <ul class="list-unstyled m-0">
+                            @foreach (var m in Modules)
+                            {
+                                <li class="module-row">
+                                    <div class="fw-semibold">@m.Title</div>
+                                    <small class="text-muted">@m.Items st uppgifter</small>
+                                </li>
+                            }
+                        </ul>
+                    </article>
+
+                    <!-- Nya inlämningar -->
+                    <article class="dash-card mt-4">
+                        <div class="dash-card__head">Nya inlämningar</div>
+                        <ul class="inbox list-unstyled m-0">
+                            @foreach (var s in Submissions)
+                            {
+                                <li class="inbox-row">
+                                    <div>
+                                        <div class="fw-semibold">@s.Assignment</div>
+                                        <small class="text-muted">@s.Student · @s.Status</small>
+                                    </div>
+                                    <a class="chev" href="@($"inlamningar/{s.Id}")">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="container py-5">
+            <div class="alert alert-warning">Du måste vara inloggad som lärare för att visa denna sida.</div>
+            <NavLink class="btn btn-primary" href="Account/Login">Logga in</NavLink>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
