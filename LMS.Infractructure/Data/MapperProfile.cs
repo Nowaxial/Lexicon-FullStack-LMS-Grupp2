@@ -19,8 +19,11 @@ public class MapperProfile : Profile
                 opt => opt.MapFrom(s => s.Modules.OrderBy(m => m.Starts)));
 
         CreateMap<Module, ModuleDto>()
-          .ForMember(dest => dest.ActivitiesCount, opt => opt.MapFrom(src => src.Activities.Count))
-          .ForMember(dest => dest.DocumentsCount, opt => opt.MapFrom(src => src.Documents.Count));
+          .ForMember(d => d.Activities,
+          opt => opt.MapFrom(s => s.Activities.OrderBy(m => m.Starts)));
+          
+          //.ForMember(dest => dest.ActivitiesCount, opt => opt.MapFrom(src => src.Activities.Count))
+          //.ForMember(dest => dest.DocumentsCount, opt => opt.MapFrom(src => src.Documents.Count));
 
         // Map DTO → Entity
         CreateMap<CreateCourseDto, Course>();

@@ -11,8 +11,8 @@ namespace Service.Contracts
     public interface IModuleService
     {
 
-        Task<IEnumerable<ModuleDto>> GetAllModulesAsync(int courseId, bool trackChanges = false);
-        Task<ModuleDto?> GetModuleByIdAsync(int id, bool trackChanges = false);
+        Task<IEnumerable<ModuleDto>> GetAllModulesAsync(int courseId, bool includeActivities = false,  bool trackChanges = false);
+        Task<ModuleDto?> GetModuleByIdAsync(int id, bool includeActivities = false, bool trackChanges = false);
 
         Task<ModuleDto> CreateModuleAsync(int courseId, ModuleCreateDto dto);
         Task<bool> UpdateModuleAsync(int id, ModuleUpdateDto dto);

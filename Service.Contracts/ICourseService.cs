@@ -5,9 +5,9 @@ namespace Service.Contracts
     public interface ICourseService
     {
         // Reads
-        Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false);
-        Task<CourseDto?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false);
-        Task<IEnumerable<CourseDto>> GetCoursesByUserAsync(string userId, bool includeModules = false, bool trackChanges = false);
+        Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool includeModules = false, bool includeActivities = false, bool trackChanges = false);
+        Task<CourseDto?> GetCourseByIdAsync(int id, bool includeModules = false, bool includeActivities = false, bool trackChanges = false);
+        Task<IEnumerable<CourseDto>> GetCoursesByUserAsync(string userId, bool includeModules = false, bool includeActivities = false, bool trackChanges = false);
 
         // Writes
         Task<CourseDto> CreateCourseAsync(CreateCourseDto dto);

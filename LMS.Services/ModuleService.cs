@@ -21,15 +21,15 @@ namespace LMS.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<ModuleDto>> GetAllModulesAsync(int courseId, bool trackChanges = false)
+        public async Task<IEnumerable<ModuleDto>> GetAllModulesAsync(int courseId, bool includeActivities = false, bool trackChanges = false)
         {
-            var modules = await _unitOfWork.ModuleRepository.GetByCourseAsync(courseId, trackChanges);
+            var modules = await _unitOfWork.ModuleRepository.GetByCourseAsync(courseId, includeActivities, trackChanges);
             return _mapper.Map<IEnumerable<ModuleDto>>(modules);
         }
 
-        public async Task<ModuleDto?> GetModuleByIdAsync(int id, bool trackChanges = false)
+        public async Task<ModuleDto?> GetModuleByIdAsync(int id, bool includeActivities = false,  bool trackChanges = false)
         {
-            var module = await _unitOfWork.ModuleRepository.GetByIdAsync(id, trackChanges);
+            var module = await _unitOfWork.ModuleRepository.GetByIdAsync(id, includeActivities, trackChanges);
             return _mapper.Map<ModuleDto?>(module);
         }
         public async Task<ModuleDto> CreateModuleAsync(int courseId, ModuleCreateDto dto)

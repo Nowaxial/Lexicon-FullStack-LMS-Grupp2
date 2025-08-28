@@ -15,28 +15,42 @@ namespace LMS.Infractructure.Repositories
     {
         public ModuleRepository(ApplicationDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<Module>> GetAllAsync(int courseId, bool trackChanges = false)
+        public async Task<IEnumerable<Module>> GetAllAsync(int courseId, bool includeActivities = false,  bool trackChanges = false)
         {
-            return await FindAll(trackChanges)
-                //.OrderBy(m => m.Starts)
-                .ToListAsync();
+
+            var query = FindAll(trackChanges);
+
+                if (includeActivities)
+                {
+                query = query.Include(m => m.Activities);
+                                 //.Include(m => m.Documents);
+                }
+
+            return await query.ToListAsync();
         }
 
-        public async Task<Module?> GetByIdAsync(int id, bool trackChanges = false)
+        public async Task<Module?> GetByIdAsync(int id, bool includeActivities = false, bool trackChanges = false)
         {
-            return await FindByCondition(m => m.Id.Equals(id), trackChanges)
-                .Include(m => m.Activities)
-                .Include(m => m.Documents)
-                .FirstOrDefaultAsync();
+            var query = FindByCondition(m => m.Id.Equals(id), trackChanges);
+
+            if (includeActivities)
+            {
+                query = query.Include(m => m.Activities);
+                             //.Include(m => m.Documents);
+            }
+
+            return await query.FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Module>> GetByCourseAsync(int courseId, bool trackChanges = false)
+        public async Task<IEnumerable<Module>> GetByCourseAsync(int courseId, bool includeActivities = false, bool trackChanges = false)
         {
-            return await FindByCondition(m => m.CourseId.Equals(courseId), trackChanges)
-                .Include(m => m.Activities)
-                .Include(m => m.Documents)
-                .OrderBy(m => m.Starts)
-                .ToListAsync();
+            var query = FindByCondition(m => m.CourseId.Equals(courseId), trackChanges);
+
+            if (includeActivities) {
+                query = query.Include(m => m.Activities);
+                //.Include(m => m.Documents);
+            }
+            return await query.ToListAsync();
         }
     }
 }
