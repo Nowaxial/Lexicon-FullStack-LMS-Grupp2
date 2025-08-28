@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,5 +21,8 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
         public int DocumentsCount { get; init; }
 
         public IEnumerable<CourseDto>? Courses { get; init; }
+        public List<ProjActivityDto> Activities { get; init; } = new();
+
+
     }
 }

@@ -23,17 +23,17 @@ namespace LMS.Presentation.Controllers
 
         // GET: api/Modules
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ModuleDto>>> GetModules(int courseId)
+        public async Task<ActionResult<IEnumerable<ModuleDto>>> GetModules(int courseId, bool includeActivities)
         {
-            var modules = await _serviceManager.ModuleService.GetAllModulesAsync(courseId);
+            var modules = await _serviceManager.ModuleService.GetAllModulesAsync(courseId, includeActivities);
             return Ok(modules);
         }
 
         // GET: api/Modules/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<ModuleDto>> GetModule(int courseId, int id)
+        public async Task<ActionResult<ModuleDto>> GetModule(int courseId, int id, bool includeActivities)
         {
-            var module = await _serviceManager.ModuleService.GetModuleByIdAsync(id);
+            var module = await _serviceManager.ModuleService.GetModuleByIdAsync(id, includeActivities);
             if (module == null || module.CourseId != courseId)
                 return NotFound();
 

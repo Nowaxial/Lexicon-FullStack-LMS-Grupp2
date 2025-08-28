@@ -20,17 +20,17 @@ namespace LMS.Presentation.Controllers
 
         // GET: api/courses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules, bool trackChanges = false)
+        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules, bool includeActivities, bool trackChanges = false)
         {
-            var coursesDtos = await _services.CourseService.GetAllCoursesAsync(includeModules, trackChanges);
+            var coursesDtos = await _services.CourseService.GetAllCoursesAsync(includeModules, includeActivities, trackChanges);
             return Ok(coursesDtos);
         }
 
         // GET: api/courses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules, bool trackChanges = false)
+        public async Task<ActionResult<CourseDto>> GetCourse(int id, bool includeModules, bool includeActivities, bool trackChanges = false)
         {
-            var courseDto = await _services.CourseService.GetCourseByIdAsync(id, includeModules, trackChanges);
+            var courseDto = await _services.CourseService.GetCourseByIdAsync(id, includeModules, includeActivities, trackChanges);
             if (courseDto == null) return NotFound();
             return Ok(courseDto);
         }

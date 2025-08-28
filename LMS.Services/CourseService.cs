@@ -19,27 +19,44 @@ namespace LMS.Services
         }
 
         // ---------- Reads ----------
-        public async Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool includeModules = false, bool trackChanges = false)
+        public async Task<IEnumerable<CourseDto>> GetAllCoursesAsync(bool includeModules = false, bool includeActivities = false, bool trackChanges = false)
         {
             var query = _unitOfWork.CourseRepository.FindAll(trackChanges);
             if (includeModules)
+            {
                 query = query.Include(c => c.Modules);
+
+                if (includeActivities)
+                {
+                    query = query.Include(c => c.Modules)
+                                 .ThenInclude(m => m.Activities);
+                }
+                
+            }
 
             var courses = await query.ToListAsync();
             return _mapper.Map<IEnumerable<CourseDto>>(courses);
         }
 
-        public async Task<CourseDto?> GetCourseByIdAsync(int id, bool includeModules = false, bool trackChanges = false)
+        public async Task<CourseDto?> GetCourseByIdAsync(int id, bool includeModules = false, bool includeActivities = false, bool trackChanges = false)
         {
             var query = _unitOfWork.CourseRepository.FindByCondition(c => c.Id == id, trackChanges);
             if (includeModules)
+            {
                 query = query.Include(c => c.Modules);
+
+                if (includeActivities)
+                {
+                    query = query.Include(c => c.Modules)
+                                 .ThenInclude(m => m.Activities);
+                }
+            }
 
             var course = await query.FirstOrDefaultAsync();
             return course is null ? null : _mapper.Map<CourseDto>(course);
         }
 
-        public async Task<IEnumerable<CourseDto>> GetCoursesByUserAsync(string userId, bool includeModules = false, bool trackChanges = false)
+        public async Task<IEnumerable<CourseDto>> GetCoursesByUserAsync(string userId, bool includeModules = false, bool includeActivities = false, bool trackChanges = false)
         {
             var query = _unitOfWork.CourseUserRepository
                 .FindByCondition(cu => cu.UserId == userId, false)
