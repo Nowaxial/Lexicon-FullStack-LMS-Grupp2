@@ -39,8 +39,13 @@ namespace LMS.Presentation.Controllers
         [HttpGet("my")]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetMyCourses(bool includeModules, bool trackChanges = false)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
+            var userId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("sub") ??
+                User.FindFirstValue(ClaimTypes.Name);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
 
             var coursesDtos = await _services.CourseService.GetCoursesByUserAsync(userId, includeModules, trackChanges);
             return Ok(coursesDtos);

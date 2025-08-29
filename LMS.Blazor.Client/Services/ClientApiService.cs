@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -12,13 +13,21 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    private async Task HandleUnauthorized(HttpResponseMessage response)
+    private bool HandleUnauthorized(HttpResponseMessage response)
     {
-        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden ||
-            response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            navigationManager.NavigateTo("AccessDenied");
+            // Send them to login and stop processing
+            var returnUrl = Uri.EscapeDataString(navigationManager.Uri);
+            navigationManager.NavigateTo($"authentication/login?returnUrl={returnUrl}", forceLoad: true);
+            return true; // handled
         }
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            navigationManager.NavigateTo("AccessDenied", forceLoad: true);
+            return true; // handled
+        }
+        return false; // not handled
     }
 
     // ---------------- GET ----------------
@@ -29,14 +38,20 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
         var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"proxy?endpoint={endpoint}");
         var response = await httpClient.SendAsync(requestMessage, ct);
 
-        await HandleUnauthorized(response);
+        if (HandleUnauthorized(response)) return default;   // for T? methods
         response.EnsureSuccessStatusCode();
 
-        return await JsonSerializer.DeserializeAsync<T>(
-            await response.Content.ReadAsStreamAsync(),
-            _jsonSerializerOptions,
-            CancellationToken.None
-        ) ?? default;
+        if (response.StatusCode == HttpStatusCode.NoContent)
+            return default;
+
+        response.EnsureSuccessStatusCode();
+
+        // Handle empty/whitespace payloads safely
+        var payload = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(payload))
+            return default;
+
+        return JsonSerializer.Deserialize<T>(payload, _jsonSerializerOptions);
     }
 
     // ---------------- POST ----------------
@@ -53,13 +68,21 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
         };
 
         var response = await httpClient.SendAsync(requestMessage, ct);
+
+        if (HandleUnauthorized(response)) return default;
         response.EnsureSuccessStatusCode();
 
-        return await JsonSerializer.DeserializeAsync<T>(
-            await response.Content.ReadAsStreamAsync(),
-            _jsonSerializerOptions,
-            ct
-        );
+        if (response.StatusCode == HttpStatusCode.NoContent)
+            return default;
+
+        response.EnsureSuccessStatusCode();
+
+        // Handle empty/whitespace payloads safely
+        var payload = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(payload))
+            return default;
+
+        return JsonSerializer.Deserialize<T>(payload, _jsonSerializerOptions);
     }
 
     //// ---------------- PUT ----------------
@@ -93,7 +116,9 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
         var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"proxy?endpoint={endpoint}");
         var response = await httpClient.SendAsync(requestMessage, ct);
 
-        await HandleUnauthorized(response);
+        if (HandleUnauthorized(response)) return default;   // for T? methods
+        response.EnsureSuccessStatusCode();
+
         return response.IsSuccessStatusCode;
     }
 }
