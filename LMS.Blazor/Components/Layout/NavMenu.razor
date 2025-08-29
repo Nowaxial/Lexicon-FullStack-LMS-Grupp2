@@ -59,7 +59,15 @@
                     <Authorized>
                         <li class="nav-item">
                             <NavLink class="nav-link lms-user" href="Account/Manage">
-                                @context.User.Identity?.Name
+                                @{
+                                    var firstName = context.User.FindFirst("FirstName")?.Value;
+                                    var lastName = context.User.FindFirst("LastName")?.Value;
+                                    var displayName = !string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName)
+                                    ? $"{firstName} {lastName}".Trim()
+                                    : context.User.Identity?.Name;
+                                }
+                                @displayName
+
                             </NavLink>
                         </li>
                         <li class="nav-item">

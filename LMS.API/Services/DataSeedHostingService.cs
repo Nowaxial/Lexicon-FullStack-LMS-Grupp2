@@ -215,13 +215,18 @@ public class DataSeedHostingService : IHostedService
         var teacher = new ApplicationUser
         {
             UserName = "teacher@test.com",
-            Email = "teacher@test.com"
+            Email = "teacher@test.com",
+            FirstName = "Julia",
+            LastName = "Svensson"
         };
         
         var student = new ApplicationUser
         {
             UserName = "student@test.com",
-            Email = "student@test.com"
+            Email = "student@test.com",
+            FirstName = "Anders",
+            LastName = "Andersson"
+            
         };
 
         await AddUserToDb([teacher, student]);
@@ -247,8 +252,8 @@ public class DataSeedHostingService : IHostedService
                 e.UserName = e.Email.Split('@')[0]; // use part before @
                 e.NormalizedUserName = e.UserName.ToUpper();
 
-                var hasher = new PasswordHasher<ApplicationUser>();
-                e.PasswordHash = hasher.HashPassword(e, "Password123!");
+                e.FirstName = f.Name.FirstName();
+                e.LastName = f.Name.LastName();
 
                 e.EmailConfirmed = f.Random.Bool();
                 e.PhoneNumber = f.Phone.PhoneNumber();

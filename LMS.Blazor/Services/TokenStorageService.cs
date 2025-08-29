@@ -1,5 +1,9 @@
 ﻿using LMS.Shared.DTOs.AuthDtos;
 using System.Collections.Concurrent;
+using Domain.Models.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
+using System.Security.Claims;
 
 namespace LMS.Blazor.Services;
 
@@ -62,4 +66,26 @@ public class TokenStorageService : ITokenStorage
     }
 }
 
+public class CustomUserClaimsPrincipalFactory : UserClaimsPrincipalFactory<ApplicationUser, IdentityRole>
+{
+    public CustomUserClaimsPrincipalFactory(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        IOptions<IdentityOptions> options)
+        : base(userManager, roleManager, options)
+    {
+    }
 
+    protected override async Task<ClaimsIdentity> GenerateClaimsAsync(ApplicationUser user)
+    {
+        var identity = await base.GenerateClaimsAsync(user);
+
+        if (!string.IsNullOrEmpty(user.FirstName))
+            identity.AddClaim(new Claim("FirstName", user.FirstName));
+
+        if (!string.IsNullOrEmpty(user.LastName))
+            identity.AddClaim(new Claim("LastName", user.LastName));
+
+        return identity;
+    }
+}
