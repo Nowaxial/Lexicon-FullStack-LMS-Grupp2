@@ -16,7 +16,7 @@
 <PageTitle>Logga in – Lexicon LMS</PageTitle>
 
 <style>
-    /* Figma → CSS */
+    
     :root {
         --lms-primary: #004651;
         --lms-border: #D9D9D9;
@@ -33,18 +33,19 @@
     }
 
     .login-card {
-        width: 422px;
+        width: 350px;
         background: #FFFFFF;
         border: 1px solid var(--lms-border);
         border-radius: 8px;
-        padding: 46px 40px;
+        padding: 30px 25px;
     }
+
 </style>
 
-<div class="container d-flex justify-content-center align-items-center min-vh-100">
+<div class="container d-flex justify-content-center align-items-center py-5" style="min-height: 65vh;">
     <div class="login-card shadow">
-        <h1 class="font-inter fw-bold mb-1" style="font-size:40px;color:var(--lms-primary);">LEXICON</h1>
-        <h2 class="font-inter fw-bold mb-2" style="font-size:36px;color:var(--lms-primary);">Logga in</h2>
+        <h1 class="font-inter fw-bold mb-1" style="font-size:32px;color:var(--lms-primary);">LEXICON</h1>
+        <h2 class="font-inter fw-bold mb-2" style="font-size:28px;color:var(--lms-primary);">Logga in</h2>
         <p class="font-inter fw-semibold mb-4" style="font-size:20px;color:#124342;">Välkommen tillbaka till Lexicon LMS</p>
 
         <!-- Global alert -->
@@ -65,7 +66,7 @@
                 <InputText @bind-Value="Input.Email"
                            class="form-control"
                            placeholder="E-post"
-                           style="height:61px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
+                           style="height:56px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
 
@@ -76,7 +77,7 @@
                            @bind-Value="Input.Password"
                            class="form-control"
                            placeholder="Lösenord"
-                           style="height:59px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
+                           style="height:56px;font-size:20px;color:var(--lms-input-text);border-color:var(--lms-border);border-radius:8px;" />
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
 
@@ -86,7 +87,7 @@
                     <InputCheckbox @bind-Value="Input.RememberMe" class="form-check-input" id="remember" />
                     <label class="form-check-label font-inter" style="font-size:20px;" for="remember">Kom ihåg mig</label>
                 </div>
-                <a href="Account/ForgotPassword" class="font-instrument link-primary" style="font-size:18px;color:var(--lms-link);text-decoration:none;">Glömt lösenord?</a>
+                <a href="Account/ForgotPassword" class="font-instrument link-primary" style="font-size:19px;color:var(--lms-link);text-decoration:none;">Glömt lösenord?</a>
             </div>
 
             <!-- Submit button -->
@@ -96,17 +97,5 @@
                 Logga in
             </button>
         </EditForm>
-
-        <div class="text-center mt-3">
-            <small class="font-instrument" style="font-size:18px;color:#212529;">
-                Har du inget konto?
-                <a href="Account/Register"
-                   class="link-primary font-instrument"
-                   style="font-size:18px;color:var(--lms-link);text-decoration:none;">
-                    Registrera dig
-                </a>
-            </small>
-        </div>
     </div>
 </div>
-
