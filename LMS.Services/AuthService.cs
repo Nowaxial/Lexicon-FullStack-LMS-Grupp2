@@ -79,22 +79,28 @@ public class AuthService : IAuthService
         ArgumentNullException.ThrowIfNull(user);
 
         var claims = new List<Claim>()
-        {
-            new Claim(ClaimTypes.Name, user.UserName!),
+    {
+        new Claim(ClaimTypes.Name, user.UserName!),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             //Add more if needed
-        };
+    };
+
+        if (!string.IsNullOrEmpty(user.FirstName))
+            claims.Add(new Claim("FirstName", user.FirstName));
+
+        if (!string.IsNullOrEmpty(user.LastName))
+            claims.Add(new Claim("LastName", user.LastName));
 
         var roles = await userManager.GetRolesAsync(user);
-
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
         return claims;
-
     }
+
+
 
     private SigningCredentials GetSigningCredentials()
     {
@@ -132,10 +138,13 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(userDto);
 
-        user = await userManager.FindByNameAsync(userDto.UserName);
+        // Sök med både email och username
+        user = await userManager.FindByEmailAsync(userDto.UserName)
+               ?? await userManager.FindByNameAsync(userDto.UserName);
 
         return user != null && await userManager.CheckPasswordAsync(user, userDto.Password);
     }
+
 
     public async Task<TokenDto> RefreshTokenAsync(TokenDto token)
     {

@@ -1,5 +1,4 @@
 using Domain.Models.Entities;
-using LMS.Blazor;
 using LMS.Blazor.Client.Services;
 using LMS.Blazor.Components;
 using LMS.Blazor.Components.Account;
@@ -54,6 +53,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+// Custom claims principal factory for FirstName and LastName showing on navbar and profile
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, CustomUserClaimsPrincipalFactory>();
+
 // Email sender (no-op in this case)
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -68,6 +70,7 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri(builder.Configuration["BffClient"]
         ?? throw new Exception("BffClient is missing."))
 });
+
 // Password hashing configuration
 builder.Services.Configure<PasswordHasherOptions>(options => options.IterationCount = 10000);
 
