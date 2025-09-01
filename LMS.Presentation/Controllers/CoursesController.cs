@@ -20,6 +20,7 @@ namespace LMS.Presentation.Controllers
 
         // GET: api/courses
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules, bool includeActivities, bool trackChanges = false)
         {
             var coursesDtos = await _services.CourseService.GetAllCoursesAsync(includeModules, includeActivities, trackChanges);

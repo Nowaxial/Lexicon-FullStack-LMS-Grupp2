@@ -1,9 +1,11 @@
-using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.Common;
 using LMS.Shared.DTOs.EntitiesDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
+using System.Net.Http.Json;
+
 
 namespace LMS.Blazor.Client.Pages
 {
@@ -13,6 +15,8 @@ namespace LMS.Blazor.Client.Pages
         [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
 
+        [Inject] private IHttpClientFactory HttpFactory { get; set; } = default!; 
+       
         private List<CourseDto>? courses;
         private CourseDto? selectedCourse;
 
@@ -90,19 +94,21 @@ namespace LMS.Blazor.Client.Pages
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
 
-            if (user.IsInRole("Teacher"))
+            if (user.Identity?.IsAuthenticated == true)
             {
-                courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses"))?.ToList();
-            }
-            else if (user.IsInRole("Student"))
-            {
-                courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses/my"))?.ToList();
+                // Logged in → OK to use proxy-backed service
+                courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses"))?.ToList()
+                          ?? new();
             }
             else
             {
-                courses = new();
+                // Guest → BYPASS proxy (avoids AuthReady timeout)
+                var api = HttpFactory.CreateClient("ApiDirect");
+                courses = (await api.GetFromJsonAsync<IEnumerable<CourseDto>>("api/courses"))?.ToList()
+                          ?? new();
             }
         }
+
 
         private async Task AddCourseAsync()
         {
@@ -150,9 +156,15 @@ namespace LMS.Blazor.Client.Pages
             {
                 firstRenderDone = true;
                 isLoading = true;
-                await CallAPIAsync();
-                isLoading = false;
-                StateHasChanged();
+                try
+                {
+                    await CallAPIAsync();
+                }
+                finally
+                { 
+                    isLoading = false;
+                    StateHasChanged();
+                }
             }
         }
 

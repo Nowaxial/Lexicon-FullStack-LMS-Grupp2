@@ -8,33 +8,29 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 
-@attribute [Authorize]
+@* @attribute [Authorize] *@
+
+<PageTitle>Courses</PageTitle>
 
 <h1>Courses</h1>
 
-<button class="btn btn-primary mb-3" @onclick="CallAPIAsync">Load Courses</button>
-<AuthMessage />
+@* <button class="btn btn-primary mb-3" @onclick="CallAPIAsync">Load Courses</button>
+<AuthMessage />   *@
 
 @if (isLoading)
 {
     <p class="text-muted">Loading courses…</p>
 }
-else if (courses == null)
-{
-    <p>API not called yet</p>
-}
-else if (!courses.Any())
-{
-    <p>No courses available.</p>
-}
 else
 {
-    <AuthorizeView Roles="Teacher">
-        <Authorized Context="authContext">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+       <div class="d-flex justify-content-between align-items-center mb-3">
+        <AuthorizeView Roles="Teacher">
+            <Authorized Context="authContext">
                 <p class="mb-0">
                     You are authenticated as a <strong>Teacher</strong> and can manage courses.
                 </p>
+
+                
                 <div class="btn-group">
                     <!-- Toggle Add Course collapse -->
                     <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#addCourseCollapse">
@@ -52,7 +48,9 @@ else
                         <i class="bi bi-trash"></i> Delete Selected
                     </button>
                 </div>
-            </div>
+            </Authorized>
+        </AuthorizeView>
+       </div>
 
             <!-- Add Course -->
             <div class="collapse mb-3" id="addCourseCollapse">
@@ -165,8 +163,7 @@ else
                     }
                 </div>
             </div>
-        </Authorized>
-    </AuthorizeView>
+  
 
     <AuthorizeView Roles="Student">
         <Authorized Context="authContext">
@@ -176,9 +173,9 @@ else
         </Authorized>
     </AuthorizeView>
 
-    @if (courses == null)
+ @if (courses == null)
     {
-        <p>API not called yet</p>
+        <p>Loading...</p>
     }
     else if (!courses.Any())
     {
@@ -198,7 +195,7 @@ else
                 </li>
             }
         </ul>
-    }
+    } 
 }
 
 
