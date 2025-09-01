@@ -1,6 +1,7 @@
 ﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
+using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
@@ -20,6 +21,8 @@ namespace LMS.Blazor.Client.Pages
 
         private List<ModuleDto>? modules = new();
 
+        private readonly Dictionary<int, List<ProjActivityDto>> activitiesByModuleId = new();
+
         private bool isLoading;
         private bool firstRenderDone;
         private string? loadError;
@@ -35,7 +38,8 @@ namespace LMS.Blazor.Client.Pages
                 {
                     await LoadCourseAsync(id);
                     await LoadModulesAsync(id);
-              
+                    await LoadActivitiesForModulesAsync(modules);
+
                 }
                 catch (Exception ex) 
                 { 
@@ -62,5 +66,31 @@ namespace LMS.Blazor.Client.Pages
 
             modules = list?.ToList() ?? new();
         }
+
+        private async Task LoadActivitiesForModulesAsync(IEnumerable<ModuleDto> targetModules)
+        {
+            activitiesByModuleId.Clear();
+            if (!targetModules.Any()) return;
+
+            var tasks = targetModules.Select(async m =>
+            {
+                var acts = await ApiService.CallApiAsync<IEnumerable<ProjActivityDto>>(
+                    $"api/modules/{m.Id}/activities");
+
+                activitiesByModuleId[m.Id] = acts?
+                    .OrderBy(a => a.Starts)
+                    .ToList() ?? new List<ProjActivityDto>();
+            });
+
+            await Task.WhenAll(tasks);
+        }
+
+        private IReadOnlyList<ProjActivityDto> ActivitiesFor(int moduleId) =>
+            activitiesByModuleId.TryGetValue(moduleId, out var list)
+                ? list
+                : Array.Empty<ProjActivityDto>();
+
+        private string ModuleCollapseId(int moduleId) => $"mod-{moduleId}-acts";
+        private string ActivityCollapseId(int moduleId, int activityId) => $"mod-{moduleId}-act-{activityId}";
     }
 }
