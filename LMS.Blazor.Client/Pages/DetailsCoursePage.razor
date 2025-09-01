@@ -4,6 +4,7 @@
 @namespace LMS.Blazor.Client.Pages
 
 @using LMS.Shared.DTOs.EntitiesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 
@@ -19,7 +20,7 @@ else if (!string.IsNullOrWhiteSpace(loadError))
 }
 else if (course is null)
 {
-    <p class="text-muted">No course found.</p>
+    <p class="">Ingen kurs hittat...</p>
 }
 else
 {
@@ -27,8 +28,8 @@ else
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1 class="h3 m-0">@course.Name</h1>
             <div class="btn-group">
-                <a class="btn btn-outline-secondary" href="/teacher">Tillbaka</a>
-                <a class="btn btn-hero" href="@($"/courses/{course.Id}/edit")">Hantera</a>
+                <NavLink class="btn btn-outline-secondary" href="/teacher">Tillbaka</NavLink>
+                <NavLink class="btn btn-hero" href="@($"/courses/{course.Id}/edit")">Hantera</NavLink>
             </div>
         </div>
 
@@ -42,6 +43,38 @@ else
                 </p>
             </div>
         </div>
+
+        @if (modules is null || modules.Count == 0)
+        {
+            <div class="alert alert-info">Inga moduler i den här kursen.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                @foreach (var m in modules)
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="m-0">@m.Name</h5>
+                                <small class="text-muted">Modul #@m.Id</small>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(m.Description))
+                            {
+                                <p class="mb-2">@m.Description</p>
+                            }
+
+                            <p class="text-muted m-0">
+                                <strong>Start:</strong> @m.Starts
+                                &nbsp; | &nbsp;
+                                <strong>Slut:</strong> @m.Ends
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
 
         @* If you later extend CourseDto with Modules/Activities/Students,
            render them here. Keeping it minimal for now. *@
