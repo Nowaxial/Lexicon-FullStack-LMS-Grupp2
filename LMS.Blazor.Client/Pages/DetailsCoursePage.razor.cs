@@ -26,6 +26,8 @@ namespace LMS.Blazor.Client.Pages
         private bool isLoading;
         private bool firstRenderDone;
         private string? loadError;
+
+        private bool showActivities;
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (!firstRenderDone)
@@ -67,6 +69,7 @@ namespace LMS.Blazor.Client.Pages
             modules = list?.ToList() ?? new();
         }
 
+        private void ToggleActivities() => showActivities = !showActivities;
         private async Task LoadActivitiesForModulesAsync(IEnumerable<ModuleDto> targetModules)
         {
             activitiesByModuleId.Clear();
@@ -92,5 +95,7 @@ namespace LMS.Blazor.Client.Pages
 
         private string ModuleCollapseId(int moduleId) => $"mod-{moduleId}-acts";
         private string ActivityCollapseId(int moduleId, int activityId) => $"mod-{moduleId}-act-{activityId}";
+
+    
     }
 }

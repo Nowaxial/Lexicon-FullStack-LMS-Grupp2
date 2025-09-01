@@ -79,9 +79,11 @@ else
                             <div class="mt-3">
                                 <button class="btn btn-sm btn-outline-secondary"
                                         type="button"
+                                        @onclick="ToggleActivities"
                                         data-bs-toggle="collapse"
                                         data-bs-target="#@ModuleCollapseId(m.Id)">
-                                    Visa aktiviteter (@acts.Count)
+                                    @(showActivities ? "Dölja aktiviteter" : $"Visa aktiviteter ({@acts.Count})")
+                                   
                                 </button>
                             </div>
 
@@ -138,14 +140,10 @@ else
                                     </div>
                                 }
                             </div>
-                            <!-- /Activities accordion -->
                         </div>
                     </div>
                 }
             </div>
         }
-
-        @* If you later extend CourseDto with Modules/Activities/Students,
-           render them here. Keeping it minimal for now. *@
     </section>
 }
