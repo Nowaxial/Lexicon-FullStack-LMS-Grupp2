@@ -1,0 +1,49 @@
+﻿@page "/courses/{id:int}"
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Teacher")]
+@namespace LMS.Blazor.Client.Pages
+
+@using LMS.Shared.DTOs.EntitiesDtos
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Kurs</PageTitle>
+
+@if (isLoading)
+{
+    <p class="text-muted">Loading…</p>
+}
+else if (!string.IsNullOrWhiteSpace(loadError))
+{
+    <div class="alert alert-danger">@loadError</div>
+}
+else if (course is null)
+{
+    <p class="text-muted">No course found.</p>
+}
+else
+{
+    <section class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h3 m-0">@course.Name</h1>
+            <div class="btn-group">
+                <a class="btn btn-outline-secondary" href="/teacher">Tillbaka</a>
+                <a class="btn btn-hero" href="@($"/courses/{course.Id}/edit")">Hantera</a>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <p class="mb-2"><strong>Beskrivning:</strong><br />@course.Description</p>
+                <p class="mb-0">
+                    <strong>Start:</strong> @course.Starts
+                    &nbsp; | &nbsp;
+                    <strong>Slut:</strong> @course.Ends
+                </p>
+            </div>
+        </div>
+
+        @* If you later extend CourseDto with Modules/Activities/Students,
+           render them here. Keeping it minimal for now. *@
+    </section>
+}

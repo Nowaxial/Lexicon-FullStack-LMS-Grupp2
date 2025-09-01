@@ -1,0 +1,126 @@
+﻿
+/*:root {
+    --primary: #2B7A78;
+    --accent: #3AAFA9;
+    --text: #17252A;
+    --muted: #DEF2F1;
+    --base: #FEFFFF;
+    --bg-main: #004651; 
+}
+*/
+
+
+section.container {
+    --card-bg: #fff;
+    --muted: #6c757d;
+    --line: rgba(0,0,0,.08);
+    --shadow: 0 8px 24px rgba(0,0,0,.06);
+}
+
+    /* ===== Top bar ===== */
+    section.container > .d-flex {
+        padding: .5rem .75rem;
+        border-bottom: 1px dashed var(--line);
+        margin-bottom: 1.25rem !important;
+    }
+
+h1.h3.m-0 {
+    font-weight: 700;
+    letter-spacing: .2px;
+}
+
+/* ===== Action buttons ===== */
+.btn-group .btn {
+    --bs-btn-border-radius: .7rem;
+    padding: .4rem .75rem;
+}
+
+.btn-outline-secondary {
+    background: var(--base);
+}
+
+    .btn-outline-secondary:hover {
+        background: var(--bg-main);
+        color: var(--base);
+        box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    }
+
+
+ .btn-hero {
+    background-color: var(--bg-main);
+    border-color: var(--bg-main) ;
+    color: var(--base);
+}
+
+.btn-hero:hover,
+.btn-hero:focus {
+    background-color: var(--base);
+    color: var(--bg-main);
+    box-shadow: 0 10px 24px rgba(0,0,0,.08);
+}
+
+
+/* ===== Card ===== */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 1.25rem 1.25rem 1rem;
+}
+
+    /* Description & meta */
+    .card-body p {
+        margin-bottom: .75rem;
+        color: #2a2a2a;
+    }
+
+        .card-body p.mb-0 {
+            color: var(--muted);
+        }
+
+    .card-body strong {
+        color: #1d1d1f;
+    }
+
+    /* Inline divider between Start/Slut (already has &nbsp; | &nbsp;) */
+    .card-body p.mb-0 strong + strong {
+        margin-left: .75rem;
+    }
+
+/* Alerts */
+.alert {
+    border-radius: .8rem;
+}
+
+/* ===== Loading text ===== */
+.text-muted {
+    color: var(--muted) !important;
+    letter-spacing: .2px;
+}
+
+/* ===== Links inside the page ===== */
+a.btn,
+a.nav-link {
+    text-decoration: none;
+}
+
+/* ===== Small screens ===== */
+@media (max-width: 576px) {
+    section.container > .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: .75rem;
+    }
+
+    .btn-group {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        gap: .5rem;
+    }
+}
