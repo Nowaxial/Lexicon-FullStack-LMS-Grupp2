@@ -19,7 +19,17 @@ else
 <AuthorizeView Roles="Teacher" Context="ctx">
     <Authorized>
         <section class="container-fluid lms-container teacher-wrap py-4">
-            <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
+                <div class="d-flex flex-row justify-content-between">
+                    <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
+                <div class="side-head position-sticky">
+                    <button type="button"
+                                class="btn btn-outline-secondary btn-create">
+                        Skapa kurs
+                    </button>
+                </div>
+             </div>
+
+
             <div class="row g-4">
                 <div class="col-12 col-lg-8">
                     <article class="dash-card">
@@ -40,44 +50,10 @@ else
                                     </div>
                                 </div>
                             }
-
-                            <div>
-                                <button type="button"
-                                        class="btn btn-sm btn-outline-secondary float-end"
-                                        data-bs-toggle="collapse"
-                                        data-bs-target="#addCourseTeacherPage">
-                                    Skapa kurs
-                                </button>
-                            </div>
-
-                            <div class="collapse mb-3" id="addCourseTeacherPage">
-                                <div class="card card-body">
-                                    <EditForm Model="newCourse" OnValidSubmit="AddCourseAsync" FormName="add-course-form">
-                                        <DataAnnotationsValidator />
-                                        <ValidationSummary />
-
-                                        <div class="mb-2">
-                                            <InputText class="form-control" placeholder="Name" @bind-Value="newCourse.Name" />
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <InputTextArea class="form-control" placeholder="Description" @bind-Value="newCourse.Description" />
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <InputDate class="form-control" @bind-Value="newCourse.Starts" />
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <InputDate class="form-control" @bind-Value="newCourse.Ends" />
-                                        </div>
-
-                                        <button type="submit" class="btn btn-primary">Create Course</button>
-                                    </EditForm>
-                                </div>
-                            </div>
                         </div>
                     </article>
+
+
                         <article class="dash-card mt-4">
                             <div class="dash-card__head">Kommande aktiviteter</div>
 
@@ -194,17 +170,10 @@ else
 
                 </div>
 
-                <div class="col-12 col-lg-4">
-                    <article class="dash-card-muted">
-                        <div class="dash-card__head">Snabba åtgärder</div>
-                        <ul class="action-list list-unstyled m-0">
-                            <li><a href="kurser/skapa" class="action-link">Skapa kurs</a></li>
-                            <li><a href="moduler/skapa" class="action-link">Skapa modul</a></li>
-                            <li><a href="aktiviteter/skapa" class="action-link ">Skapa aktivitet</a></li>
-                        </ul>
-                    </article>
-
-                    <article class="dash-card mt-4">
+                    
+                    <div class="col-12 col-lg-4">
+               
+                    <article class="dash-card">
                         <div class="dash-card__head d-flex justify-content-between align-items-center">
                             <span>Moduler</span>
                         </div>
