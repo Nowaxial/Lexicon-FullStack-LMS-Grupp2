@@ -4,10 +4,11 @@ using LMS.Blazor.Components;
 using LMS.Blazor.Components.Account;
 using LMS.Blazor.Data;
 using LMS.Blazor.Services;
-
+using LMS.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Service.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +71,11 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri(builder.Configuration["BffClient"]
         ?? throw new Exception("BffClient is missing."))
 });
+
+// Notification services
+builder.Services.AddScoped<EncryptionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 
 // Password hashing configuration
 builder.Services.Configure<PasswordHasherOptions>(options => options.IterationCount = 10000);

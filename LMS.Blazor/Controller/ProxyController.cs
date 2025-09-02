@@ -21,18 +21,24 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
     public async Task<IActionResult> Proxy([FromQuery] string endpoint, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (userId == null)
-            return Unauthorized();
-
-        var accessToken = await _tokenService.GetAccessTokenAsync(userId);
-
-        if (string.IsNullOrEmpty(accessToken))
-            return Unauthorized();
 
         var client = _httpClientFactory.CreateClient("LmsAPIClient");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        // Allow contact endpoint without authentication
+        if (!endpoint.Equals("api/contact", StringComparison.OrdinalIgnoreCase))
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+                return Unauthorized();
+
+            var accessToken = await _tokenService.GetAccessTokenAsync(userId);
+
+            if (string.IsNullOrEmpty(accessToken))
+                return Unauthorized();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
 
         // Build target URI
         var queryString = Request.QueryString.Value;
@@ -40,7 +46,7 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
         if (!string.IsNullOrEmpty(queryString))
         {
             var queryParams = HttpUtility.ParseQueryString(queryString);
-            queryParams.Remove("endpoint"); // don’t forward "endpoint" itself
+            queryParams.Remove("endpoint"); // don't forward "endpoint" itself
             targetUriBuilder.Query = queryParams.ToString();
         }
 
