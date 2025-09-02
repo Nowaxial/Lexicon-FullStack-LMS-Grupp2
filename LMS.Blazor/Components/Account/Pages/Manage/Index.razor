@@ -1,6 +1,8 @@
 ﻿@page "/Account/Manage"
+@attribute [Authorize]
 
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using LMS.Blazor.Data
 
@@ -9,10 +11,25 @@
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>Min sida</PageTitle>
 
-<h3>Profile</h3>
-<StatusMessage />
+<AuthorizeView Roles="Teacher">
+    <Authorized>
+        <component type="typeof(LMS.Blazor.Client.Components.Pages.TeacherPage)"
+                   render-mode="InteractiveWebAssembly" />
+    </Authorized>
+</AuthorizeView>
+
+<AuthorizeView Roles="Student">
+    <Authorized>
+        <component type="typeof(LMS.Blazor.Client.Pages.Courses)"
+                   render-mode="InteractiveWebAssembly" />
+    </Authorized>
+</AuthorizeView>
+
+<hr class="my-4" />
+
+<h3>Min profil</h3>
 
 <div class="row">
     <div class="col-md-6">
@@ -33,45 +50,4 @@
     </div>
 </div>
 
-@code {
-    private ApplicationUser user = default!;
-    private string? username;
-    private string? phoneNumber;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
-
-        Input.PhoneNumber ??= phoneNumber;
-    }
-
-    private async Task OnValidSubmitAsync()
-    {
-        if (Input.PhoneNumber != phoneNumber)
-        {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-            if (!setPhoneResult.Succeeded)
-            {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
-            }
-        }
-
-        await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
-    }
-
-    private sealed class InputModel
-    {
-        [Phone]
-        [Display(Name = "Phone number")]
-        public string? PhoneNumber { get; set; }
-    }
-}
