@@ -72,7 +72,7 @@
                             </NavLink>
                         </li>
                         <li class="nav-item">
-                            <form action="Account/Logout" method="post" class="d-inline m-0">
+                            <form action="Account/Logout" method="post" class="d-inline m-0" @formname="logout-form">
                                 <AntiforgeryToken />
                                 <NavLink href="/" class="">
                                     <input type="hidden" name="ReturnUrl" />

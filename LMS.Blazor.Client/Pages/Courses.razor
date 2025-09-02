@@ -8,296 +8,200 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 
-@attribute [Authorize]
+@* @attribute [Authorize] *@
+
+<PageTitle>Courses</PageTitle>
 
 <h1>Courses</h1>
 
-<button class="btn btn-primary mb-3" @onclick="CallAPIAsync">Load Courses</button>
-<AuthMessage />
+@* <button class="btn btn-primary mb-3" @onclick="CallAPIAsync">Load Courses</button>
+<AuthMessage />   *@
 
-<AuthorizeView Roles="Teacher">
-    <Authorized Context="authContext">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <p class="mb-0">
-                You are authenticated as a <strong>Teacher</strong> and can manage courses.
-            </p>
-            <div class="btn-group">
-                <!-- Toggle Add Course collapse -->
-                <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#addCourseCollapse">
-                    <i class="bi bi-plus-circle"></i> Add Course
-                </button>
-
-                <!-- Assign User -->
-                <button class="btn btn-secondary" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#assignUserCollapse"
-                        @onclick="LoadUsersIfNeeded">
-                    <i class="bi bi-person-plus"></i> Assign User
-                </button>
-
-                <button class="btn btn-danger" @onclick="DeleteSelectedCourse" disabled="@(selectedCourse == null)">
-                    <i class="bi bi-trash"></i> Delete Selected
-                </button>
-            </div>
-        </div>
-
-        <!-- Add Course -->
-        <div class="collapse mb-3" id="addCourseCollapse">
-            <div class="card card-body">
-                <EditForm Model="newCourse" OnValidSubmit="AddCourseAsync">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
-
-                    <div class="mb-2">
-                        <InputText class="form-control" placeholder="Name" @bind-Value="newCourse.Name" />
-                    </div>
-
-                    <div class="mb-2">
-                        <InputTextArea class="form-control" placeholder="Description" @bind-Value="newCourse.Description" />
-                    </div>
-
-                    <div class="mb-2">
-                        <InputDate class="form-control" @bind-Value="newCourse.Starts" />
-                    </div>
-
-                    <div class="mb-2">
-                        <InputDate class="form-control" @bind-Value="newCourse.Ends" />
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Create Course</button>
-                </EditForm>
-            </div>
-        </div>
-
-        <!-- Assign User -->
-        <div class="collapse mb-3" id="assignUserCollapse">
-            <div class="card card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="mb-0">All Users</h5>
-                    <div class="btn-group">
-                        <button class="btn btn-outline-secondary btn-sm" @onclick="ReloadUsersAsync">
-                            <i class="bi bi-arrow-clockwise"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Filter -->
-                <div class="input-group mb-2">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input class="form-control"
-                           placeholder="Filter users.."
-                           @bind="userFilter"
-                           @bind:event="oninput" />
-                    <button class="btn btn-outline-secondary"
-                            @onclick="() => userFilter = string.Empty"
-                            disabled="@string.IsNullOrWhiteSpace(userFilter)">
-                        Clear
-                    </button>
-                </div>
-
-                @if (isLoadingUsers)
-                {
-                    <div class="text-muted">Loading users…</div>
-                }
-                else if (!string.IsNullOrWhiteSpace(usersError))
-                {
-                    <div class="alert alert-danger">@usersError</div>
-                }
-                else if (users == null || users.Count == 0)
-                {
-                    <div class="text-muted">No users found.</div>
-                }
-                else
-                {
-                    var visible = FilteredUsers.ToList();
-                    if (visible.Count == 0)
-                    {
-                        <div class="text-muted">No matching users.</div>
-                    }
-                    else
-                    {
-                        <!-- Scroll container: shows ~5 items -->
-                        <div style="max-height:22.5rem; overflow-y:auto;">
-                            <ul class="list-group">
-                                @foreach (var u in visible)
-                                {
-                                    <li class="list-group-item" style="min-height:4.5rem;">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>@(u.FullName ?? u.UserName ?? "(No name)")</strong><br />
-                                                <small class="text-muted">@u.Email</small>
-                                            </div>
-
-                                            <button class="btn btn-sm btn-primary" disabled="@(selectedCourse == null)">
-                                                Assign to selected course
-                                            </button>
-                                        </div>
-                                    </li>
-                                }
-                            </ul>
-                        </div>
-                        <small class="text-muted">Showing up to 5 users at a time; scroll for more.</small>
-                    }
-                }
-            </div>
-        </div>
-    </Authorized>
-</AuthorizeView>
-
-<AuthorizeView Roles="Student">
-    <Authorized Context="authContext">
-        <p>
-            You are authenticated as a <strong>Student</strong> and can view your assigned courses.
-        </p>
-    </Authorized>
-</AuthorizeView>
-
-@if (courses == null)
+@if (isLoading)
 {
-    <p>API not called yet</p>
-}
-else if (!courses.Any())
-{
-    <p>No courses available.</p>
+    <p class="text-muted">Loading courses…</p>
 }
 else
 {
-    <ul class="list-group">
-        @foreach (var c in courses)
-        {
-            <li class="list-group-item @(selectedCourse == c ? "active" : "")"
-                style="cursor:pointer"
-                @onclick="() => SelectCourse(c)">
-                <strong>@c.Name</strong><br />
-                @c.Description<br />
-                <small>@c.Starts – @c.Ends</small>
-            </li>
-        }
-    </ul>
-}
+       <div class="d-flex justify-content-between align-items-center mb-3">
+        <AuthorizeView Roles="Teacher">
+            <Authorized Context="authContext">
+                <p class="mb-0">
+                    You are authenticated as a <strong>Teacher</strong> and can manage courses.
+                </p>
 
-@code {
-    [Inject] private IApiService ApiService { get; set; } = default!;
-    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+                
+                <div class="btn-group">
+                    <!-- Toggle Add Course collapse -->
+                    <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#addCourseCollapse">
+                        <i class="bi bi-plus-circle"></i> Add Course
+                    </button>
 
-    private List<CourseDto>? courses;
-    private CourseDto? selectedCourse;
+                    <!-- Assign User -->
+                    <button class="btn btn-secondary" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#assignUserCollapse"
+                            @onclick="LoadUsersIfNeeded">
+                        <i class="bi bi-person-plus"></i> Assign User
+                    </button>
 
-    private CreateCourseDto newCourse = new()
+                    <button class="btn btn-danger" @onclick="DeleteSelectedCourse" disabled="@(selectedCourse == null)">
+                        <i class="bi bi-trash"></i> Delete Selected
+                    </button>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+       </div>
+
+            <!-- Add Course -->
+            <div class="collapse mb-3" id="addCourseCollapse">
+                <div class="card card-body">
+                    <EditForm Model="newCourse" OnValidSubmit="AddCourseAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-2">
+                            <InputText class="form-control" placeholder="Name" @bind-Value="newCourse.Name" />
+                        </div>
+
+                        <div class="mb-2">
+                            <InputTextArea class="form-control" placeholder="Description" @bind-Value="newCourse.Description" />
+                        </div>
+
+                        <div class="mb-2">
+                            <InputDate class="form-control" @bind-Value="newCourse.Starts" />
+                        </div>
+
+                        <div class="mb-2">
+                            <InputDate class="form-control" @bind-Value="newCourse.Ends" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Create Course</button>
+                    </EditForm>
+                </div>
+            </div>
+
+            <!-- Assign User -->
+            <div class="collapse mb-3" id="assignUserCollapse">
+                <div class="card card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">All Users</h5>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="ReloadUsersAsync">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter -->
+                    <div class="input-group mb-2">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control"
+                               placeholder="Filter users.."
+                               @bind="userFilter"
+                               @bind:event="oninput" />
+                        <button class="btn btn-outline-secondary"
+                                @onclick="() => userFilter = string.Empty"
+                                disabled="@string.IsNullOrWhiteSpace(userFilter)">
+                            Clear
+                        </button>
+                    </div>
+
+                    @if (isLoadingUsers)
+                    {
+                        <div class="text-muted">Loading users…</div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(usersError))
+                    {
+                        <div class="alert alert-danger">@usersError</div>
+                    }
+                    else if (users == null || users.Count == 0)
+                    {
+                        <div class="text-muted">No users found.</div>
+                    }
+                    else
+                    {
+                        var visible = FilteredUsers.ToList();
+                        if (visible.Count == 0)
+                        {
+                            <div class="text-muted">No matching users.</div>
+                        }
+                        else
+                        {
+                            <!-- Scroll container: shows ~5 items -->
+                            <div style="max-height:22.5rem; overflow-y:auto;">
+                                <ul class="list-group">
+                                    @foreach (var u in visible)
+                                    {
+                                        <li class="list-group-item" style="min-height:4.5rem;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>@(u.FullName ?? u.UserName ?? "(No name)")</strong><br />
+                                                    <small class="text-muted">@u.Email</small>
+                                                </div>
+
+                                                <button class="btn btn-sm btn-primary"
+                                                        disabled="@(selectedCourse == null || isAssigningUser)"
+                                                        @onclick="() => AssignUserToSelectedCourse(u)">
+                                                    @(isAssigningUser ? "Assigning..." : "Assign to selected course")
+                                                </button>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+
+                                @if (!string.IsNullOrWhiteSpace(assignError))
+                                {
+                                    <div class="alert alert-danger mt-2">@assignError</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(assignSuccess))
+                                {
+                                    <div class="alert alert-success mt-2">@assignSuccess</div>
+                                }
+                            </div>
+                            <small class="text-muted">Showing up to 5 users at a time; scroll for more.</small>
+                        }
+                    }
+                </div>
+            </div>
+  
+
+    <AuthorizeView Roles="Student">
+        <Authorized Context="authContext">
+            <p>
+                You are authenticated as a <strong>Student</strong> and can view your assigned courses.
+            </p>
+        </Authorized>
+    </AuthorizeView>
+
+ @if (courses == null)
     {
-        Starts = DateOnly.FromDateTime(DateTime.Today),
-        Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-    };
-
-    // Users state
-    private List<UserDto>? users;
-    private bool usersLoaded = false;
-    private bool isLoadingUsers = false;
-    private string? usersError;
-
-    private string userFilter = string.Empty;
-
-    private IEnumerable<UserDto> FilteredUsers
-        => string.IsNullOrWhiteSpace(userFilter)
-            ? (users ?? Enumerable.Empty<UserDto>())
-            : (users ?? Enumerable.Empty<UserDto>())
-                .Where(u =>
-                    StartsWithIgnoreCase(u.FullName, userFilter) ||
-                    StartsWithIgnoreCase(u.UserName, userFilter) ||
-                    StartsWithIgnoreCase(u.Email, userFilter))
-                .OrderBy(u => u.FullName ?? u.UserName ?? u.Email);
-
-    private static bool StartsWithIgnoreCase(string? value, string prefix)
-        => !string.IsNullOrWhiteSpace(value)
-           && !string.IsNullOrWhiteSpace(prefix)
-           && value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
-
-    // Load users when the Assign User collapse is first opened
-    private async Task LoadUsersIfNeeded()
-    {
-        if (usersLoaded || isLoadingUsers) return;
-        await ReloadUsersAsync();
+        <p>Loading...</p>
     }
-
-    // Refresh users
-    private async Task ReloadUsersAsync()
+    else if (!courses.Any())
     {
-        try
-        {
-            isLoadingUsers = true;
-            usersError = null;
-
-            // If your API is paged, tweak as needed; here we fetch up to 200 and filter client-side
-            var page = await ApiService.CallApiAsync<PagedResult<UserDto>>("api/users?size=200");
-            users = page?.Items?.ToList() ?? new List<UserDto>();
-
-            usersLoaded = true;
-        }
-        catch (Exception ex)
-        {
-            usersError = "Failed to load users: " + ex.Message;
-        }
-        finally
-        {
-            isLoadingUsers = false;
-            StateHasChanged();
-        }
+        <p>No courses available.</p>
     }
-
-    private async Task CallAPIAsync()
+    else
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.IsInRole("Teacher"))
-        {
-            courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses"))?.ToList();
-        }
-        else if (user.IsInRole("Student"))
-        {
-            courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses/my"))?.ToList();
-        }
-        else
-        {
-            courses = new();
-        }
-    }
-
-    private async Task AddCourseAsync()
-    {
-        var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
-        if (created != null)
-        {
-            courses ??= new List<CourseDto>();
-            courses.Add(created);
-
-            // Reset form
-            newCourse = new CreateCourseDto
+        <ul class="list-group">
+            @foreach (var c in courses)
             {
-                Starts = DateOnly.FromDateTime(DateTime.Today),
-                Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-            };
-
-            // Close "Add Course" collapse via Bootstrap JS
-            await JS.InvokeVoidAsync("eval", "bootstrap.Collapse.getInstance(document.getElementById('addCourseCollapse')).hide()");
-        }
-    }
-
-    private async Task DeleteSelectedCourse()
-    {
-        if (selectedCourse == null) return;
-
-        var success = await ApiService.DeleteAsync($"api/courses/{selectedCourse.Id}");
-        if (success)
-        {
-            courses?.Remove(selectedCourse);
-            selectedCourse = null;
-        }
-    }
-
-    private void SelectCourse(CourseDto course)
-    {
-        selectedCourse = course;
-    }
+                <li class="list-group-item @(selectedCourse == c ? "active" : "")"
+                    style="cursor:pointer"
+                    @onclick="() => SelectCourse(c)">
+                    <strong>@c.Name</strong><br />
+                    @c.Description<br />
+                    <small>@c.Starts – @c.Ends</small>
+                </li>
+            }
+        </ul>
+    } 
 }
+
+
+
+
+
+
+
 <script src="app.js"></script>

@@ -12,6 +12,12 @@ builder.Services.AddHttpClient("BffClient", cfg =>
     cfg.BaseAddress = new Uri(builder.Configuration["BffClient"] ?? throw new Exception("BffClient address is missing."));
 });
 
+builder.Services.AddHttpClient("ApiDirect", cfg =>
+{
+    cfg.BaseAddress = new Uri(
+        builder.Configuration["LmsAPIBaseAddress"] ?? "https://localhost:7213/");
+});
+
 builder.Services.AddSingleton<AuthenticationStateProvider,
     PersistentAuthenticationStateProvider>();
 

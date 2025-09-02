@@ -20,6 +20,7 @@ namespace LMS.Presentation.Controllers
 
         // GET: api/courses
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses(bool includeModules, bool includeActivities, bool trackChanges = false)
         {
             var coursesDtos = await _services.CourseService.GetAllCoursesAsync(includeModules, includeActivities, trackChanges);
@@ -39,8 +40,13 @@ namespace LMS.Presentation.Controllers
         [HttpGet("my")]
         public async Task<ActionResult<IEnumerable<CourseDto>>> GetMyCourses(bool includeModules, bool trackChanges = false)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
+            var userId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("sub") ??
+                User.FindFirstValue(ClaimTypes.Name);
+
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized();
 
             var coursesDtos = await _services.CourseService.GetCoursesByUserAsync(userId, includeModules, trackChanges);
             return Ok(coursesDtos);
