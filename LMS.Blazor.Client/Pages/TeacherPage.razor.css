@@ -134,10 +134,21 @@ a.link-accent:visited {
     text-decoration: none;
 }
 
-.btn-outline-secondary,
-.btn-create {
-   
+.side-head {
+    position: sticky; 
+    top: 12px; 
+    padding: .25rem 0 .5rem;
+    background: transparent;
+    z-index: 5;
 }
+
+.btn-create {
+    box-shadow: 0 10px 24px rgba(0,0,0,.08);
+}
+
+    .btn-create:hover {
+        background: var(--primary);
+    }
 
 a.link-accent:hover {
     text-decoration: underline;
@@ -159,4 +170,15 @@ a.link-accent:hover {
 
 .acts-data {
     color: var(--bg-main);
+}
+
+@media (max-width: 576px) {
+    .side-head {
+        position: static;
+        padding-top: 0;
+    }
+
+    .btn-create {
+        width: 100%;
+    }
 }

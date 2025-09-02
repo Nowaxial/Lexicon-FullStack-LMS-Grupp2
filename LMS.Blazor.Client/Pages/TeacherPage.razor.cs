@@ -19,18 +19,27 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private bool showMoreUpcoming;
 
+        private int modulesPage = 1;
+        private const int ModulesPageSize = 4;
+
+        private int activitiesPage = 1;
+        private const int ActivitiesPageSize = 7;
+
+
         [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
         private string displayName = "Lärare";
 
  
-        private List<CourseDto>? courses;
+        //private List<CourseDto>? courses;
 
-        private CreateCourseDto newCourse = new()
-        {
-            Starts = DateOnly.FromDateTime(DateTime.Today),
-            Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-        };
+        //private CreateCourseDto newCourse = new()
+        //{
+        //    Starts = DateOnly.FromDateTime(DateTime.Today),
+        //    Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
+        //};
+
+        private List<ModuleDto> modules = new();
 
         private sealed record CourseItem(int Id, string Title, int Students, DateTime StartDate);
 
@@ -40,15 +49,9 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private readonly List<CourseItem> Courses = new();
 
+        private readonly List<ModuleItem> Modules = new();
+
         private readonly List<ProjActivityDto> Upcoming = new();
-
-
-        private readonly List<ModuleItem> Modules = new()
-        {
-            new("Grunder i C#", 6),
-            new("Komponenter och routing", 4),
-            new("Databindning & formulär", 5)
-        };
 
    
         private readonly List<SubmissionItem> Submissions = new()
@@ -110,32 +113,33 @@ namespace LMS.Blazor.Client.Components.Pages
         {
            await LoadMyCoursesAsync();
            await LoadUpcomingActivitiesAsync();
+           await LoadModulesAsync();
         }
 
         private void ToggleUpcoming() => showMoreUpcoming = !showMoreUpcoming;
 
 
-        private async Task AddCourseAsync()
-        {
-            var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
-            if (created is null) return;
+        //private async Task AddCourseAsync()
+        //{
+        //    var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
+        //    if (created is null) return;
 
-            courses ??= new List<CourseDto>();
-            courses.Add(created);
+        //    courses ??= new List<CourseDto>();
+        //    courses.Add(created);
 
-            _courseNameCache[created.Id] = created.Name;
+        //    _courseNameCache[created.Id] = created.Name;
 
-            newCourse = new CreateCourseDto
-            {
-                Starts = DateOnly.FromDateTime(DateTime.Today),
-                Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-            };
+        //    newCourse = new CreateCourseDto
+        //    {
+        //        Starts = DateOnly.FromDateTime(DateTime.Today),
+        //        Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
+        //    };
 
-            await JS.InvokeVoidAsync(
-                "eval",
-                "bootstrap.Collapse.getOrCreateInstance(document.getElementById('addCourseTeacherPage')).hide()"
-            );
-        }
+        //    await JS.InvokeVoidAsync(
+        //        "eval",
+        //        "bootstrap.Collapse.getOrCreateInstance(document.getElementById('addCourseTeacherPage')).hide()"
+        //    );
+        //}
 
         private Task LoadMyCoursesAsync() => LoadCoursesAsync();
 
@@ -190,6 +194,50 @@ namespace LMS.Blazor.Client.Components.Pages
             Upcoming.Sort((x, y) => DateTime.Compare(x.Starts, y.Starts));
             if (Upcoming.Count > 20) 
                 Upcoming.RemoveRange(20, Upcoming.Count - 20);
+        }
+
+        private async Task LoadModulesAsync(CancellationToken ct = default)
+        {
+            Modules.Clear();
+            modules = new List<ModuleDto>();
+
+            if (Courses.Count == 0) return;
+
+            var moduleFetches = Courses.Select(async course =>
+            {
+                var mods = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                    $"api/course/{course.Id}/Modules?includeActivities=false", ct
+                ) ?? Enumerable.Empty<ModuleDto>();
+
+                foreach (var m in mods)
+                {
+                    modules.Add(m);
+                }
+            });
+
+            await Task.WhenAll(moduleFetches);
+
+
+            var countActivities = modules.Select(async m =>
+            {
+                var acts = await ApiService.CallApiAsync<IEnumerable<ProjActivityDto>>(
+                    $"api/modules/{m.Id}/activities", ct
+                ) ?? Enumerable.Empty<ProjActivityDto>();
+
+                return new {Module = m, Count = acts.Count()};
+            });
+
+            var counted = await Task.WhenAll(countActivities);
+
+            foreach(var c in  counted
+                .OrderBy(c => c.Module.Starts)
+                .ThenBy(c => c.Module.Name))
+            {
+                Modules.Add(new ModuleItem(
+                    Title: c.Module.Name ?? $"Modul {c.Module.Id}",
+                   Items: c.Count
+                 ));
+            }
         }
 
 

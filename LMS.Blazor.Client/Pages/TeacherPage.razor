@@ -3,6 +3,8 @@
 @attribute [Authorize(Roles = "Teacher")]
 @namespace LMS.Blazor.Client.Components.Pages
 
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -17,238 +19,244 @@
 }
 else
 {
-    <AuthorizeView Roles="Teacher" Context="ctx">
-        <Authorized>
-            <section class="container-fluid lms-container teacher-wrap py-4">
-                <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
-                <div class="row g-4">
-                    <div class="col-12 col-lg-8">
-                        <article class="dash-card">
-                            <div class="d-flex flex-column">
-                                <div class="dash-card__head">Mina kurser</div>
+<AuthorizeView Roles="Teacher" Context="ctx">
+    <Authorized>
+        <section class="container-fluid lms-container teacher-wrap py-4">
+                <div class="d-flex flex-row justify-content-between">
+                    <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
+                <div class="side-head position-sticky">
+                    <button type="button"
+                                class="btn btn-outline-secondary btn-create">
+                        Skapa kurs
+                    </button>
+                </div>
+             </div>
 
-                                @foreach (var c in Courses)
-                                {
-                                    <div class="course-row">
-                                        <div class="course-row__title">@c.Title</div>
-                                        <div class="course-row__meta">
-                                            <div><span class="label">Elever</span><span>@c.Students</span></div>
-                                            <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
-                                        </div>
-                                        <div class="course-row__actions">
-                                            <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
-                                            <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="@($"courses/{c.Id}/edit")">Hantera</NavLink>
-                                        </div>
-                                    </div>
-                                }
 
-                                <div>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-secondary float-end"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#addCourseTeacherPage">
-                                        Skapa kurs
-                                    </button>
-                                </div>
+            <div class="row g-4">
+                <div class="col-12 col-lg-8">
+                    <article class="dash-card">
+                        <div class="d-flex flex-column">
+                            <div class="dash-card__head">Mina kurser</div>
 
-                                <div class="collapse mb-3" id="addCourseTeacherPage">
-                                    <div class="card card-body">
-                                        <EditForm Model="newCourse" OnValidSubmit="AddCourseAsync" FormName="add-course-form">
-                                            <DataAnnotationsValidator />
-                                            <ValidationSummary />
-
-                                            <div class="mb-2">
-                                                <InputText class="form-control" placeholder="Name" @bind-Value="newCourse.Name" />
-                                            </div>
-
-                                            <div class="mb-2">
-                                                <InputTextArea class="form-control" placeholder="Description" @bind-Value="newCourse.Description" />
-                                            </div>
-
-                                            <div class="mb-2">
-                                                <InputDate class="form-control" @bind-Value="newCourse.Starts" />
-                                            </div>
-
-                                            <div class="mb-2">
-                                                <InputDate class="form-control" @bind-Value="newCourse.Ends" />
-                                            </div>
-
-                                            <button type="submit" class="btn btn-primary">Create Course</button>
-                                        </EditForm>
-                                    </div>
-                                </div>
-                            </div>
-                        </article>
-                        <article class="dash-card mt-4">
-                            <div class="dash-card__head">Kommande aktiviteter</div>
-
-                            @{
-                                var top = Upcoming.Take(7).ToList();
-                                var rest = Upcoming.Skip(7).ToList();
-                                var hasMore = rest.Count > 0;
-                                var collapseId = "upcoming-more";
-                            }
-
-                            <div class="table-responsive">
-                                <table class="table table-sm table-borderless align-middle m-0">
-                                    <thead>
-                                        <tr class="text-muted">
-                                            <th style="width: 140px;">Datum</th>
-                                            <th>Aktivitet</th>
-                                            <th style="width: 160px;" class="text-end">Kurs</th>
-                                        </tr>
-                                    </thead>
-
-                                    @if ((Upcoming?.Count ?? 0) == 0)
-                                    {
-                                        <tbody>
-                                            <tr>
-                                                <td colspan="3" class="text-muted">Inga kommande aktiviteter.</td>
-                                            </tr>
-                                        </tbody>
-                                    }
-                                    else
-                                    {
-                                        <tbody>
-                                            @foreach (var a in top)
-                                            {
-                                                <tr class="rowline">
-                                                    <!-- Datum (Module above date) -->
-                                                    <td class="text-nowrap align-middle" style="width:140px;">
-                                                        <div class="d-flex flex-column text-start">
-                                                            <small class="text-muted">Modul @a.ModuleId</small>
-                                                            <span class="acts-data">@a.Starts.ToString("dd MMM")</span>
-                                                        </div>
-                                                    </td>
-
-                                                    <!-- Aktivitet -->
-                                                    <td>
-                                                        <div class="fw-semibold">@a.Title</div>
-                                                        @if (!string.IsNullOrWhiteSpace(a.Description))
-                                                        {
-                                                            <small class="text-muted d-block text-truncate" style="max-width:36rem;">
-                                                                @a.Description
-                                                            </small>
-                                                        }
-                                                    </td>
-
-                                                    <!-- Kurs -->
-                                                    <td class="text-end text-nowrap" style="width:160px;">
-                                                        <a class="link-accent" href="@($"/courses/{a.CourseId}")">
-                                                            @CourseTitle(a.CourseId)
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-
-                                        @if (hasMore)
-                                        {
-                                            <!-- Collapsed extra rows -->
-                                            <tbody id="@collapseId" class="collapse">
-                                                @foreach (var a in rest)
-                                                {
-                                                    <tr class="rowline">
-                                                        <td class="text-nowrap align-middle" style="width:140px;">
-                                                            <div class="d-flex flex-column text-start">
-                                                                <small class="text-muted">Modul @a.ModuleId</small>
-                                                                <span>@a.Starts.ToString("dd MMM")</span>
-                                                            </div>
-                                                        </td>
-
-                                                        <td>
-                                                            <div class="fw-semibold">@a.Title</div>
-                                                            @if (!string.IsNullOrWhiteSpace(a.Description))
-                                                            {
-                                                                <small class="text-muted d-block">@a.Description</small>
-                                                            }
-                                                        </td>
-
-                                                        <td class="text-end text-nowrap" style="width:160px;">
-                                                            <a class="link-accent" href="@($"/courses/{a.CourseId}")">
-                                                                @CourseTitle(a.CourseId)
-                                                            </a>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        }
-                                    }
-                                </table>
-                            </div>
-
-                            @if (hasMore)
+                            @foreach (var c in Courses)
                             {
-                                <div class="text-end mt-2">
-                                    <button class="btn btn-sm btn-outline-secondary"
-                                            type="button"
-                                            @onclick="ToggleUpcoming"
-                                            data-bs-toggle="collapse"
-                                            data-bs-target="#@collapseId"
-                                            aria-expanded="false"
-                                            aria-controls="@collapseId">
-                                        @(showMoreUpcoming ? "Dölja" : $"Visa fler ({rest.Count})")
-                                    </button>
+                                <div class="course-row">
+                                    <div class="course-row__title">@c.Title</div>
+                                    <div class="course-row__meta">
+                                        <div><span class="label">Elever</span><span>@c.Students</span></div>
+                                        <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
+                                    </div>
+                                    <div class="course-row__actions">
+                                        <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
+                                            <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="@($"courses/{c.Id}/edit")">Hantera</NavLink>
+                                    </div>
                                 </div>
                             }
-                        </article>
+                        </div>
+                    </article>
 
-                    </div>
-
-                    <div class="col-12 col-lg-4">
-                        <article class="dash-card-muted">
-                            <div class="dash-card__head">Snabba åtgärder</div>
-                            <ul class="action-list list-unstyled m-0">
-                                <li><a href="kurser/skapa" class="action-link">Skapa kurs</a></li>
-                                <li><a href="moduler/skapa" class="action-link">Skapa modul</a></li>
-                                <li><a href="aktiviteter/skapa" class="action-link ">Skapa aktivitet</a></li>
-                            </ul>
-                        </article>
 
                         <article class="dash-card mt-4">
+    <div class="dash-card__head d-flex justify-content-between align-items-center">
+        <span>Kommande aktiviteter</span>
+        @{
+            var totalCount = Upcoming?.Count ?? 0;
+            var totalPagesLocal = Math.Max(1, (int)Math.Ceiling(totalCount / (double)ActivitiesPageSize));
+        }
+        @if (totalCount > ActivitiesPageSize)
+        {
+            <small class="text-muted">Sida @activitiesPage av @totalPagesLocal</small>
+        }
+    </div>
+
+    @{
+        var list = (Upcoming ?? new List<ProjActivityDto>()).OrderBy(a => a.Starts).ToList();
+        var count = list.Count;
+        var totalPages = Math.Max(1, (int)Math.Ceiling(count / (double)ActivitiesPageSize));
+
+        if (activitiesPage < 1) activitiesPage = 1;
+        if (activitiesPage > totalPages) activitiesPage = totalPages;
+
+        var skip = (activitiesPage - 1) * ActivitiesPageSize;
+        var pageItems = list.Skip(skip).Take(ActivitiesPageSize).ToList();
+    }
+
+    <div class="table-responsive">
+        <table class="table table-sm table-borderless align-middle m-0">
+            <thead>
+                <tr class="text-muted">
+                    <th style="width: 140px;">Datum</th>
+                    <th>Aktivitet</th>
+                    <th style="width: 160px;" class="text-end">Kurs</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (pageItems.Count == 0)
+                {
+                    <tr>
+                        <td colspan="3" class="text-muted">Inga kommande aktiviteter.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var a in pageItems)
+                    {
+                        <tr class="rowline">
+                            <!-- Datum (Module above date) -->
+                            <td class="text-nowrap align-middle" style="width:140px;">
+                                <div class="d-flex flex-column text-start">
+                                    <small class="text-muted">Modul @a.ModuleId</small>
+                                    <span class="acts-data">@a.Starts.ToString("dd MMM")</span>
+                                </div>
+                            </td>
+
+                            <!-- Aktivitet -->
+                            <td>
+                                <div class="fw-semibold">@a.Title</div>
+                                @if (!string.IsNullOrWhiteSpace(a.Description))
+                                {
+                                    <small class="text-muted d-block text-truncate" style="max-width:36rem;">
+                                        @a.Description
+                                    </small>
+                                }
+                            </td>
+
+                            <!-- Kurs -->
+                            <td class="text-end text-nowrap" style="width:160px;">
+                                <a class="link-accent" href="@($"/courses/{a.CourseId}")">
+                                    @CourseTitle(a.CourseId)
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <button class="btn btn-sm btn-outline-secondary"
+                    disabled="@(activitiesPage <= 1)"
+                    @onclick="() => activitiesPage = Math.Max(1, activitiesPage - 1)">
+                ‹ Föregående
+            </button>
+
+            <small class="text-muted">Sida @activitiesPage / @totalPages</small>
+
+            <button class="btn btn-sm btn-outline-secondary"
+                    disabled="@(activitiesPage >= totalPages)"
+                    @onclick="() => activitiesPage = Math.Min(totalPages, activitiesPage + 1)">
+                Nästa ›
+            </button>
+        </div>
+    }
+</article>
+
+
+                </div>
+
+                    
+                    <div class="col-12 col-lg-4">
+
+                        <article class="dash-card">
                             <div class="dash-card__head d-flex justify-content-between align-items-center">
                                 <span>Moduler</span>
+                                @{
+                                    var totalCountModules = modules?.Count ?? 0;
+                                    var totalPagesLocalModules = Math.Max(1, (int)Math.Ceiling(totalCountModules / (double)ModulesPageSize));
+                                }
+                                @if (totalCountModules > ModulesPageSize)
+                                {
+                                    <small class="text-muted">Sida @modulesPage av @totalPagesLocalModules</small>
+                                }
                             </div>
-                            <ul class="list-unstyled m-0">
-                                @foreach (var m in Modules)
+
+                            @{
+                                var listModules = modules ?? new List<ModuleDto>();
+                                var countModules = list.Count;
+                                var totalPagesModules = Math.Max(1, (int)Math.Ceiling(count / (double)ModulesPageSize));
+
+                                if (modulesPage < 1) { modulesPage = 1; }
+                                if (modulesPage > totalPagesModules) { modulesPage = totalPagesModules; }
+
+                                var skipModules = (modulesPage - 1) * ModulesPageSize;
+                                var pageItemsModules = listModules.Skip(skipModules).Take(ModulesPageSize).ToList();
+                            }
+
+                            @if (countModules == 0)
+                            {
+                                <div class="p-3 text-muted">Inga moduler att visa.</div>
+                            }
+                            else
+                            {
+                                <ul class="list-unstyled m-0">
+                                    @foreach (var m in pageItemsModules)
+                                    {
+                                        <li class="module-row">
+                                            <small class="text-muted d-block">@CourseTitle(m.CourseId)</small>
+                                            <div class="fw-semibold">@m.Name</div>
+                                            <small class="text-muted">
+                                                @m.Starts.ToString("yyyy-MM-dd") – @m.Ends.ToString("yyyy-MM-dd")
+                                            </small>
+                                        </li>
+                                    }
+                                </ul>
+
+                                @if (totalPagesModules > 1)
                                 {
-                                    <li class="module-row">
-                                        <div class="fw-semibold">@m.Title</div>
-                                        <small class="text-muted">@m.Items st uppgifter</small>
-                                    </li>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                disabled="@(modulesPage <= 1)"
+                                                @onclick="() => modulesPage = Math.Max(1, modulesPage - 1)">
+                                            ‹ Föregående
+                                        </button>
+
+                                        <small class="text-muted">Sida @modulesPage / @totalPagesModules</small>
+
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                disabled="@(modulesPage >= totalPagesModules)"
+                                                @onclick="() => modulesPage = Math.Min(totalPagesModules, modulesPage + 1)">
+                                            Nästa ›
+                                        </button>
+                                    </div>
                                 }
-                            </ul>
+                            }
                         </article>
 
-                        <article class="dash-card mt-4">
-                            <div class="dash-card__head">Nya inlämningar</div>
-                            <ul class="inbox list-unstyled m-0">
-                                @foreach (var s in Submissions)
-                                {
-                                    <li class="inbox-row">
-                                        <div>
-                                            <div class="fw-semibold">@s.Assignment</div>
-                                            <small class="text-muted">@s.Student · @s.Status</small>
-                                        </div>
-                                        <a class="chev" href="@($"inlamningar/{s.Id}")">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                }
-                            </ul>
-                        </article>
-                    </div>
+
+
+                    <article class="dash-card mt-4">
+                        <div class="dash-card__head">Nya inlämningar</div>
+                        <ul class="inbox list-unstyled m-0">
+                            @foreach (var s in Submissions)
+                            {
+                                <li class="inbox-row">
+                                    <div>
+                                        <div class="fw-semibold">@s.Assignment</div>
+                                        <small class="text-muted">@s.Student · @s.Status</small>
+                                    </div>
+                                    <a class="chev" href="@($"inlamningar/{s.Id}")">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </article>
                 </div>
-            </section>
-        </Authorized>
-
-        <NotAuthorized>
-            <div class="container py-5">
-                <div class="alert alert-warning">Du måste vara inloggad som lärare för att visa denna sida.</div>
-                <NavLink class="btn btn-primary" href="Account/Login">Logga in</NavLink>
             </div>
-        </NotAuthorized>
-    </AuthorizeView>
+        </section>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="container py-5">
+            <div class="alert alert-warning">Du måste vara inloggad som lärare för att visa denna sida.</div>
+            <NavLink class="btn btn-primary" href="Account/Login">Logga in</NavLink>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
     <script src="app.js"></script>
 }
