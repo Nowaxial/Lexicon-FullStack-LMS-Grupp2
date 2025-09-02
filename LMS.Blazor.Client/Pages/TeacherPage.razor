@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Teacher")]
 @namespace LMS.Blazor.Client.Components.Pages
 
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -172,21 +173,73 @@ else
 
                     
                     <div class="col-12 col-lg-4">
-               
-                    <article class="dash-card">
-                        <div class="dash-card__head d-flex justify-content-between align-items-center">
-                            <span>Moduler</span>
-                        </div>
-                        <ul class="list-unstyled m-0">
-                            @foreach (var m in Modules)
-                            {
-                                <li class="module-row">
-                                    <div class="fw-semibold">@m.Title</div>
-                                    <small class="text-muted">@m.Items st uppgifter</small>
-                                </li>
+
+                        <article class="dash-card">
+                            <div class="dash-card__head d-flex justify-content-between align-items-center">
+                                <span>Moduler</span>
+                                @{
+                                    var totalCount = modules?.Count ?? 0;
+                                    var totalPagesLocal = Math.Max(1, (int)Math.Ceiling(totalCount / (double)ModulesPageSize));
+                                }
+                                @if (totalCount > ModulesPageSize)
+                                {
+                                    <small class="text-muted">Sida @modulesPage av @totalPagesLocal</small>
+                                }
+                            </div>
+
+                            @{
+                                var list = modules ?? new List<ModuleDto>();
+                                var count = list.Count;
+                                var totalPages = Math.Max(1, (int)Math.Ceiling(count / (double)ModulesPageSize));
+
+                                if (modulesPage < 1) { modulesPage = 1; }
+                                if (modulesPage > totalPages) { modulesPage = totalPages; }
+
+                                var skip = (modulesPage - 1) * ModulesPageSize;
+                                var pageItems = list.Skip(skip).Take(ModulesPageSize).ToList();
                             }
-                        </ul>
-                    </article>
+
+                            @if (count == 0)
+                            {
+                                <div class="p-3 text-muted">Inga moduler att visa.</div>
+                            }
+                            else
+                            {
+                                <ul class="list-unstyled m-0">
+                                    @foreach (var m in pageItems)
+                                    {
+                                        <li class="module-row">
+                                            <small class="text-muted d-block">@CourseTitle(m.CourseId)</small>
+                                            <div class="fw-semibold">@m.Name</div>
+                                            <small class="text-muted">
+                                                @m.Starts.ToString("yyyy-MM-dd") – @m.Ends.ToString("yyyy-MM-dd")
+                                            </small>
+                                        </li>
+                                    }
+                                </ul>
+
+                                @if (totalPages > 1)
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                disabled="@(modulesPage <= 1)"
+                                                @onclick="() => modulesPage = Math.Max(1, modulesPage - 1)">
+                                            ‹ Föregående
+                                        </button>
+
+                                        <small class="text-muted">Sida @modulesPage / @totalPages</small>
+
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                disabled="@(modulesPage >= totalPages)"
+                                                @onclick="() => modulesPage = Math.Min(totalPages, modulesPage + 1)">
+                                            Nästa ›
+                                        </button>
+                                    </div>
+                                }
+                            }
+                        </article>
+
+
 
                     <article class="dash-card mt-4">
                         <div class="dash-card__head">Nya inlämningar</div>
