@@ -1,0 +1,185 @@
+﻿@page "/contact"
+@using System.ComponentModel.DataAnnotations
+@using LMS.Shared.DTOs
+@using System.Text.Json
+@using System.Text
+@inject HttpClient Http
+@inject IConfiguration Configuration
+
+<PageTitle>Kontakta oss - Lexicon LMS</PageTitle>
+
+<!-- Hero Section -->
+<section class="lms-hero">
+    <div class="container-fluid lms-container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="display-5 fw-bold mb-3">Kontakta oss</h1>
+                <p class="lead">
+                    Har du frågor om Lexicon LMS? Vi hjälper dig gärna.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<div class="lms-content pt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <!-- Success/Error Messages -->
+            @if (!string.IsNullOrEmpty(message))
+            {
+                <div class="alert @(isSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show">
+                    @message
+                    <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+                </div>
+            }
+
+            <!-- Contact Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="course-card h-100 text-center">
+                        <div class="course-card__body">
+                            <div class="stat">
+                                <i class="bi bi-envelope"></i>
+                                <div class="stat__num">E-post</div>
+                                <div class="stat__label">support@lexicon-lms.se</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="course-card h-100 text-center">
+                        <div class="course-card__body">
+                            <div class="stat">
+                                <i class="bi bi-telephone"></i>
+                                <div class="stat__num">Telefon</div>
+                                <div class="stat__label">01-234 56 78</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="course-card h-100 text-center">
+                        <div class="course-card__body">
+                            <div class="stat">
+                                <i class="bi bi-clock"></i>
+                                <div class="stat__num">Support</div>
+                                <div class="stat__label">Mån-Fre 08:00-17:00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="course-card">
+                        <div class="course-card__body">
+                            <h2 class="h4 fw-bold mb-4">Skicka meddelande</h2>
+
+                            <EditForm Model="Input" OnValidSubmit="SendMessage" FormName="ContactForm">
+                                <DataAnnotationsValidator />
+                                <ValidationSummary class="text-danger mb-3" />
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Namn</label>
+                                        <InputText class="form-control" @bind-Value="Input.Name" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">E-post</label>
+                                        <InputText class="form-control" @bind-Value="Input.Email" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Ämne</label>
+                                        <InputText class="form-control" @bind-Value="Input.Subject" />
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Meddelande</label>
+                                        <InputTextArea class="form-control" rows="5" @bind-Value="Input.Message" />
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                            @if (isSubmitting)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                            }
+                                            <i class="bi bi-send"></i> Skicka meddelande
+                                        </button>
+                                    </div>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private ContactFormModel Input { get; set; } = new();
+
+    private string message = string.Empty;
+    private bool isSuccess = false;
+    private bool isSubmitting = false;
+
+    private async Task SendMessage()
+    {
+        try
+        {
+            isSubmitting = true;
+
+            var dto = new ContactMessageDto
+            {
+                Name = Input.Name,
+                Email = Input.Email,
+                Subject = Input.Subject,
+                Message = Input.Message
+            };
+
+            var json = JsonSerializer.Serialize(dto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var apiBaseUrl = Configuration["LmsAPIBaseAddress"];
+            var response = await Http.PostAsync($"{apiBaseUrl}/api/contact", content);
+
+            response.EnsureSuccessStatusCode();
+
+            Input = new ContactFormModel();
+            message = "Ditt meddelande har skickats! Vi återkommer så snart som möjligt.";
+            isSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            message = $"Fel: {ex.Message}";
+            isSuccess = false;
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    public class ContactFormModel
+    {
+        [Required(ErrorMessage = "Namn är obligatoriskt")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "E-post är obligatoriskt")]
+        [EmailAddress(ErrorMessage = "Ogiltig e-postadress")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Ämne är obligatoriskt")]
+        public string Subject { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Meddelande är obligatoriskt")]
+        [MinLength(10, ErrorMessage = "Meddelandet måste vara minst 10 tecken")]
+        public string Message { get; set; } = string.Empty;
+    }
+}

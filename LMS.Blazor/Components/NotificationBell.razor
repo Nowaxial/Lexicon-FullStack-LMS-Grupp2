@@ -1,0 +1,387 @@
+﻿@using LMS.Shared.DTOs
+@using Service.Contracts
+@inject INotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IDisposable
+@rendermode InteractiveServer
+
+@if (isTeacher && notifications != null)
+{
+    <div class="dropdown">
+        <button class="btn lms-bell-btn position-relative" data-bs-toggle="dropdown">
+            <i class="bi bi-bell"></i>
+            @if (unreadCount > 0)
+            {
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+
+
+                    @unreadCount
+                </span>
+            }
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
+            @if (notifications.Any())
+            {
+                @foreach (var notification in notifications.Take(5))
+                {
+                    <li>
+                        <div class="dropdown-item @(notification.IsRead ? "" : "bg-light fw-bold")"
+                             style="cursor: pointer;" @onclick="() => ShowNotification(notification)">
+                            <div>@notification.Message</div>
+                            <small class="text-muted">@notification.Timestamp.ToString("yyyy-MM-dd HH:mm")</small>
+                        </div>
+                    </li>
+                }
+            }
+            else
+            {
+                <li><span class="dropdown-item text-muted">Inga notifikationer</span></li>
+            }
+        </ul>
+    </div>
+}
+
+<!-- Modal -->
+@if (selectedNotification != null)
+{
+    <div class="modal fade show lms-notification-modal" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kontaktmeddelande</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (decryptedMessage != null)
+                    {
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">Namn</label>
+                            <div class="lms-field-value">@decryptedMessage.Name</div>
+                        </div>
+
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">E-post</label>
+                            <div class="lms-field-value">@decryptedMessage.Email</div>
+                        </div>
+
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">Ämne</label>
+                            <div class="lms-field-value">@decryptedMessage.Subject</div>
+                        </div>
+
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">Meddelande</label>
+                            <div class="lms-message-content">
+                                @decryptedMessage.Message
+                            </div>
+                        </div>
+                    }
+                    else if (errorMessage != null)
+                    {
+                        <div class="alert alert-danger">
+                            <strong>Fel:</strong> @errorMessage
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Laddar...</span>
+                            </div>
+                            <p class="mt-2">Dekrypterar meddelande...</p>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (selectedNotification.IsRead)
+                    {
+                        <button type="button" class="btn btn-warning" @onclick="() => MarkAsUnread(selectedNotification.Id)">
+                            Markera som oläst
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-success" @onclick="() => MarkAsRead(selectedNotification.Id)">
+                            Markera som läst
+                        </button>
+                    }
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Stäng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<style>
+    /* Bell Button Style */
+    .lms-bell-btn {
+        background: transparent;
+        border: none;
+        color: var(--base);
+        font-size: 1.2rem;
+        padding: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+        .lms-bell-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--base);
+            transform: scale(1.1);
+        }
+
+        .lms-bell-btn:focus {
+            box-shadow: none;
+            outline: none;
+        }
+
+        .lms-bell-btn .badge {
+            font-size: 0.7rem;
+        }
+
+    .lms-notification-modal .modal-header {
+        background: var(--bg-main);
+        color: var(--base);
+        border-bottom: none;
+    }
+
+    .lms-notification-modal .btn-close {
+        filter: invert(1);
+        opacity: 0.8;
+    }
+
+        .lms-notification-modal .btn-close:hover {
+            opacity: 1;
+        }
+
+    .lms-field-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .lms-field-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .lms-field-value {
+        color: var(--text);
+        font-size: 16px;
+        line-height: 1.5;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--muted);
+    }
+
+    .lms-message-content {
+        background: var(--muted);
+        color: var(--text);
+        padding: 1.5rem;
+        border-radius: 8px;
+        font-size: 16px;
+        line-height: 1.6;
+        border-left: 4px solid var(--accent);
+    }
+
+    .lms-notification-modal .modal-backdrop {
+        background-color: rgba(0, 70, 81, 0.5);
+    }
+
+    /* LMS Button Styles */
+    .lms-notification-modal .btn {
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        border: none;
+        transition: all 0.2s ease;
+    }
+
+    .lms-notification-modal .btn-success {
+        background: var(--primary);
+        color: var(--base);
+    }
+
+        .lms-notification-modal .btn-success:hover {
+            background: var(--accent);
+            color: var(--base);
+            transform: translateY(-1px);
+        }
+
+    .lms-notification-modal .btn-warning {
+        background: var(--accent);
+        color: var(--base);
+    }
+
+        .lms-notification-modal .btn-warning:hover {
+            background: var(--primary);
+            color: var(--base);
+            transform: translateY(-1px);
+        }
+
+    .lms-notification-modal .btn-secondary {
+        background: transparent;
+        border: 2px solid var(--muted);
+        color: var(--text);
+    }
+
+        .lms-notification-modal .btn-secondary:hover {
+            background: var(--muted);
+            border-color: var(--accent);
+            color: var(--text);
+            transform: translateY(-1px);
+        }
+</style>
+
+@code {
+    private List<NotificationItem>? notifications;
+    private NotificationItem? selectedNotification;
+    private ContactMessageDto? decryptedMessage;
+    private string? errorMessage;
+    private int unreadCount => notifications?.Count(n => !n.IsRead) ?? 0;
+    private Timer? _timer;
+    private bool isTeacher = false;
+    private string? userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        isTeacher = authState.User.IsInRole("Teacher");
+        userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (isTeacher && !string.IsNullOrEmpty(userId))
+        {
+            await LoadNotifications();
+            _timer = new Timer(async _ =>
+            {
+                try
+                {
+                    await InvokeAsync(LoadNotifications);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Timer error: {ex.Message}");
+                }
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+    }
+
+    private async Task LoadNotifications()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId)) return;
+
+            notifications = await NotificationService.GetNotificationsForUserAsync(userId);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"LoadNotifications ERROR: {ex.Message}");
+        }
+    }
+
+    private async Task ShowNotification(NotificationItem notification)
+    {
+        selectedNotification = notification;
+        decryptedMessage = null;
+        errorMessage = null;
+
+        if (notification.Message.Contains("kontaktmeddelande från"))
+        {
+            try
+            {
+                Console.WriteLine($"Processing notification: {notification.Message}");
+
+                var parts = notification.Message.Split(": ");
+                Console.WriteLine($"Split parts: {string.Join(" | ", parts)}");
+
+                if (parts.Length >= 2)
+                {
+                    var subject = parts[1];
+                    Console.WriteLine($"Looking for subject: {subject}");
+
+                    var contactMessages = await NotificationService.GetAllContactMessagesAsync();
+                    Console.WriteLine($"Found {contactMessages.Count} contact messages");
+
+                    var matchingMessage = contactMessages
+                        .Where(m => m.Subject == subject)
+                        .OrderByDescending(m => m.Timestamp)
+                        .FirstOrDefault();
+
+                    if (matchingMessage != null)
+                    {
+                        Console.WriteLine($"Found matching message with ID: {matchingMessage.Id}");
+                        decryptedMessage = await NotificationService.DecryptMessageAsync(matchingMessage.Id);
+                        Console.WriteLine($"Decryption result: {(decryptedMessage != null ? "Success" : "Failed")}");
+                    }
+                    else
+                    {
+                        errorMessage = $"Kunde inte hitta kontaktmeddelande med ämne: {subject}";
+                        Console.WriteLine(errorMessage);
+                    }
+                }
+                else
+                {
+                    errorMessage = "Kunde inte extrahera ämne från notifikationen";
+                    Console.WriteLine(errorMessage);
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Fel vid dekryptering: {ex.Message}";
+                Console.WriteLine($"Error loading contact message: {ex.Message}");
+            }
+        }
+        else
+        {
+            errorMessage = "Detta är inte ett kontaktmeddelande";
+        }
+
+        StateHasChanged();
+    }
+
+    private void CloseModal()
+    {
+        selectedNotification = null;
+        decryptedMessage = null;
+        errorMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task MarkAsRead(string id)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId)) return;
+
+            await NotificationService.MarkAsReadAsync(id, userId);
+            await LoadNotifications();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"MarkAsRead error: {ex.Message}");
+        }
+    }
+
+    private async Task MarkAsUnread(string id)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId)) return;
+
+            await NotificationService.MarkAsUnreadAsync(id, userId);
+            await LoadNotifications();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"MarkAsUnread error: {ex.Message}");
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

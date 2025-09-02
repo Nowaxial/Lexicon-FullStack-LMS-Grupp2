@@ -131,5 +131,11 @@ public static class ServiceExtensions
 
         services.AddScoped<IProjActivityService, ProjActivityService>();
         services.AddScoped(provider => new Lazy<IProjActivityService>(() => provider.GetRequiredService<IProjActivityService>()));
+
+        // Notification services
+        services.AddScoped<EncryptionService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped(provider => new Lazy<INotificationService>(() =>
+            provider.GetRequiredService<INotificationService>()));
     }
 }
