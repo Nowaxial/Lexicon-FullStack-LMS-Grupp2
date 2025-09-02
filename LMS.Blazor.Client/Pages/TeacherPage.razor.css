@@ -134,16 +134,29 @@ a.link-accent:visited {
     text-decoration: none;
 }
 
-.side-head {
-    position: sticky; 
-    top: 12px; 
-    padding: .25rem 0 .5rem;
-    background: transparent;
-    z-index: 5;
+/* ===== Action buttons ===== */
+
+.header-actions .btn {
+    padding: .5rem .9rem;
+    white-space: nowrap;
+    line-height: 1.1;
 }
+
+.btn-hero {
+    background: var(--bg-main);
+    color: var(--base);
+    border-color: var(--bg-main);
+}
+
+    .btn-hero:hover {
+        background: var(--base);
+        color: var(--bg-main);
+        border-color: var(--bg-main);
+    }
 
 .btn-create {
     box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    border-color: #6c757d;
 }
 
     .btn-create:hover {
@@ -172,13 +185,16 @@ a.link-accent:hover {
     color: var(--bg-main);
 }
 
-@media (max-width: 576px) {
-    .side-head {
-        position: static;
-        padding-top: 0;
+@media (min-width: 992px) {
+    .header-actions {
+        position: sticky;
+        top: .5rem;
     }
+}
 
-    .btn-create {
+@media (max-width: 991.98px) {
+    .header-actions {
         width: 100%;
+        justify-content: flex-start;
     }
 }
