@@ -13,11 +13,12 @@
 
 @if (isLoading)
 {
-    <p class="text-muted">Loading…</p>
+    <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <h2 class="text-muted">Loading…</h2>
+    </div>
 }
 else
 {
-
 <AuthorizeView Roles="Teacher" Context="ctx">
     <Authorized>
         <section class="container-fluid lms-container teacher-wrap py-4">
@@ -257,6 +258,5 @@ else
     </NotAuthorized>
 </AuthorizeView>
 
-<script src="app.js"></script>
-
+    <script src="app.js"></script>
 }

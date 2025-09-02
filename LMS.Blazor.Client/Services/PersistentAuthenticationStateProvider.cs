@@ -41,6 +41,12 @@ internal class PersistentAuthenticationStateProvider : AuthenticationStateProvid
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
+        if (!string.IsNullOrEmpty(userInfo.FirstName))
+            claims.Add(new Claim("FirstName", userInfo.FirstName));
+
+        if (!string.IsNullOrEmpty(userInfo.LastName))
+            claims.Add(new Claim("LastName", userInfo.LastName));
+
         authenticationStateTask = Task.FromResult(
             new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(claims,
                 authenticationType: nameof(PersistentAuthenticationStateProvider)))));
