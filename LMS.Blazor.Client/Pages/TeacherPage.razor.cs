@@ -22,6 +22,9 @@ namespace LMS.Blazor.Client.Components.Pages
         private int modulesPage = 1;
         private const int ModulesPageSize = 4;
 
+        private int activitiesPage = 1;
+        private const int ActivitiesPageSize = 7;
+
 
         [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
