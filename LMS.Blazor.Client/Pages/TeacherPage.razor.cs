@@ -14,7 +14,7 @@ namespace LMS.Blazor.Client.Components.Pages
         [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
 
-        private bool isLoading;
+        private bool isLoading = true;
         private bool firstRenderDone;
 
         private bool showMoreUpcoming;
@@ -80,15 +80,18 @@ namespace LMS.Blazor.Client.Components.Pages
             if (!firstRenderDone)
             {
                 firstRenderDone = true;
+                isLoading = true; // Flytta hit
 
                 if (AuthStateTask is not null)
                 {
                     var auth = await AuthStateTask;
-                    displayName = auth.User.Identity?.Name ?? displayName;
+                    var firstName = auth.User.FindFirst("FirstName")?.Value;
+                    var lastName = auth.User.FindFirst("LastName")?.Value;
+
+                    displayName = !string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName)
+                        ? $"{firstName} {lastName}".Trim()
+                        : auth.User.Identity?.Name ?? displayName;
                 }
-
-
-                isLoading = true;
 
                 try
                 {
@@ -101,6 +104,7 @@ namespace LMS.Blazor.Client.Components.Pages
                 }
             }
         }
+
 
         private async Task CallAPIAsync()
         {
