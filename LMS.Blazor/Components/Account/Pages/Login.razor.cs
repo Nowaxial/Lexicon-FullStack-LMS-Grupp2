@@ -1,3 +1,5 @@
+ï»¿using Domain.Models.Entities;
+using LMS.Blazor.Services;
 using LMS.Shared.DTOs.AuthDtos;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
@@ -6,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LMS.Blazor.Components.Account.Pages
 {
+
     public partial class Login
     {
         private string? errorMessage;
@@ -30,57 +33,76 @@ namespace LMS.Blazor.Components.Account.Pages
             var user = await UserManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
-                errorMessage = "E-postadressen eller lösenordet är felaktigt.";
+                errorMessage = "E-postadressen eller lÃ¶senordet Ã¤r felaktigt.";
                 return;
             }
 
             var tokens = await GetTokensFromApi(user.UserName!, Input.Password);
             if (tokens == null)
             {
-                errorMessage = "Inloggning misslyckades, försök igen.";
+                errorMessage = "Inloggning misslyckades, fÃ¶rsÃ¶k igen.";
                 return;
             }
 
-            var result = await SignInManager.PasswordSignInAsync(user,
-                                                                 Input.Password,
-                                                                 Input.RememberMe,
-                                                                 lockoutOnFailure: false);
+            var result = await SignInManager.PasswordSignInAsync(
+                user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
 
-            switch (result)
+            if (result.Succeeded)
             {
-                case var r when r.Succeeded:
-                    await TokenStorage.StoreTokensAsync(user.Id, tokens);
-                    Logger.LogInformation("User logged in.");
-                    RedirectManager.RedirectTo(ReturnUrl);
-                    break;
+                await TokenStorage.StoreTokensAsync(user.Id, tokens);
+                Logger.LogInformation("User logged in.");
 
-                case var r when r.RequiresTwoFactor:
-                    RedirectManager.RedirectTo("Account/LoginWith2fa",
-                        new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-                    break;
+                var roles = await UserManager.GetRolesAsync(user);
+                var target = ResolveTargetUrl(roles, ReturnUrl);
 
-                case var r when r.IsLockedOut:
-                    Logger.LogWarning("User account locked out.");
-                    RedirectManager.RedirectTo("Account/Lockout");
-                    break;
-
-                default:
-                    errorMessage = "Felaktiga inloggningsuppgifter.";
-                    break;
+                NavigationManager.NavigateTo(target, forceLoad: true, replace: true);
+                return;
             }
+            else if (result.RequiresTwoFactor)
+            {
+                NavigationManager.NavigateTo(
+                    $"Account/LoginWith2fa?returnUrl={Uri.EscapeDataString(ReturnUrl ?? "/")}&rememberMe={Input.RememberMe}",
+                    forceLoad: true, replace: true);
+                return;
+            }
+            else if (result.IsLockedOut)
+            {
+                NavigationManager.NavigateTo("Account/Lockout", forceLoad: true, replace: true);
+                return;
+            }
+            errorMessage = "Felaktiga inloggningsuppgifter.";
         }
+
+        private string ResolveTargetUrl(IList<string> roles, string? returnUrl)
+        {
+            if (IsLocalUrl(returnUrl))
+                return returnUrl!;
+
+            if (roles.Any(r => string.Equals(r, "Teacher", StringComparison.OrdinalIgnoreCase)))
+                return "/teacher";
+
+            if (roles.Any(r => string.Equals(r, "Student", StringComparison.OrdinalIgnoreCase)))
+                return "/courses";
+
+            return "/";
+        }
+
+        private static bool IsLocalUrl(string? url) =>
+            !string.IsNullOrWhiteSpace(url)
+            && url.StartsWith('/') && !url.StartsWith("//") && !url.StartsWith("/\\");
+
 
         private sealed class InputModel
         {
-            [Required(ErrorMessage = "E-post krävs")]
+            [Required(ErrorMessage = "E-post krÃ¤vs")]
             [EmailAddress(ErrorMessage = "Ange en giltig e-postadress")]
             public string Email { get; set; } = "";
 
-            [Required(ErrorMessage = "Lösenord krävs")]
+            [Required(ErrorMessage = "LÃ¶senord krÃ¤vs")]
             [DataType(DataType.Password)]
             public string Password { get; set; } = "";
 
-            [Display(Name = "Kom ihåg mig?")]
+            [Display(Name = "Kom ihÃ¥g mig?")]
             public bool RememberMe { get; set; }
         }
 
