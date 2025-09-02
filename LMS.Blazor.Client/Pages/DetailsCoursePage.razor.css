@@ -1,0 +1,125 @@
+﻿/* ===============================
+   Local tokens (no :root needed)
+   =============================== */
+section.container {
+    /* brand + text */
+    --bg-main: #004651; /* primary accent for buttons/headings */
+    --accent: #3AAFA9; /* secondary accent for stripes/chips */
+    --text: #17252A;
+    --muted-t: #6b7280;
+    /* surfaces + borders + effects */
+    --surface: #FEFFFF; /* << used for card background */
+    --line: rgba(23, 37, 42, 0.12); /* << used for card border */
+    --radius: 14px; /* << used for card radius */
+    --shadow: 0 8px 24px rgba(2, 6, 23, .06); /* << card shadow */
+    --shadow-hover: 0 12px 30px rgba(2, 6, 23, .10);
+}
+
+    /* ===== Top bar ===== */
+    section.container > .d-flex {
+        padding: .5rem .75rem;
+        border-bottom: 1px dashed var(--line);
+        margin-bottom: 1.25rem !important;
+    }
+
+h1.h3.m-0 {
+    font-weight: 800;
+    letter-spacing: .2px;
+    color: var(--bg-main);
+}
+
+/* ===== Action buttons ===== */
+.btn-group .btn {
+    --bs-btn-border-radius: .7rem;
+    padding: .45rem .8rem;
+}
+
+.btn-hero {
+    background: var(--bg-main);
+    color: var(--surface);
+    border-color: var(--bg-main);
+}
+
+    .btn-hero:hover {
+        background: var(--base);
+        color: var(--bg-main);
+        border-color: var(--bg-main);
+    }
+
+/* ===== Generic card (applies to course + modules) ===== */
+.card {
+    background: var(--surface); /* <- as requested */
+    border: 1px solid var(--line); /* <- as requested */
+    border-radius: var(--radius); /* <- as requested */
+    box-shadow: var(--shadow); /* <- as requested */
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+        border-color: rgba(23, 37, 42, 0.2);
+    }
+
+.card-body {
+    padding: 1.15rem 1.2rem 1rem;
+    color: var(--text);
+}
+
+/* ===== Module card: subtle accent tint ===== */
+section.container .card .card-body {
+    background: linear-gradient( 180deg, color-mix(in oklab, var(--accent), transparent 90%), transparent 58% );
+    border-radius: inherit;
+}
+
+/* ===== Module cards (uniform): left accent stripe ===== */
+section.container .card .module-card {
+    box-shadow: var(--shadow), inset 3px 0 0 color-mix(in oklab, var(--accent), black 10%);
+}
+
+/* Module header row */
+.card .card-body .d-flex.mb-2 h5.m-0 {
+    font-weight: 700;
+}
+
+.card .card-body .d-flex.mb-2 small.text-muted {
+    background: color-mix(in oklab, var(--accent), white 85%);
+    color: color-mix(in oklab, var(--bg-main), black 15%);
+    border-radius: 9999px;
+    padding: .25rem .6rem;
+    font-weight: 600;
+}
+
+/* Description + meta */
+.card-body p {
+    margin-bottom: .6rem;
+    color: var(--text);
+}
+
+    .card-body p.mb-0, .text-muted {
+        color: var(--muted-t) !important;
+    }
+
+
+.activity-list {
+    margin-left: .25rem;
+}
+
+.activity-item + .activity-item {
+    border-top: 1px dashed rgba(0,0,0,.06);
+}
+/* ===== Responsive ===== */
+@media (max-width: 576px) {
+    section.container > .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: .75rem;
+    }
+
+    .btn-group {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        gap: .5rem;
+    }
+}
