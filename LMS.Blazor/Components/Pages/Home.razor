@@ -1,5 +1,11 @@
 ﻿@page "/"
 
+@attribute [AllowAnonymous]
+@using System.Globalization
+@using LMS.Shared.DTOs.EntitiesDtos
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpClientFactory HttpClientFactory
+
 <PageTitle>Home</PageTitle>
 
 <!-- Hero -->
@@ -78,36 +84,56 @@
 
 <!-- Featured courses -->
 <section class="py-5">
-    <div class="container-fluid lms-container">
+    <div container-fluid lms-container>
         <div class="d-flex justify-content-between align-items-end mb-3">
-            <h2 class="h3 m-0">Senaste kurser</h2>
+            <h2 class="courses-header m-0">Senaste kurser</h2>
             <a class="link-accent" href="courses">Visa alla</a>
-        </div>
+    </div>
 
+    @if (isLoading)
+    {
+        <p class="text-muted">Laddar kurser…</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    else if (courses.Count == 0)
+    {
+        <p class="text-muted m-0">Inga kurser hittades.</p>
+    }
+    else
+    {
         <div class="row g-4">
-            @foreach (var c in Courses)
+            @foreach (var c in courses)
             {
                 <div class="col-12 col-md-6 col-lg-4">
-                    <article class="course-card h-100">
-                        <div class="course-card__body">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <span class="badge bg-accent-subtle text-accent">@c.Level</span>
-                                <small class="text-muted">@c.Duration</small>
+                        <article class="course-card h-100">
+                            <div class="course-card__body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span></span>
+                                    <span class="badge bg-accent-subtle text-accent">@Duration(c.Starts, c.Ends)</span>                           
+                                </div>
+                                
+                                    <h5 class="courses-header mb-2">@c.Name</h5>
+                          
+                                @if (!string.IsNullOrWhiteSpace(c.Description))
+                                {
+                                    <p class="text-muted mb-2">@c.Description</p>
+                                }
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        Start @c.Starts.ToString("yyyy-MM-dd")
+                                    </small>
+                                    <span class="stretched-link btn btn-sm btn-accent">Till kurs</span>
+                                </div>
                             </div>
-                            <h3 class="h5 mb-2">@c.Title</h3>
-                            <p class="mb-3 text-muted">@c.Summary</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar-event me-1"></i>
-                                    Start @c.StartDate.ToString("yyyy-MM-dd")
-                                </small>
-                                <a class="stretched-link btn btn-sm btn-accent" href="@c.Link">Till kurs</a>
-                            </div>
-                        </div>
                     </article>
                 </div>
             }
         </div>
+    }
     </div>
 </section>
 
