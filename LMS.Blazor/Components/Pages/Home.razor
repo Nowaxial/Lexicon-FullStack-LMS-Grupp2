@@ -110,12 +110,12 @@
                 <div class="col-12 col-md-6 col-lg-4">
                         <article class="course-card h-100">
                             <div class="course-card__body">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span></span>
-                                    <span class="badge bg-accent-subtle text-accent">@Duration(c.Starts, c.Ends)</span>                           
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <span class="badge bg-accent-subtle text-accent">Medel</span>
+                                    <span class="text-muted">@Duration(c.Starts, c.Ends)</span>
                                 </div>
                                 
-                                    <h5 class="courses-header mb-2">@c.Name</h5>
+                                    <h5 class="courses-header mb-3">@c.Name</h5>
                           
                                 @if (!string.IsNullOrWhiteSpace(c.Description))
                                 {
