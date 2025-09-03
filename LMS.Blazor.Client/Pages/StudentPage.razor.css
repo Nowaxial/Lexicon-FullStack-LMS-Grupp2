@@ -1,0 +1,236 @@
+﻿/* Align with your 1440px content width */
+.student-wrap, .lms-container {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+/* Cards */
+.dash-card {
+    background: var(--base);
+    border: 1px solid #e6e6e6;
+    border-radius: .75rem;
+    padding: 1rem;
+}
+
+.dash-card__head {
+    font-weight: 700;
+    margin-bottom: .75rem;
+    color: var(--bg-main);
+}
+
+/* Course rows */
+.course-row {
+    background: linear-gradient(0deg, rgba(14,86,96,.95), rgba(14,86,96,.95));
+    color: #fff;
+    border-radius: .6rem;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    row-gap: .5rem;
+    margin-bottom: .75rem;
+}
+
+.course-row__title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    grid-column: 1 / -1;
+}
+
+.course-row__meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    opacity: .9;
+}
+
+    .course-row__meta .label {
+        display: block;
+        font-size: .8rem;
+        opacity: .8;
+    }
+
+/* Module rows with hover effect */
+.module-row {
+    padding: .75rem;
+    border-bottom: 1px solid #eee;
+    border-radius: .5rem;
+    transition: background-color 0.2s ease;
+}
+
+    .module-row:hover {
+        background-color: #f8f9fa;
+    }
+
+    .module-row:last-child {
+        border-bottom: 0;
+    }
+
+/* Student list styling */
+.student-list-item {
+    padding: .65rem .25rem;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+
+    .student-list-item:last-child {
+        border-bottom: 0;
+    }
+
+.student-avatar {
+    color: var(--bg-main);
+    font-size: 1.2rem;
+}
+
+/* Activity table styling */
+.activity-table {
+    margin-top: 1rem;
+    background: #f8f9fa;
+    border-radius: .5rem;
+    padding: .75rem;
+}
+
+    .activity-table .table {
+        margin-bottom: 0;
+    }
+
+        .activity-table .table thead th {
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            font-size: .85rem;
+        }
+
+        .activity-table .table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+/* Chevron icons */
+.chevron-icon {
+    color: var(--bg-main);
+    transition: transform 0.2s ease;
+}
+
+.module-row:hover .chevron-icon {
+    color: var(--primary);
+}
+
+/* Badge styling */
+.activity-badge {
+    font-size: .75rem;
+    padding: .25rem .5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .course-row__meta {
+        gap: 1rem;
+    }
+
+    .module-row {
+        padding: .5rem;
+    }
+
+    .activity-table {
+        padding: .5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .dash-card {
+        padding: .75rem;
+    }
+
+    .course-row {
+        padding: .75rem;
+    }
+
+    .course-row__meta {
+        flex-direction: column;
+        gap: .5rem;
+    }
+}
+
+/* User cards styling */
+.user-list {
+    padding: 0;
+}
+
+.user-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e6e6e6;
+    transition: background-color 0.2s ease;
+}
+
+    .user-card:hover {
+        background-color: #f8f9fa;
+    }
+
+    .user-card:last-child {
+        border-bottom: none;
+    }
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.teacher-avatar {
+    background: linear-gradient(135deg, #2B7A78, #3AAFA9);
+}
+
+.student-avatar {
+    background: linear-gradient(135deg, #3AAFA9, #DEF2F1);
+    color: #17252A;
+}
+
+.user-info {
+    flex-grow: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #17252A;
+}
+
+.user-email {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.user-role {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.teacher-role {
+    color: #2B7A78;
+}
+
+.student-role {
+    color: #3AAFA9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .user-card {
+        padding: 0.75rem;
+    }
+
+    .user-avatar {
+        width: 35px;
+        height: 35px;
+        margin-right: 0.75rem;
+    }
+}
+

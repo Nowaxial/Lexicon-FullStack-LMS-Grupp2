@@ -82,7 +82,7 @@ namespace LMS.Blazor.Components.Account.Pages
                 return "/teacher";
 
             if (roles.Any(r => string.Equals(r, "Student", StringComparison.OrdinalIgnoreCase)))
-                return "/courses";
+                return "/student";
 
             return "/";
         }

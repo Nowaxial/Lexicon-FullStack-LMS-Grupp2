@@ -28,22 +28,26 @@ public class UserService : IUserService
             var pattern = $"%{search.Trim()}%";
             query = query.Where(u =>
                 (u.UserName != null && EF.Functions.Like(u.UserName, pattern)) ||
-                (u.Email != null && EF.Functions.Like(u.Email, pattern)));
-            // NOTE: no FullName in filter
+                (u.Email != null && EF.Functions.Like(u.Email, pattern)) ||
+                (u.FirstName != null && EF.Functions.Like(u.FirstName, pattern)) ||
+                (u.LastName != null && EF.Functions.Like(u.LastName, pattern)));
         }
 
         var total = await query.CountAsync();
 
         var items = await query
-            .OrderBy(u => u.UserName)
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
             .Skip((page - 1) * size)
             .Take(size)
             .Select(u => new UserDto
             {
                 Id = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                FullName = u.FullName,
                 UserName = u.UserName,
-                Email = u.Email,
-                FullName = null // keep DTO happy; no DB column needed
+                Email = u.Email
             })
             .ToListAsync();
 
@@ -63,9 +67,11 @@ public class UserService : IUserService
             .Select(x => new UserDto
             {
                 Id = x.Id,
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                FullName = x.FullName,
                 UserName = x.UserName,
-                Email = x.Email,
-                FullName = null
+                Email = x.Email
             })
             .FirstOrDefaultAsync();
 
@@ -91,8 +97,6 @@ public class UserService : IUserService
             user.EmailConfirmed = false;
             anyChange = true;
         }
-
-        // No FullName updates
 
         if (!anyChange) return true;
 

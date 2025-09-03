@@ -2,8 +2,11 @@
 using Domain.Contracts.Repositories;
 using Domain.Models.Entities;
 using LMS.Shared.DTOs.EntitiesDtos;
+using UserDto = LMS.Shared.DTOs.UsersDtos.UserDto;
 using Microsoft.EntityFrameworkCore;
 using Service.Contracts;
+
+
 
 namespace LMS.Services
 {
@@ -31,7 +34,7 @@ namespace LMS.Services
                     query = query.Include(c => c.Modules)
                                  .ThenInclude(m => m.Activities);
                 }
-                
+
             }
 
             var courses = await query.ToListAsync();
@@ -178,13 +181,17 @@ namespace LMS.Services
                 .Select(cu => new UserDto
                 {
                     Id = cu.User.Id,
+                    FirstName = cu.User.FirstName,
+                    LastName = cu.User.LastName,
+                    FullName = cu.User.FullName,
                     UserName = cu.User.UserName,
                     Email = cu.User.Email,
-                    FullName = null // you opted not to store FullName
+                    IsTeacher = cu.IsTeacher
                 })
                 .ToListAsync();
 
             return users;
         }
+
     }
 }
