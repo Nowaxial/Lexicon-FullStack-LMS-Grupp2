@@ -1,25 +1,22 @@
 ﻿@implements IDisposable
 @inject NavigationManager NavigationManager
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 
 <nav class="navbar navbar-expand-md navbar-dark lms-navbar" role="navigation" aria-label="Main">
     <div class="container-fluid lms-container">
 
-        <!-- Brand -->
         <a class="navbar-brand" href="">
             LEXICON LMS
         </a>
 
-        <!-- Toggler -->
         <button class="navbar-toggler" type="button"
                 data-bs-toggle="collapse" data-bs-target="#lmsNav"
                 aria-controls="lmsNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <!-- Collapsible area -->
         <div class="collapse navbar-collapse" id="lmsNav">
-            <!-- Left: main links -->
             <ul class="navbar-nav me-auto align-items-md-center">
                 <li class="nav-item">
                     <NavLink class="nav-link lms-link" href="courses">Kurser</NavLink>
@@ -31,16 +28,16 @@
                     <NavLink class="nav-link lms-link" href="contact">Kontakt</NavLink>
                 </li>
 
-                <AuthorizeView Roles="Teacher,Admin">
+                @* <AuthorizeView Roles="Teacher,Admin">
                     <Authorized>
                         <li class="nav-item">
                             <NavLink class="nav-link lms-link" href="teacher">Lärare</NavLink>
                         </li>
                     </Authorized>
-                </AuthorizeView>
+                </AuthorizeView> *@
             </ul>
 
-            <!-- Right: user/auth -->
+     
             <ul class="navbar-nav ms-auto align-items-md-center">
                 <AuthorizeView>
                     <NotAuthorized>
@@ -50,7 +47,6 @@
                     </NotAuthorized>
 
                     <Authorized>
-                        <!-- Notification Bell for Teachers -->
                         <AuthorizeView Roles="Teacher" Context="teacherContext">
                             <Authorized>
                                 <li class="nav-item">
@@ -58,19 +54,33 @@
                                 </li>
                             </Authorized>
                         </AuthorizeView>
-
                         <li class="nav-item">
-                            <NavLink class="nav-link lms-user" href="Account/Manage">
-                                @{
-                                    var firstName = context.User.FindFirst("FirstName")?.Value;
-                                    var lastName = context.User.FindFirst("LastName")?.Value;
-                                    var displayName = !string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName)
-                                    ? $"{firstName} {lastName}".Trim()
-                                    : context.User.Identity?.Name;
+                            @{
+                                var user = context.User;
+
+                                var firstName = user.FindFirst("FirstName")?.Value
+                                ?? user.FindFirst(ClaimTypes.GivenName)?.Value;
+                                var lastName = user.FindFirst("LastName")?.Value
+                                ?? user.FindFirst(ClaimTypes.Surname)?.Value;
+
+                                var displayName = string.Join(" ", new[] { firstName, lastName }
+                                .Where(s => !string.IsNullOrWhiteSpace(s)));
+                                if (string.IsNullOrWhiteSpace(displayName))
+                                {
+                                    displayName = user.Identity?.Name ?? "Min sida";
                                 }
+
+                                string profileHref =
+                                user.IsInRole("Teacher") || user.IsInRole("Admin") ? "/teacher" :
+                                user.IsInRole("Student") ? "/courses" :
+                                "/"; 
+
+                            }
+                            <NavLink class="nav-link lms-user" href="@profileHref">
                                 @displayName
                             </NavLink>
                         </li>
+
                         <li class="nav-item">
                             <form action="Account/Logout" method="post" class="d-inline m-0" @formname="logout-form">
                                 <AntiforgeryToken />

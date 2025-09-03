@@ -22,15 +22,23 @@ else
 <AuthorizeView Roles="Teacher" Context="ctx">
     <Authorized>
         <section class="container-fluid lms-container teacher-wrap py-4">
-                <div class="d-flex flex-row justify-content-between">
-                    <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
-                <div class="side-head position-sticky">
-                    <button type="button"
-                                class="btn btn-outline-secondary btn-create">
-                        Skapa kurs
-                    </button>
+                <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+                    <h1 class="display-6 fw-bold m-0">Välkommen, @displayName!</h1>
+
+                    <div class="header-actions ms-auto d-flex gap-2">
+                        <button type="button"
+                                class="btn btn-outline-secondary btn-create"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#addCourseTeacherPage">
+                            Skapa kurs
+                        </button>
+
+                        <a class="btn btn-hero btn-manage" href="/Account/Manage">
+                            Hantera ditt konto
+                        </a>
+                    </div>
                 </div>
-             </div>
+
 
 
             <div class="row g-4">
