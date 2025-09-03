@@ -46,8 +46,8 @@ namespace LMS.Blazor.Components.Pages
                 return days == 1 ? "1 dag" : $"{days} dagar";
 
             var weeks = days / 7;
-            var rem = days % 7;
-            return rem == 0 ? $"{weeks} veckor" : $"{weeks} veckor {rem} dagar";
+            //var rem = days % 7;
+            return $"{weeks} veckor";
         }
     }
 }
