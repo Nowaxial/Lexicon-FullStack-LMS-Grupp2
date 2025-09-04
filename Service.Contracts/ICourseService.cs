@@ -1,4 +1,5 @@
 ﻿using LMS.Shared.DTOs.EntitiesDtos;
+using UserDto = LMS.Shared.DTOs.UsersDtos.UserDto;
 
 namespace Service.Contracts
 {

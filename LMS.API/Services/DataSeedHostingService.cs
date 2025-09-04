@@ -48,13 +48,16 @@ public class DataSeedHostingService : IHostedService
             if (!await dbContext.Courses.AnyAsync(cancellationToken))
             {
                 var courses = new[]
-{
-                new Course { Name = "C# Fundamentals", Description = "Introduktion till C#", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-7)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(60)) },
-                new Course { Name = "JavaScript Basics", Description = "Grundläggande JavaScript", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-14)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(45)) },
-                new Course { Name = "React Development", Description = "Modern React utveckling", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-21)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(30)) },
-                new Course { Name = "Python Basics", Description = "Grundläggande Python", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-28)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(20)) },
-                new Course { Name = "ASP.NET Core", Description = "Webbutveckling med ASP.NET Core", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-35)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(15)) }
-            };
+                {
+                    
+                    new Course { Name = "C# Fundamentals", Description = "Introduktion till C#", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-7)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(60)) },
+                    new Course { Name = "JavaScript Basics", Description = "Grundläggande JavaScript", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-14)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(45)) },
+                    new Course { Name = "React Development", Description = "Modern React utveckling", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-21)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(30)) },
+                    new Course { Name = "Python Basics", Description = "Grundläggande Python", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-28)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(20)) },
+                    new Course { Name = "ASP.NET Core", Description = "Webbutveckling med ASP.NET Core", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-35)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(15)) },
+                    new Course { Name = "Fullstack .NET", Description = "Komplett .NET utveckling med Blazor", Starts = DateOnly.FromDateTime(DateTime.Today.AddDays(-10)), Ends = DateOnly.FromDateTime(DateTime.Today.AddDays(90)) }
+                
+                };
 
                 dbContext.Courses.AddRange(courses);
                 await AddRolesAsync([TeacherRole, StudentRole]);
@@ -63,11 +66,15 @@ public class DataSeedHostingService : IHostedService
                 await dbContext.SaveChangesAsync();
             }
 
-            // --- Module seeding (per course) ---
-            await EnsureModulesSeededAsync(dbContext, cancellationToken);
+            /* // --- Module seeding (per course) ---
+             await EnsureModulesSeededAsync(dbContext, cancellationToken);*/
+
+            // --- Module seeding with realistic data (per course) ---
+            await EnsureModulesSeededWithRealisticDataAsync(dbContext, cancellationToken);
 
             // --- Activity seeding (per module) ---
             await EnsureActivitiesSeededAsync(dbContext, cancellationToken);
+
 
             logger.LogInformation("Seed complete");
         }
@@ -80,54 +87,39 @@ public class DataSeedHostingService : IHostedService
 
     private static async Task EnsureActivitiesSeededAsync(ApplicationDbContext context, CancellationToken ct)
     {
-        // Hämta moduler som saknar aktiviteter
         var modules = await context.Modules
             .Where(m => !context.Activities.Any(a => a.ModuleId == m.Id))
-            .Select(m => new { m.Id, m.Starts, m.Ends, m.Name })
+            .Include(m => m.Course)
+            .Select(m => new { m.Id, m.Starts, m.Ends, m.Name, CourseName = m.Course.Name })
             .ToListAsync(ct);
 
         if (!modules.Any()) return;
 
         var newActivities = new List<ProjActivity>();
-        var activityTypes = new[] { "E-learning", "Föreläsning", "Övning", "Inlämningsuppgift", "Övrigt" };
-        var activityTitles = new[]
-        {
-            "Introduktion", "Grunderna", "Praktisk övning", "Fördjupade studier",
-            "Workshop", "Labbtillfälle", "Projektarbete", "Repetition",
-            "Kunskapskontroll", "Hemuppgift", "Grupparbete", "Redovisning"
-        };
-
-        var random = new Random();
 
         foreach (var module in modules)
         {
+            var activities = GetActivitiesForModule(module.Name, module.CourseName);
             var moduleStart = module.Starts.ToDateTime(TimeOnly.MinValue);
             var moduleEnd = module.Ends.ToDateTime(TimeOnly.MaxValue);
+            var totalHours = (moduleEnd - moduleStart).TotalHours;
 
-            // Create 3-5 activities per modul
-            int activityCount = random.Next(3, 6);
-
-            for (int i = 0; i < activityCount; i++)
+            for (int i = 0; i < activities.Length; i++)
             {
-                // Random start and duration within module
-                var totalHours = (moduleEnd - moduleStart).TotalHours;
-                var startOffset = random.NextDouble() * totalHours * 0.8;
+                var activity = activities[i];
+                var startOffset = (totalHours / activities.Length) * i;
                 var activityStart = moduleStart.AddHours(startOffset);
+                var activityEnd = activityStart.AddHours(activity.Duration);
 
-                // 1-5 hours duration for each activity
-                var duration = random.Next(1, 5);
-                var activityEnd = activityStart.AddHours(duration);
-
-                // Don't go past module end
                 if (activityEnd > moduleEnd)
                     activityEnd = moduleEnd;
 
                 newActivities.Add(new ProjActivity
                 {
                     ModuleId = module.Id,
-                    Title = $"{activityTitles[random.Next(activityTitles.Length)]} {i + 1}",
-                    Description = $"Aktivitet för {module.Name} - Session {i + 1}",
-                    Type = activityTypes[random.Next(activityTypes.Length)],
+                    Title = activity.Title,
+                    Description = activity.Description,
+                    Type = activity.Type,
                     Starts = activityStart,
                     Ends = activityEnd
                 });
@@ -139,6 +131,53 @@ public class DataSeedHostingService : IHostedService
             context.Activities.AddRange(newActivities);
             await context.SaveChangesAsync(ct);
         }
+    }
+
+    private static (string Title, string Description, string Type, int Duration)[] GetActivitiesForModule(string moduleName, string courseName)
+    {
+        return (courseName, moduleName) switch
+        {
+            ("C# Fundamentals", "Grundläggande syntax") => [
+                ("Variabler och datatyper", "Lär dig om olika datatyper i C#", "Föreläsning", 2),
+            ("Kontrollstrukturer", "If-satser, loopar och switch", "Övning", 3),
+            ("Syntax-quiz", "Testa dina kunskaper om C# syntax", "Kunskapskontroll", 1)
+            ],
+            ("C# Fundamentals", "Objektorienterad programmering") => [
+                ("Klasser och objekt", "Grunderna i OOP", "Föreläsning", 2),
+            ("Arv och polymorfism", "Avancerade OOP-koncept", "Workshop", 4),
+            ("OOP-projekt", "Skapa en enkel applikation", "Projektarbete", 6)
+            ],
+            ("JavaScript Basics", "Grundläggande JavaScript") => [
+                ("JavaScript syntax", "Variabler, funktioner och objekt", "Föreläsning", 2),
+            ("DOM-grunderna", "Manipulera HTML med JavaScript", "Övning", 3),
+            ("Första JavaScript-appen", "Bygg en enkel kalkylator", "Projektarbete", 4)
+            ],
+            ("React Development", "React grunder") => [
+                ("Introduktion till React", "Vad är React och JSX", "Föreläsning", 2),
+            ("Första React-komponenten", "Skapa din första komponent", "Övning", 3),
+            ("React-app från scratch", "Bygg en todo-app", "Projektarbete", 5)
+            ],
+            ("Python Basics", "Python syntax") => [
+                ("Python grundsyntax", "Variabler, listor och funktioner", "Föreläsning", 2),
+            ("Python-övningar", "Praktiska kodningsövningar", "Övning", 3),
+            ("Python-quiz", "Testa dina Python-kunskaper", "Kunskapskontroll", 1)
+            ],
+            ("ASP.NET Core", "MVC grunderna") => [
+                ("MVC-arkitekturen", "Model-View-Controller mönstret", "Föreläsning", 2),
+            ("Skapa Controllers", "Bygg dina första controllers", "Övning", 3),
+            ("MVC-webbapp", "Komplett webbapplikation", "Projektarbete", 6)
+            ],
+            ("Fullstack .NET", "C# grunder") => [
+                ("C# för fullstack", "C# i fullstack-kontext", "Föreläsning", 2),
+            ("Backend-logik", "Skapa business logic", "Övning", 4),
+            ("API-design", "Designa RESTful APIs", "Workshop", 3)
+            ],
+            _ => [
+                ("Introduktion", $"Introduktion till {moduleName}", "Föreläsning", 2),
+            ("Praktisk övning", $"Övningar inom {moduleName}", "Övning", 3),
+            ("Projektarbete", $"Projekt inom {moduleName}", "Projektarbete", 4)
+            ]
+        };
     }
 
 
@@ -210,58 +249,142 @@ public class DataSeedHostingService : IHostedService
             if (!res.Succeeded) throw new Exception(string.Join("\n", res.Errors));
         }
     }
+
+    private static async Task EnsureModulesSeededWithRealisticDataAsync(ApplicationDbContext context, CancellationToken ct)
+    {
+        var courses = await context.Courses
+            .AsNoTracking()
+            .Select(c => new { c.Id, c.Starts, c.Ends, c.Name })
+            .ToListAsync(ct);
+
+        var newModules = new List<Module>();
+
+        foreach (var c in courses)
+        {
+            bool hasModules = await context.Modules.AnyAsync(m => m.CourseId == c.Id, ct);
+            if (hasModules) continue;
+
+            var moduleNames = GetModuleNamesForCourse(c.Name);
+            int totalDays = Math.Max((c.Ends.DayNumber - c.Starts.DayNumber + 1), 7);
+            int baseLen = Math.Max(3, totalDays / moduleNames.Length);
+            int remainder = totalDays - baseLen * moduleNames.Length;
+
+            var currentStart = c.Starts;
+
+            for (int i = 0; i < moduleNames.Length; i++)
+            {
+                int len = baseLen + (remainder-- > 0 ? 1 : 0);
+                var currentEnd = currentStart.AddDays(len - 1);
+
+                if (currentEnd.DayNumber > c.Ends.DayNumber)
+                    currentEnd = c.Ends;
+
+                newModules.Add(new Module
+                {
+                    CourseId = c.Id,
+                    Name = moduleNames[i],
+                    Description = $"Modul {i + 1} för {c.Name}",
+                    Starts = currentStart,
+                    Ends = currentEnd
+                });
+
+                if (currentEnd.DayNumber >= c.Ends.DayNumber) break;
+                currentStart = currentEnd.AddDays(1);
+            }
+        }
+
+        if (newModules.Count > 0)
+        {
+            context.Modules.AddRange(newModules);
+            await context.SaveChangesAsync(ct);
+        }
+    }
+
+    private static string[] GetModuleNamesForCourse(string courseName)
+    {
+        return courseName switch
+        {
+            "C# Fundamentals" => ["Grundläggande syntax", "Objektorienterad programmering", "Collections och LINQ", "Felhantering och debugging"],
+            "JavaScript Basics" => ["Grundläggande JavaScript", "DOM-manipulation", "Asynkron programmering", "ES6+ funktioner"],
+            "React Development" => ["React grunder", "Components och Props", "State och Hooks", "Routing och Context"],
+            "Python Basics" => ["Python syntax", "Datastrukturer", "Funktioner och moduler", "Filhantering och API:er"],
+            "ASP.NET Core" => ["MVC grunderna", "Entity Framework", "API utveckling", "Säkerhet och autentisering"],
+            "Fullstack .NET" => ["C# grunder", "ASP.NET Core API", "Blazor frontend", "Databaser och deployment"],
+            _ => ["Modul 1", "Modul 2", "Modul 3", "Modul 4"]
+        };
+    }
     private async Task AddDemoUsersAsync()
     {
-        var teacher = new ApplicationUser
+        var demoUsers = new[]
         {
-            UserName = "teacher@test.com",
-            Email = "teacher@test.com",
-            FirstName = "Julia",
-            LastName = "Svensson"
+            new ApplicationUser
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserName = "teacher",
+                NormalizedUserName = "TEACHER",
+                Email = "teacher@test.com",
+                NormalizedEmail = "TEACHER@TEST.COM",
+                FirstName = "Julia",
+                LastName = "Svensson",
+                EmailConfirmed = true,
+                RefreshToken = Guid.NewGuid().ToString(),
+                RefreshTokenExpireTime = DateTime.UtcNow.AddDays(30)
+            },
+            new ApplicationUser
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserName = "student",
+                NormalizedUserName = "STUDENT",
+                Email = "student@test.com",
+                NormalizedEmail = "STUDENT@TEST.COM",
+                FirstName = "Anders",
+                LastName = "Andersson",
+                EmailConfirmed = true,
+                RefreshToken = Guid.NewGuid().ToString(),
+                RefreshTokenExpireTime = DateTime.UtcNow.AddDays(30)
+            }
         };
-        
-        var student = new ApplicationUser
-        {
-            UserName = "student@test.com",
-            Email = "student@test.com",
-            FirstName = "Anders",
-            LastName = "Andersson"
-            
-        };
 
-        await AddUserToDb([teacher, student]);
+        await AddUserToDb(demoUsers);
 
-        var teacherRoleResult = await userManager.AddToRoleAsync(teacher, TeacherRole);
-        if (!teacherRoleResult.Succeeded) throw new Exception(string.Join("\n", teacherRoleResult.Errors));
+        await userManager.AddToRoleAsync(demoUsers[0], TeacherRole);
+        await userManager.AddToRoleAsync(demoUsers[1], StudentRole);
 
-        var studentRoleResult = await userManager.AddToRoleAsync(student, StudentRole);
-        if (!studentRoleResult.Succeeded) throw new Exception(string.Join("\n", studentRoleResult.Errors));
-
-        await AddCourseUserRelationship(new[] { teacher, student });
+        await AddCourseUserRelationship(demoUsers);
     }
 
     private async Task AddUsersAsync(int nrOfUsers)
     {
+        var domains = new[] { "gmail.com", "hotmail.com", "outlook.com", "yahoo.com" };
+
         var faker = new Faker<ApplicationUser>("sv")
             .Rules((f, e) =>
             {
                 e.Id = Guid.NewGuid().ToString();
-
-                e.Email = f.Internet.Email();
-                e.NormalizedEmail = e.Email.ToUpper();
-                e.UserName = e.Email.Split('@')[0]; // use part before @
-                e.NormalizedUserName = e.UserName.ToUpper();
-
                 e.FirstName = f.Name.FirstName();
                 e.LastName = f.Name.LastName();
 
-                e.EmailConfirmed = f.Random.Bool();
-                e.PhoneNumber = f.Phone.PhoneNumber();
-                e.PhoneNumberConfirmed = f.Random.Bool();
-                e.TwoFactorEnabled = f.Random.Bool();
-                e.LockoutEnabled = true;
-                e.AccessFailedCount = f.Random.Int(0, 5);
+                // Use a random domain
+                var domain = f.PickRandom(domains);
 
+
+                // Clean up the names from Swedish special characters
+                var cleanFirstName = e.FirstName.ToLower()
+                    .Replace("å", "a").Replace("ä", "a").Replace("ö", "o")
+                    .Replace(" ", "").Replace("-", "");
+
+                var cleanLastName = e.LastName.ToLower()
+                    .Replace("å", "a").Replace("ä", "a").Replace("ö", "o")
+                    .Replace(" ", "").Replace("-", "");
+
+                e.Email = $"{cleanFirstName}.{cleanLastName}@{domain}";
+                e.NormalizedEmail = e.Email.ToUpper();
+                e.UserName = e.Email.Split('@')[0];
+                e.NormalizedUserName = e.UserName.ToUpper();
+
+                e.PhoneNumber = f.Phone.PhoneNumber();
+                e.EmailConfirmed = true;
+                e.LockoutEnabled = true;
                 e.RefreshToken = f.Random.Guid().ToString();
                 e.RefreshTokenExpireTime = DateTime.UtcNow.AddDays(f.Random.Int(1, 30));
             });
@@ -269,7 +392,6 @@ public class DataSeedHostingService : IHostedService
         var users = faker.Generate(nrOfUsers);
         await AddUserToDb(users);
 
-        // Assign random role ("Teacher" or "Student")
         var roles = new[] { "Teacher", "Student" };
         var rnd = new Random();
 
@@ -286,43 +408,62 @@ public class DataSeedHostingService : IHostedService
             }
         }
 
-        await AddCourseUserRelationship(users,5);
+        await AddCourseUserRelationship(users);
     }
 
     private async Task AddCourseUserRelationship(IEnumerable<ApplicationUser> users, int usersNoCourse = 0)
     {
-        //Only 1 course per user. 
         var courses = await dbContext.Courses.ToListAsync();
-        var rand = new Faker();
+        if (!courses.Any()) return;
 
-        if (courses.Any())
+        var courseUsers = new List<CourseUser>();
+        var usersList = users.ToList();
+
+        var teachers = new List<ApplicationUser>();
+        var students = new List<ApplicationUser>();
+
+        foreach (var user in usersList)
         {
-            var courseUsers = new List<CourseUser>();
+            var roles = await userManager.GetRolesAsync(user);
+            if (roles.Contains(TeacherRole))
+                teachers.Add(user);
+            else
+                students.Add(user);
+        }
 
-            // Pick 5 random users to NOT assign to any course
-            var excludedUsers = users.OrderBy(u => Guid.NewGuid()).Take(usersNoCourse).ToHashSet();
+        var shuffledStudents = students.OrderBy(x => Guid.NewGuid()).ToList();
+        int studentIndex = 0;
 
-            foreach (var user in users)
+        foreach (var course in courses)
+        {
+            // Add 2 teachers per course
+            var courseTeachers = teachers.OrderBy(x => Guid.NewGuid()).Take(2);
+            foreach (var teacher in courseTeachers)
             {
-                // Skip the excluded users
-                if (excludedUsers.Contains(user))
-                    continue;
-
-                var course = rand.PickRandom(courses);
-
                 courseUsers.Add(new CourseUser
                 {
-                    UserId = user.Id,
+                    UserId = teacher.Id,
+                    CourseId = course.Id,
+                    IsTeacher = true
+                });
+            }
+
+            // Add 5 students per course (each student only in one course)
+            for (int i = 0; i < 5 && studentIndex < shuffledStudents.Count; i++, studentIndex++)
+            {
+                courseUsers.Add(new CourseUser
+                {
+                    UserId = shuffledStudents[studentIndex].Id,
                     CourseId = course.Id,
                     IsTeacher = false
                 });
             }
+        }
 
-            if (courseUsers.Any())
-            {
-                dbContext.CourseUsers.AddRange(courseUsers);
-                await dbContext.SaveChangesAsync();
-            }
+        if (courseUsers.Any())
+        {
+            dbContext.CourseUsers.AddRange(courseUsers);
+            await dbContext.SaveChangesAsync();
         }
     }
     private async Task AddUserToDb(IEnumerable<ApplicationUser> users)

@@ -1,0 +1,213 @@
+﻿@page "/student"
+@rendermode InteractiveWebAssembly
+@attribute [Authorize(Roles = "Student")]
+@namespace LMS.Blazor.Client.Components.Pages
+
+@using LMS.Shared.DTOs.EntitiesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
+@using LMS.Shared.DTOs.UsersDtos
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Student</PageTitle>
+
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <h2 class="text-muted">Loading…</h2>
+    </div>
+}
+else
+{
+    <AuthorizeView Roles="Student">
+        <Authorized>
+            <section class="container-fluid lms-container py-4">
+                <h1 class="display-6 fw-bold mb-4">Välkommen, @displayName!</h1>
+
+                <div class="row g-4">
+                    <div class="col-12 col-lg-8">
+                        <!-- Min kurs -->
+                        <article class="dash-card">
+                            <div class="dash-card__head">Min kurs</div>
+                            @if (currentCourse != null)
+                            {
+                                <div class="course-row">
+                                    <div class="course-row__title">@currentCourse.Name</div>
+                                    <div class="course-row__meta">
+                                        <div><span class="label">Startdatum</span><span>@currentCourse.Starts.ToString("dd MMM yyyy")</span></div>
+                                        <div><span class="label">Slutdatum</span><span>@currentCourse.Ends.ToString("dd MMM yyyy")</span></div>
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(currentCourse.Description))
+                                {
+                                    <p class="text-muted mt-2">@currentCourse.Description</p>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted">Du är inte registrerad på någon kurs.</p>
+                            }
+                        </article>
+
+                        <!-- Moduler -->
+                        <article class="dash-card mt-4">
+                            <div class="dash-card__head">Mina moduler</div>
+                            @if (modules.Any())
+                            {
+                                @foreach (var module in modules.OrderBy(m => m.Starts))
+                                {
+                                    <div class="module-row" style="cursor: pointer;" @onclick="() => ToggleModuleActivities(module.Id)">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="fw-semibold">@module.Name</div>
+                                                <small class="text-muted">
+                                                    @module.Starts.ToString("yyyy-MM-dd") – @module.Ends.ToString("yyyy-MM-dd")
+                                                </small>
+                                            </div>
+                                            <i class="bi @(expandedModules.Contains(module.Id) ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                        </div>
+
+                                        @if (expandedModules.Contains(module.Id))
+                                        {
+                                            <div class="mt-3">
+                                                <h6>Aktiviteter:</h6>
+                                                @if (moduleActivities.ContainsKey(module.Id) && moduleActivities[module.Id].Any())
+                                                {
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm table-borderless">
+                                                            <thead>
+                                                                <tr class="text-muted">
+                                                                    <th>Datum</th>
+                                                                    <th>Aktivitet</th>
+                                                                    <th>Typ</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach (var activity in moduleActivities[module.Id].OrderBy(a => a.Starts))
+                                                                {
+                                                                    <tr>
+                                                                        <td class="text-nowrap">@activity.Starts.ToString("dd MMM")</td>
+                                                                        <td>
+                                                                            <div class="fw-semibold">@activity.Title</div>
+                                                                            @if (!string.IsNullOrEmpty(activity.Description))
+                                                                            {
+                                                                                <small class="text-muted">@activity.Description</small>
+                                                                            }
+                                                                        </td>
+                                                                        <td><span class="badge bg-secondary">@activity.Type</span></td>
+                                                                    </tr>
+                                                                }
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-muted">Inga aktiviteter i denna modul.</p>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted">Inga moduler att visa.</p>
+                            }
+                        </article>
+                    </div>
+
+                    <div class="col-12 col-lg-4">
+                        <!-- Lärare -->
+                        <article class="dash-card">
+                            <div class="dash-card__head">Lärare</div>
+                            @if (courseTeachers.Any())
+                            {
+                                <div class="user-list">
+                                    @foreach (var teacher in courseTeachers.OrderBy(t => t.FirstName).ThenBy(t => t.LastName))
+                                    {
+                                        <div class="user-card teacher-card">
+                                            <div class="user-avatar teacher-avatar">
+                                                <i class="bi bi-person-badge"></i>
+                                            </div>
+                                            <div class="user-info">
+                                                <div class="user-name">
+                                                    @if (!string.IsNullOrEmpty(teacher.FirstName) || !string.IsNullOrEmpty(teacher.LastName))
+                                                    {
+                                                        @($"{teacher.FirstName} {teacher.LastName}".Trim())
+                                                    }
+                                                    else
+                                                    {
+                                                        @teacher.UserName
+                                                    }
+                                                </div>
+                                                <div class="user-email">
+                                                    <i class="bi bi-envelope me-1"></i>@teacher.Email
+                                                </div>
+                                                <div class="user-role teacher-role">
+                                                    <i class="bi bi-mortarboard me-1"></i>Lärare
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted p-3">Inga lärare tilldelade kursen.</p>
+                            }
+                        </article>
+
+                        <!-- Kursdeltagare -->
+                        <article class="dash-card mt-4">
+                            <div class="dash-card__head">Kursdeltagare</div>
+                            @if (courseStudents.Any())
+                            {
+                                <div class="user-list">
+                                    @foreach (var student in courseStudents.OrderBy(s => s.FirstName).ThenBy(s => s.LastName))
+                                    {
+                                        <div class="user-card student-card">
+                                            <div class="user-avatar student-avatar">
+                                                <i class="bi bi-person-circle"></i>
+                                            </div>
+                                            <div class="user-info">
+                                                <div class="user-name">
+                                                    @if (!string.IsNullOrEmpty(student.FirstName) || !string.IsNullOrEmpty(student.LastName))
+                                                    {
+                                                        @($"{student.FirstName} {student.LastName}".Trim())
+                                                    }
+                                                    else
+                                                    {
+                                                        @student.UserName
+                                                    }
+                                                </div>
+                                                <div class="user-email">
+                                                    <i class="bi bi-envelope me-1"></i>@student.Email
+                                                </div>
+                                                <div class="user-role student-role">
+                                                    <i class="bi bi-book me-1"></i>Student
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted p-3">Inga andra studenter i kursen.</p>
+                            }
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </Authorized>
+
+        <NotAuthorized>
+            <div class="container py-5">
+                <div class="alert alert-warning">Du måste vara inloggad som student för att visa denna sida.</div>
+                <NavLink class="btn btn-primary" href="Account/Login">Logga in</NavLink>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+}
