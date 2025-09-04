@@ -1,4 +1,5 @@
 ﻿@page "/Account/Manage/DeletePersonalData"
+@layout ManageLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -9,77 +10,50 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<DeletePersonalData> Logger
 
-<PageTitle>Delete Personal Data</PageTitle>
+<PageTitle>Ta bort personlig data</PageTitle>
+
+<div class="dash-card__head">Ta bort personlig data</div>
 
 <StatusMessage Message="@message" />
 
-<h3>Delete Personal Data</h3>
-
-<div class="alert alert-warning" role="alert">
-    <p>
-        <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
-    </p>
+<div class="row g-3">
+    <div class="col-12">
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Varning - Permanent borttagning</strong>
+            <p class="mb-0 mt-2">
+                Att ta bort denna data kommer permanent att ta bort ditt konto, och detta kan inte återställas.
+            </p>
+        </div>
+    </div>
 </div>
 
-<div>
-    <EditForm Model="Input" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post">
-        <DataAnnotationsValidator />
-        <ValidationSummary class="text-danger" role="alert" />
-        @if (requirePassword)
-        {
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Please enter your password." />
-                <label for="password" class="form-label">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
+<div class="row g-3 mt-3">
+    <div class="col-12">
+        <EditForm Model="Input" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger mb-3" role="alert" />
+
+            @if (requirePassword)
+            {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="password" class="form-label text-muted small">Bekräfta med ditt lösenord</label>
+                        <InputText type="password" @bind-Value="Input.Password" class="form-control"
+                                   autocomplete="current-password" aria-required="true"
+                                   placeholder="Ange ditt lösenord för att bekräfta" />
+                        <ValidationMessage For="() => Input.Password" class="text-danger small" />
+                    </div>
+                </div>
+            }
+
+            <div class="mt-4">
+                <button class="btn btn-danger" type="submit">
+                    <i class="bi bi-trash me-2"></i>Ta bort data och stäng mitt konto
+                </button>
             </div>
-        }
-        <button class="w-100 btn btn-lg btn-danger" type="submit">Delete data and close my account</button>
-    </EditForm>
+        </EditForm>
+    </div>
 </div>
 
-@code {
-    private string? message;
-    private ApplicationUser user = default!;
-    private bool requirePassword;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        Input ??= new();
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        requirePassword = await UserManager.HasPasswordAsync(user);
-    }
-
-    private async Task OnValidSubmitAsync()
-    {
-        if (requirePassword && !await UserManager.CheckPasswordAsync(user, Input.Password))
-        {
-            message = "Error: Incorrect password.";
-            return;
-        }
-
-        var result = await UserManager.DeleteAsync(user);
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException("Unexpected error occurred deleting user.");
-        }
-
-        await SignInManager.SignOutAsync();
-
-        var userId = await UserManager.GetUserIdAsync(user);
-        Logger.LogInformation("User with ID '{UserId}' deleted themselves.", userId);
-
-        RedirectManager.RedirectToCurrentPage();
-    }
-
-    private sealed class InputModel
-    {
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
-    }
-}

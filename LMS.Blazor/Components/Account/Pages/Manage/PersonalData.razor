@@ -1,34 +1,51 @@
 ﻿@page "/Account/Manage/PersonalData"
+@layout ManageLayout
 
 @inject IdentityUserAccessor UserAccessor
 
-<PageTitle>Personal Data</PageTitle>
+<PageTitle>Personlig data</PageTitle>
+
+<div class="dash-card__head">Personlig data</div>
 
 <StatusMessage />
-<h3>Personal Data</h3>
 
-<div class="row">
-    <div class="col-md-6">
-        <p>Your account contains personal data that you have given us. This page allows you to download or delete that data.</p>
-        <p>
-            <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
-        </p>
-        <form action="Account/Manage/DownloadPersonalData" method="post">
-            <AntiforgeryToken />
-            <button class="btn btn-primary" type="submit">Download</button>
-        </form>
-        <p>
-            <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">Delete</a>
-        </p>
+<div class="row g-3">
+    <div class="col-12">
+        <div class="alert alert-custom-info">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Information om dina personuppgifter</strong>
+            <p class="mb-0 mt-2">
+                Ditt konto innehåller personuppgifter som du har gett oss. Denna sida låter dig ladda ner eller ta bort dessa uppgifter.
+            </p>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Viktigt att veta</strong>
+            <p class="mb-0 mt-2">
+                Att ta bort denna data kommer permanent att ta bort ditt konto, och detta kan inte återställas.
+            </p>
+        </div>
     </div>
 </div>
 
-@code {
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+<div class="row g-3 mt-3">
+    <div class="col-12">
+        <div class="d-flex flex-wrap gap-3">
+            <form action="Account/Manage/DownloadPersonalData" method="post" class="d-inline">
+                <AntiforgeryToken />
+                <button class="btn btn-hero" type="submit">
+                    <i class="bi bi-download me-2"></i>Ladda ner data
+                </button>
+            </form>
 
-    protected override async Task OnInitializedAsync()
-    {
-        _ = await UserAccessor.GetRequiredUserAsync(HttpContext);
-    }
-}
+            <a href="Account/Manage/DeletePersonalData" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-2"></i>Ta bort konto
+            </a>
+        </div>
+    </div>
+</div>
+
+

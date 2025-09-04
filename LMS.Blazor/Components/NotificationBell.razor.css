@@ -1,0 +1,161 @@
+﻿.nav-link-btn {
+    background: transparent;
+    border: none;
+    color: var(--base);
+    font-size: 1.2rem;
+    padding: 0.5rem 0.75rem 0.5rem 0rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-align: left;
+    justify-content: flex-start;
+    opacity: 0.92;
+}
+
+
+    .nav-link-btn:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+    .nav-link-btn:hover {
+        color: var(--base);
+        opacity: 1;
+    }
+
+.nav-link-text {
+    color: var(--base);
+    font-size: 1rem;
+}
+
+
+
+.nav-link-btn .badge {
+    font-size: 0.7rem;
+}
+
+.notification-item {
+    transition: background-color 0.2s ease;
+}
+
+    .notification-item:hover {
+        background-color: var(--bs-gray-100);
+    }
+
+    .notification-item.unread {
+        background-color: var(--bs-light);
+        font-weight: bold;
+    }
+
+.lms-notification-modal-header {
+    background: var(--bg-main);
+    color: var(--base);
+    border-bottom: none;
+}
+
+    .lms-notification-modal-header .btn-close {
+        filter: invert(1);
+        opacity: 0.8;
+    }
+
+        .lms-notification-modal-header .btn-close:hover {
+            opacity: 1;
+        }
+
+.lms-field-group {
+    margin-bottom: 1.5rem;
+}
+
+.lms-field-label {
+    display: block;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lms-field-value {
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--muted);
+}
+
+.lms-message-content {
+    background: var(--muted);
+    color: var(--text);
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 1.6;
+    border-left: 4px solid var(--accent);
+}
+
+.lms-notification-modal .modal-backdrop {
+    background-color: rgba(0, 70, 81, 0.5);
+}
+
+.lms-notification-modal .btn {
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.lms-notification-modal .btn-success {
+    background: var(--primary);
+    color: var(--base);
+}
+
+    .lms-notification-modal .btn-success:hover {
+        background: var(--accent);
+        color: var(--base);
+        transform: translateY(-1px);
+    }
+
+.lms-notification-modal .btn-warning {
+    background: var(--accent);
+    color: var(--base);
+}
+
+    .lms-notification-modal .btn-warning:hover {
+        background: var(--primary);
+        color: var(--base);
+        transform: translateY(-1px);
+    }
+
+.lms-notification-modal .btn-secondary {
+    background: transparent;
+    border: 2px solid var(--muted);
+    color: var(--text);
+}
+
+    .lms-notification-modal .btn-secondary:hover {
+        background: var(--muted);
+        border-color: var(--accent);
+        color: var(--text);
+        transform: translateY(-1px);
+    }
+
+@media (max-width: 767.98px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-content {
+        max-height: 95vh;
+    }
+}
+
+.mobile-badge {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.4rem;
+}
+
+.notification-list-body {
+    max-height: 400px;
+    overflow-y: auto;
+}

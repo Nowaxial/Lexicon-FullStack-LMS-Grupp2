@@ -7,51 +7,73 @@
 
 @if (isTeacher && notifications != null)
 {
-    <div class="dropdown">
-        <button class="btn lms-bell-btn position-relative" data-bs-toggle="dropdown">
-            <i class="bi bi-bell"></i>
-            @if (unreadCount > 0)
-            {
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+    <button class="nav-link-btn position-relative d-flex align-items-center" @onclick="OpenNotificationModal">
+        <i class="bi bi-bell d-none d-md-inline"></i>
+        <span class="d-md-none nav-link-text">Notifikation</span>
 
-
-                    @unreadCount
-                </span>
-            }
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" style="min-width: 300px;">
-            @if (notifications.Any())
-            {
-                @foreach (var notification in notifications.Take(5))
-                {
-                    <li>
-                        <div class="dropdown-item @(notification.IsRead ? "" : "bg-light fw-bold")"
-                             style="cursor: pointer;" @onclick="() => ShowNotification(notification)">
-                            <div>@notification.Message</div>
-                            <small class="text-muted">@notification.Timestamp.ToString("yyyy-MM-dd HH:mm")</small>
-                        </div>
-                    </li>
-                }
-            }
-            else
-            {
-                <li><span class="dropdown-item text-muted">Inga notifikationer</span></li>
-            }
-        </ul>
-    </div>
+        @if (unreadCount > 0)
+        {
+            <span class="badge rounded-pill bg-danger ms-2 d-md-none mobile-badge">@unreadCount</span>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none d-md-inline">@unreadCount</span>
+        }
+    </button>
 }
 
-<!-- Modal -->
+<!-- Notification List Modal -->
+@if (showNotificationModal)
+{
+    <div class="modal fade show rounded" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header lms-notification-modal-header rounded">
+                    <h5 class="modal-title">Notifikationer</h5>
+                    <button type="button" class="btn-close" @onclick="CloseNotificationModal"></button>
+                </div>
+                <div class="modal-body p-0 notification-list-body">
+
+                    @if (notifications.Any())
+                    {
+                        @foreach (var notification in notifications)
+                        {
+                            <div class="notification-item @(notification.IsRead ? "" : "unread") p-3 border-bottom rounded"
+     style="cursor: pointer;" @onclick="() => ShowNotification(notification)">
+
+                                <div class="mb-1">
+                                    @if (notification.Message.Contains("kontaktmeddelande från"))
+                                    {
+                                        @notification.Message.Replace("Nytt kontaktmeddelande från", "Nytt meddelande från")
+                                    }
+                                    else
+                                    {
+                                        @notification.Message
+                                    }
+                                </div>
+                                <small class="text-muted">@notification.Timestamp.ToString("yyyy-MM-dd HH:mm")</small>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-3 text-muted text-center">Inga notifikationer</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<!-- Message Detail Modal -->
 @if (selectedNotification != null)
 {
     <div class="modal fade show lms-notification-modal" style="display: block;" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header lms-notification-modal-header">
                     <h5 class="modal-title">Kontaktmeddelande</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-3 p-md-4">
                     @if (decryptedMessage != null)
                     {
                         <div class="lms-field-group">
@@ -84,28 +106,28 @@
                     }
                     else
                     {
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary mb-3" role="status">
                                 <span class="visually-hidden">Laddar...</span>
                             </div>
-                            <p class="mt-2">Dekrypterar meddelande...</p>
+                            <p class="mb-0">Dekrypterar meddelande...</p>
                         </div>
                     }
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
                     @if (selectedNotification.IsRead)
                     {
-                        <button type="button" class="btn btn-warning" @onclick="() => MarkAsUnread(selectedNotification.Id)">
+                        <button type="button" class="btn btn-warning w-100 w-sm-auto" @onclick="() => MarkAsUnread(selectedNotification.Id)">
                             Markera som oläst
                         </button>
                     }
                     else
                     {
-                        <button type="button" class="btn btn-success" @onclick="() => MarkAsRead(selectedNotification.Id)">
+                        <button type="button" class="btn btn-success w-100 w-sm-auto" @onclick="() => MarkAsRead(selectedNotification.Id)">
                             Markera som läst
                         </button>
                     }
-                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Stäng</button>
+                    <button type="button" class="btn btn-secondary w-100 w-sm-auto" @onclick="CloseModal">Stäng</button>
                 </div>
             </div>
         </div>
@@ -113,137 +135,26 @@
     <div class="modal-backdrop fade show"></div>
 }
 
-<style>
-    /* Bell Button Style */
-    .lms-bell-btn {
-        background: transparent;
-        border: none;
-        color: var(--base);
-        font-size: 1.2rem;
-        padding: 0.5rem;
-        transition: all 0.2s ease;
-    }
-
-        .lms-bell-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--base);
-            transform: scale(1.1);
-        }
-
-        .lms-bell-btn:focus {
-            box-shadow: none;
-            outline: none;
-        }
-
-        .lms-bell-btn .badge {
-            font-size: 0.7rem;
-        }
-
-    .lms-notification-modal .modal-header {
-        background: var(--bg-main);
-        color: var(--base);
-        border-bottom: none;
-    }
-
-    .lms-notification-modal .btn-close {
-        filter: invert(1);
-        opacity: 0.8;
-    }
-
-        .lms-notification-modal .btn-close:hover {
-            opacity: 1;
-        }
-
-    .lms-field-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .lms-field-label {
-        display: block;
-        font-weight: 600;
-        color: var(--text);
-        margin-bottom: 0.5rem;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .lms-field-value {
-        color: var(--text);
-        font-size: 16px;
-        line-height: 1.5;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid var(--muted);
-    }
-
-    .lms-message-content {
-        background: var(--muted);
-        color: var(--text);
-        padding: 1.5rem;
-        border-radius: 8px;
-        font-size: 16px;
-        line-height: 1.6;
-        border-left: 4px solid var(--accent);
-    }
-
-    .lms-notification-modal .modal-backdrop {
-        background-color: rgba(0, 70, 81, 0.5);
-    }
-
-    /* LMS Button Styles */
-    .lms-notification-modal .btn {
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
-        border-radius: 6px;
-        border: none;
-        transition: all 0.2s ease;
-    }
-
-    .lms-notification-modal .btn-success {
-        background: var(--primary);
-        color: var(--base);
-    }
-
-        .lms-notification-modal .btn-success:hover {
-            background: var(--accent);
-            color: var(--base);
-            transform: translateY(-1px);
-        }
-
-    .lms-notification-modal .btn-warning {
-        background: var(--accent);
-        color: var(--base);
-    }
-
-        .lms-notification-modal .btn-warning:hover {
-            background: var(--primary);
-            color: var(--base);
-            transform: translateY(-1px);
-        }
-
-    .lms-notification-modal .btn-secondary {
-        background: transparent;
-        border: 2px solid var(--muted);
-        color: var(--text);
-    }
-
-        .lms-notification-modal .btn-secondary:hover {
-            background: var(--muted);
-            border-color: var(--accent);
-            color: var(--text);
-            transform: translateY(-1px);
-        }
-</style>
-
 @code {
     private List<NotificationItem>? notifications;
     private NotificationItem? selectedNotification;
     private ContactMessageDto? decryptedMessage;
     private string? errorMessage;
+    private bool showNotificationModal = false;
     private int unreadCount => notifications?.Count(n => !n.IsRead) ?? 0;
     private Timer? _timer;
     private bool isTeacher = false;
     private string? userId;
+
+    private void OpenNotificationModal()
+    {
+        showNotificationModal = true;
+    }
+
+    private void CloseNotificationModal()
+    {
+        showNotificationModal = false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -285,6 +196,7 @@
 
     private async Task ShowNotification(NotificationItem notification)
     {
+        showNotificationModal = false;
         selectedNotification = notification;
         decryptedMessage = null;
         errorMessage = null;

@@ -1,5 +1,6 @@
 ﻿@page "/Account/Manage"
 @attribute [Authorize]
+@layout ManageLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authorization
@@ -11,43 +12,71 @@
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Min sida</PageTitle>
+<PageTitle>Min profil</PageTitle>
 
-<AuthorizeView Roles="Teacher">
-    <Authorized>
-        <component type="typeof(LMS.Blazor.Client.Components.Pages.TeacherPage)"
-                   render-mode="InteractiveWebAssembly" />
-    </Authorized>
-</AuthorizeView>
-
-<AuthorizeView Roles="Student">
-    <Authorized>
-        <component type="typeof(LMS.Blazor.Client.Pages.Courses)"
-                   render-mode="InteractiveWebAssembly" />
-    </Authorized>
-</AuthorizeView>
-
-<hr class="my-4" />
-
-<h3>Min profil</h3>
-
-<div class="row">
-    <div class="col-md-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" class="form-control" placeholder="Please choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
-                <label for="phone-number" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
+@if (isLoading)
+{
+    <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+        <h5 class="text-muted">Loading…</h5>
     </div>
-</div>
+}
+else
+{
+    <div class="dash-card__head">Personlig information</div>
 
+    <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger mb-3" role="alert" />
 
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="firstname" class="form-label text-muted small">Förnamn</label>
+                <InputText @bind-Value="Input.FirstName" class="form-control" placeholder="Ange ditt förnamn" />
+                <ValidationMessage For="() => Input.FirstName" class="text-danger small" />
+            </div>
+
+            <div class="col-md-6">
+                <label for="lastname" class="form-label text-muted small">Efternamn</label>
+                <InputText @bind-Value="Input.LastName" class="form-control" placeholder="Ange ditt efternamn" />
+                <ValidationMessage For="() => Input.LastName" class="text-danger small" />
+            </div>
+
+            <div class="col-md-6">
+                <label for="username" class="form-label text-muted small">Användarnamn</label>
+                <input type="text" value="@username" class="form-control" disabled />
+                <small class="text-muted">Användarnamnet kan inte ändras</small>
+            </div>
+
+            <div class="col-md-6">
+                <label for="phone-number" class="form-label text-muted small">Telefonnummer</label>
+                <InputText @bind-Value="Input.PhoneNumber" class="form-control" placeholder="Ange ditt telefonnummer" />
+                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger small" />
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-hero">
+                <i class="bi bi-check-circle me-2"></i>Spara ändringar
+            </button>
+        </div>
+    </EditForm>
+
+    <hr class="my-4" />
+
+    <div class="dash-card__head">Användarinformation</div>
+    <div class="user-info-display">
+        <div class="info-item">
+            <strong>E-post:</strong> @user?.Email
+        </div>
+        <div class="info-item">
+            <strong>Roll:</strong>
+            <AuthorizeView Roles="Teacher">
+                <Authorized><span class="badge badge-teacher">Lärare</span></Authorized>
+            </AuthorizeView>
+            <AuthorizeView Roles="Student">
+                <Authorized><span class="badge badge-student">Student</span></Authorized>
+            </AuthorizeView>
+
+        </div>
+    </div>
+}

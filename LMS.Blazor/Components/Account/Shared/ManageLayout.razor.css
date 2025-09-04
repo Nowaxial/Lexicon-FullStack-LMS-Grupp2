@@ -1,0 +1,73 @@
+﻿.lms-container {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.dash-card {
+    background: var(--base);
+    border: 1px solid #e6e6e6;
+    border-radius: .75rem;
+    padding: 1rem;
+}
+
+.dash-card__head {
+    font-weight: 700;
+    margin-bottom: .75rem;
+    color: var(--bg-main);
+}
+
+.header-actions .btn {
+    padding: .5rem .9rem;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+.btn-create {
+    box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    border-color: #6c757d;
+}
+
+    .btn-create:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+.manage-nav {
+    gap: 0;
+}
+
+.manage-link {
+    color: var(--text) !important;
+    border-radius: .5rem !important;
+    padding: .75rem 1rem !important;
+    margin-bottom: .25rem;
+    border: none !important;
+    background: transparent !important;
+    transition: all 0.2s ease;
+}
+
+    .manage-link:hover {
+        background: #f8f9fa !important;
+        color: var(--bg-main) !important;
+    }
+
+    .manage-link.active {
+        background: var(--bg-main) !important;
+        color: var(--base) !important;
+    }
+
+    .manage-link i {
+        opacity: 0.8;
+    }
+
+    .manage-link.active i,
+    .manage-link:hover i {
+        opacity: 1;
+    }
+
+@media (max-width: 991.98px) {
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}

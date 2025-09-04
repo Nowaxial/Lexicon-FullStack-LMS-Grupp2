@@ -1,17 +1,40 @@
 ﻿@inherits LayoutComponentBase
 @layout AccountLayout
 
-<h1>Manage your account</h1>
+<section class="container-fluid lms-container py-4">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4">
+        <h1 class="display-6 fw-bold m-0">Kontoinställningar</h1>
 
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-md-3">
-            <ManageNavMenu />
-        </div>
-        <div class="col-md-9">
-            @Body
+        <div class="header-actions ms-auto d-flex gap-2">
+            <AuthorizeView Roles="Teacher">
+                <Authorized>
+                    <a class="btn btn-outline-secondary btn-hero" href="/teacher">
+                        <i class="bi bi-arrow-left me-1"></i>Tillbaka
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView Roles="Student">
+                <Authorized>
+                    <a class="btn btn-outline-secondary btn-hero" href="/student">
+                        <i class="bi bi-arrow-left me-1"></i>Tillbaka
+                    </a>
+                </Authorized>
+            </AuthorizeView>
         </div>
     </div>
-</div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-3">
+            <article class="dash-card">
+                
+                <ManageNavMenu />
+            </article>
+        </div>
+
+        <div class="col-12 col-lg-9">
+            <article class="dash-card">
+                @Body
+            </article>
+        </div>
+    </div>
+</section>
