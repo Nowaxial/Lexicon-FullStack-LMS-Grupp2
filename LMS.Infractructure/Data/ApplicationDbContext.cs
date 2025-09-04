@@ -80,6 +80,19 @@ namespace LMS.Infractructure.Data
             // -------------------------------
             // Document config
             // -------------------------------
+            builder.Entity<ProjDocument>(e =>
+            {
+                e.Property(p => p.DisplayName).HasMaxLength(256).IsRequired();
+                e.Property(p => p.FileName).HasMaxLength(256).IsRequired();
+                e.Property(p => p.Description).HasMaxLength(2000);
+                e.Property(p => p.UploadedAt).HasDefaultValueSql("GETUTCDATE()");
+
+                e.HasIndex(p => p.CourseId);
+                e.HasIndex(p => p.ModuleId);
+                e.HasIndex(p => p.ActivityId);
+                e.HasIndex(p => p.StudentId);
+            });
+
             builder.Entity<ProjDocument>()
                 .HasOne(d => d.Course)
                 .WithMany(c => c.Documents)

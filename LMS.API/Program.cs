@@ -17,6 +17,8 @@ public class Program
 
         builder.Services.AddRepositories();                        // UoW + repos (Course, Module, etc.)
         builder.Services.AddServiceLayer();                        // AuthService, CourseService, UserService (+ Lazy<>)
+        builder.Services.AddStorage(builder.Configuration);
+
 
         // Identity first, then Authentication (JWT)
         builder.Services.ConfigureIdentity();                      // Identity + UserManager/RoleManager
@@ -27,7 +29,9 @@ public class Program
         builder.Services.AddHostedService<DataSeedHostingService>();
         builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MapperProfile>());
         builder.Services.ConfigureCors();                          // "AllowAll"
-        builder.Services.ConfigureOpenApi();                       // Swagger + JWT support (per your extension)
+        builder.Services.ConfigureOpenApi();
+
+        // Swagger + JWT support (per your extension)
 
         var app = builder.Build();
 
