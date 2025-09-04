@@ -1,0 +1,124 @@
+
+.lms-container {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.dash-card {
+    background: var(--base);
+    border: 1px solid #e6e6e6;
+    border-radius: .75rem;
+    padding: 1rem;
+}
+
+.dash-card__head {
+    font-weight: 700;
+    margin-bottom: .75rem;
+    color: var(--bg-main);
+}
+
+.header-actions .btn {
+    padding: .5rem .9rem;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+.btn-hero {
+    background: var(--bg-main);
+    color: var(--base);
+    border-color: var(--bg-main);
+}
+
+    .btn-hero:hover {
+        background: var(--base);
+        color: var(--bg-main);
+        border-color: var(--bg-main);
+    }
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .75rem;
+    border: 1px solid #e6e6e6;
+    border-radius: .5rem;
+    background: #f8f9fa;
+}
+
+.setting-link {
+    padding: .5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+    .setting-link:last-child {
+        border-bottom: 0;
+    }
+
+.link-accent {
+    color: var(--bg-main);
+    text-decoration: none;
+}
+
+    .link-accent:hover {
+        color: var(--primary);
+        text-decoration: underline;
+    }
+
+.profile-card {
+    border: none;
+    background: none;
+    padding: 0;
+}
+
+.profile-avatar {
+    background: linear-gradient(135deg, var(--bg-main), var(--accent));
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+}
+
+.user-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    color: white;
+}
+
+.user-info {
+    flex-grow: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #17252A;
+}
+
+.user-email {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.user-role {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.teacher-role {
+    color: #2B7A78;
+}
+
+.student-role {
+    color: #3AAFA9;
+}
