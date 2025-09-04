@@ -71,11 +71,12 @@ else
         <div class="info-item">
             <strong>Roll:</strong>
             <AuthorizeView Roles="Teacher">
-                <Authorized><span class="badge bg-primary">Lärare</span></Authorized>
+                <Authorized><span class="badge badge-teacher">Lärare</span></Authorized>
             </AuthorizeView>
             <AuthorizeView Roles="Student">
-                <Authorized><span class="badge bg-info">Student</span></Authorized>
+                <Authorized><span class="badge badge-student">Student</span></Authorized>
             </AuthorizeView>
+
         </div>
     </div>
 }

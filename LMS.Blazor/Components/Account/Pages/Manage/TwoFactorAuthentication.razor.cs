@@ -1,0 +1,36 @@
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http.Features;
+
+namespace LMS.Blazor.Components.Account.Pages.Manage
+{
+    public partial class TwoFactorAuthentication
+    {
+        private bool canTrack;
+        private bool hasAuthenticator;
+        private int recoveryCodesLeft;
+        private bool is2faEnabled;
+        private bool isMachineRemembered;
+
+        [CascadingParameter]
+        private HttpContext HttpContext { get; set; } = default!;
+
+        protected override async Task OnInitializedAsync()
+        {
+            var user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+            canTrack = HttpContext.Features.Get<ITrackingConsentFeature>()?.CanTrack ?? true;
+            hasAuthenticator = await UserManager.GetAuthenticatorKeyAsync(user) is not null;
+            is2faEnabled = await UserManager.GetTwoFactorEnabledAsync(user);
+            isMachineRemembered = await SignInManager.IsTwoFactorClientRememberedAsync(user);
+            recoveryCodesLeft = await UserManager.CountRecoveryCodesAsync(user);
+        }
+
+        private async Task OnSubmitForgetBrowserAsync()
+        {
+            await SignInManager.ForgetTwoFactorClientAsync();
+
+            RedirectManager.RedirectToCurrentPageWithStatus(
+                "Den nuvarande webbläsaren har glömts bort. När du loggar in igen från denna webbläsare kommer du att uppmanas att ange din 2FA-kod.",
+                HttpContext);
+        }
+    }
+}

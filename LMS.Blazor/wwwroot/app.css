@@ -86,3 +86,20 @@ h1:focus {
     color: var(--bg-main);
 }
 
+.alert-custom-info {
+    color: var(--bg-main);
+    background-color: #b8d4d1;
+    border-color: #c3e6c3;
+}
+
+.badge-teacher {
+    background-color: var(--bg-main);
+    color: var(--base);
+}
+
+.badge-student {
+    background-color: var(--accent);
+    color: var(--base);
+}
+
+
