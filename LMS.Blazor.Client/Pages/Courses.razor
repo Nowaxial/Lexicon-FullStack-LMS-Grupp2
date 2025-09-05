@@ -4,53 +4,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @rendermode InteractiveWebAssembly
 
-<style>
-    /* COURSE CARDS */
-    .course-card {
-        background: var(--base);
-        border: 1px solid #e6e6e6;
-        border-radius: .75rem;
-        transition: transform .15s ease, box-shadow .15s ease;
-        position: relative;
-    }
-
-        .course-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 24px rgba(0,0,0,.08);
-        }
-
-    .course-card__body {
-        padding: 1rem;
-    }
-
-    .badge.bg-accent-subtle {
-        background: var(--muted);
-    }
-
-    .text-accent {
-        color: var(--accent) !important;
-    }
-
-    a.link-accent,
-    a.link-accent:visited {
-        color: var(--primary);
-        text-decoration: none;
-    }
-
-        a.link-accent:hover {
-            transform: translateY(-3px);
-        }
-
-    .courses-header {
-        color: var(--bg-main);
-    }
-    /* Accent button used on cards */
-    .btn-accent.btn-sm {
-        color: var(--bg-main);
-        background: var(--muted);
-    }
-
-</style>
 <!-- Student view -->
 <AuthorizeView>
     <Authorized Context="authState">
