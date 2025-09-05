@@ -1,0 +1,27 @@
+﻿@page "/manage-courses"
+@using LMS.Shared.DTOs.EntitiesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
+@using LMS.Blazor.Client.Services
+<!-- Active Course -->
+@if (selectedCourse != null)
+{
+    <div class="active-course mb-4">
+        @if (courses != null && courses.Any())
+        {
+            <NavStrip Items="courses"
+                      ActiveItem="selectedCourse"
+                      OnItemSelected="OnCourseSelected"
+                      Id="courseNav" />
+        }
+
+        <!-- Modules viewer -->
+        <ModuleStrip Modules="selectedCourse.Modules"
+                     CourseId="selectedCourse.Id"
+                     Id="moduleViewer"
+                     IsTeacher="IsTeacher"
+                     OnEditModuleRequested="HandleEditModule" />
+
+        <!-- Course navigation -->
+    </div>
+}
