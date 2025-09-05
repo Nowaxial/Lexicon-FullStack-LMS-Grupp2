@@ -4,9 +4,11 @@ using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using System.Globalization;
 using System.Net.Http.Json;
+
 
 
 namespace LMS.Blazor.Client.Pages
@@ -170,6 +172,7 @@ namespace LMS.Blazor.Client.Pages
             {
                 firstRenderDone = true;
                 isLoading = true;
+                error = null;
                 try
                 {
                     await CallAPIAsync();
