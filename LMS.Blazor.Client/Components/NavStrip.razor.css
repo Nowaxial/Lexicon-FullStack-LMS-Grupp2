@@ -1,0 +1,112 @@
+﻿/* --- NavStrip Wrapper --- */
+.navstrip-wrapper {
+    position: relative;
+    overflow: visible;
+    max-width: 1000px;
+    margin: 1rem auto;
+    padding: 0;
+}
+
+/* Strip as carousel */
+.navstrip {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    padding: 0 20%; /* center peek */
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    cursor: grab;
+}
+
+    .navstrip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .navstrip.dragging {
+        cursor: grabbing;
+        cursor: -webkit-grabbing;
+    }
+
+/* --- Card container with breathing room --- */
+.navstrip-card-container {
+    flex: 0 0 20%; /* 5 visible */
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0; /* breathing space for shadows/hover */
+    scroll-snap-align: center;
+}
+
+/* --- Card --- */
+.navstrip-card {
+    width: 100%;
+    min-height: 120px; /* consistent card height */
+    border-radius: 12px;
+    background: var(--muted); /* inactive default hue fills entire card */
+    cursor: pointer;
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    opacity: 0.85;
+    transform: scale(0.9);
+    z-index: 1;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: flex;
+}
+
+    /* force body to fill the card */
+    .navstrip-card .card-body {
+        flex: 1; /* take all space */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* center text vertically */
+        align-items: center; /* keep consistent horizontal alignment */
+        padding: 1rem 1.25rem;
+        border-radius: 12px; /* match parent */
+        height: 100%; /* stretch fully */
+    }
+
+    /* Active card */
+    .navstrip-card.active {
+        opacity: 1;
+        transform: scale(1.05);
+        background: var(--accent);
+        color: var(--base);
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 5;
+    }
+
+        .navstrip-card.active:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+
+/* --- Custom Scrollbar --- */
+.navstrip-scrollbar {
+    position: relative;
+    width: 240px;
+    height: 8px;
+    margin: 0.75rem auto 0;
+    background: var(--muted);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.navstrip-scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 60px;
+    background: var(--primary);
+    border-radius: 4px;
+    cursor: grab;
+    transition: background-color 0.2s ease;
+}
+
+    .navstrip-scrollbar-thumb:active {
+        cursor: grabbing;
+        background: var(--accent);
+    }

@@ -1,0 +1,74 @@
+﻿@using LMS.Shared.DTOs.EntitiesDtos
+
+<div class="navstrip-wrapper">
+    <div class="navstrip d-flex flex-row flex-nowrap" @ref="navStripRef">
+        <!-- Spacer before first card -->
+        <div class="navstrip-spacer"></div>
+
+        @foreach (var (c, index) in (Items ?? Enumerable.Empty<CourseDto>()).Select((c, i) => (c, i)))
+        {
+            <div class="navstrip-card-container" id="@($"course-{c.Id}")">
+                <div class="navstrip-card @(ActiveItem?.Id == c.Id ? "active" : "")"
+                     @onclick="() => OnCourseClick(c, index)">
+                    <div class="card-body">
+                        <h6>@c.Name</h6>
+                        <small class="text-muted">@c.Starts – @c.Ends</small>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Spacer after last card -->
+        <div class="navstrip-spacer"></div>
+    </div>
+
+    <!-- Custom draggable scrollbar -->
+    <div class="navstrip-scrollbar">
+        <div class="navstrip-scrollbar-thumb" id="@($"{Id}-thumb")"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public IEnumerable<CourseDto>? Items { get; set; }
+    [Parameter] public CourseDto? ActiveItem { get; set; }
+    [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
+    [Parameter] public string Id { get; set; } = "navstrip";
+
+    private ElementReference navStripRef;
+    private bool initialized;
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Items?.Any() == true)
+        {
+            initialized = true;
+            await JS.InvokeVoidAsync("initNavstripScrollbar", ".navstrip", $"#{Id}-thumb");
+        }
+    }
+
+    private async Task OnCourseClick(CourseDto course, int index)
+    {
+        ActiveItem = course;
+        await OnItemSelected.InvokeAsync(course);
+
+        // Center clicked card
+        var elementId = $"course-{course.Id}";
+        await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnCenteredIndexChanged(int index)
+    {
+        if (Items != null && index >= 0 && index < Items.Count())
+        {
+            var selected = Items.ElementAt(index);
+            ActiveItem = selected;
+            await OnItemSelected.InvokeAsync(selected);
+            StateHasChanged();
+        }
+    }
+}
