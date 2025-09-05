@@ -34,7 +34,7 @@ public class DataSeedHostingService : IHostedService
         if (!env.IsDevelopment()) return;
 
         dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        if (await dbContext.Users.AnyAsync(cancellationToken)) return;
+         if (await dbContext.Users.AnyAsync(cancellationToken)) return;
 
         userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
