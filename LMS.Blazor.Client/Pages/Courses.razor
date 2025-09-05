@@ -4,7 +4,124 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @rendermode InteractiveWebAssembly
 
-@* <h2 class="page-title">Kurshantering</h2> *@
+<!-- Student view -->
+<AuthorizeView>
+    <Authorized Context="authState">
+        @if (authState.User.IsInRole("Student") && !authState.User.IsInRole("Teacher"))
+        {
+            <section class="py-5">
+                <div class="container-fluid lms-container">
+                    <div class="d-flex justify-content-between align-items-end mb-3">
+                        <h2 class="courses-header m-0">Senaste kurser</h2>
+                    </div>
+
+                    @if (isLoading)
+                    {
+                        <p class="text-muted">Laddar kurser…</p>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        <div class="alert alert-danger">@error</div>
+                    }
+                    else if (courses == null || !courses.Any())
+                    {
+                        <p class="text-muted">Inga kurser att visa.</p>
+                    }
+                    else
+                    {
+                        <!-- 2 per row on md+; 1 per row on mobile -->
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            @foreach (var c in courses)
+                            {
+                                <div class="col">
+                                    <article class="course-card h-100">
+                                        <div class="course-card__body">
+                                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                                <span class="badge bg-accent-subtle text-accent">Medel</span>
+                                                <small class="text-muted">@Duration(c.Starts, c.Ends)</small>
+                                            </div>
+
+                                            <h5 class="courses-header mb-3">@c.Name</h5>
+
+                                            @if (!string.IsNullOrWhiteSpace(c.Description))
+                                            {
+                                                <p class="text-muted mb-2">@c.Description</p>
+                                            }
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-calendar-event me-1"></i>
+                                                    Start @c.Starts.ToString("yyyy-MM-dd")
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <section class="py-5">
+            <div class="container-fluid lms-container">
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <h2 class="courses-header m-0">Senaste kurser</h2>
+                </div>
+
+                @if (isLoading)
+                {
+                    <p class="text-muted">Laddar kurser…</p>
+                }
+                else if (!string.IsNullOrWhiteSpace(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+                else if (courses == null || !courses.Any())
+                {
+                    <p class="text-muted">Inga kurser att visa.</p>
+                }
+                else
+                {
+                    <!-- 2 per row on md+; 1 per row on mobile -->
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        @foreach (var c in courses)
+                        {
+                            <div class="col">
+                                <article class="course-card h-100">
+                                    <div class="course-card__body">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <span class="badge bg-accent-subtle text-accent">Medel</span>
+                                            <small class="text-muted">@Duration(c.Starts, c.Ends)</small>
+                                        </div>
+
+                                        <h5 class="courses-header mb-3">@c.Name</h5>
+
+                                        @if (!string.IsNullOrWhiteSpace(c.Description))
+                                        {
+                                            <p class="text-muted mb-2">@c.Description</p>
+                                        }
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                Start @c.Starts.ToString("yyyy-MM-dd")
+                                            </small>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+
 
 <!-- Teacher-only tools -->
 <AuthorizeView Roles="Teacher">
@@ -48,18 +165,19 @@
 </AuthorizeView>
 
 <!-- Main course manager -->
-<div class="d-flex justify-content-center">
-    <div class="w-100" style="max-width: 1200px;">
-        <AuthorizeView Roles="Teacher">
-            <Authorized>
+<AuthorizeView Roles="Teacher">
+    <Authorized>
+        <div class="d-flex justify-content-center">
+            <div class="w-100" style="max-width: 1200px;">
                 <ManageCourses IsTeacher="true"
                                OnEditModuleRequested="HandleEditModule" />
-            </Authorized>
-            <NotAuthorized>
-                <ManageCourses IsTeacher="false" />
-            </NotAuthorized>
-        </AuthorizeView>
-    </div>
-</div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+
 
 <script src="app.js"></script>
+
+

@@ -5,6 +5,7 @@ using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
+using System.Globalization;
 using System.Net.Http.Json;
 
 
@@ -39,6 +40,8 @@ namespace LMS.Blazor.Client.Pages
         private bool isAssigningUser;
         private string? assignError;
         private string? assignSuccess;
+        
+        private string? error;
 
 
         private string userFilter = string.Empty;
@@ -215,6 +218,23 @@ namespace LMS.Blazor.Client.Pages
                 isAssigningUser = false;
                 StateHasChanged();
             }
+        }
+
+
+        private string Duration(DateOnly start, DateOnly end)
+        {
+            var s = start.ToDateTime(TimeOnly.MinValue);
+            var e = end.ToDateTime(TimeOnly.MinValue);
+
+            if (e < s) return "-";
+
+            var days = (int)Math.Ceiling((e - s).TotalDays) + 1; // include end day
+            if (days < 7)
+                return days == 1 ? "1 dag" : $"{days} dagar";
+
+            var weeks = days / 7;
+            //var rem = days % 7;
+            return $"{weeks} veckor";
         }
     }
 }
