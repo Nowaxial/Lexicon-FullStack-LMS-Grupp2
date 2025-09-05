@@ -1,0 +1,126 @@
+﻿@page "/manage-users"
+@using LMS.Shared.DTOs.UsersDtos
+
+<div class="manage-users">
+
+    <!-- Search filter -->
+    <div class="input-group mb-3">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input class="form-control" placeholder="Filter users..."
+               @bind="userFilter" @bind:event="oninput" />
+        <button class="btn btn-outline-secondary"
+                @onclick="() => userFilter = string.Empty"
+                disabled="@string.IsNullOrWhiteSpace(userFilter)">
+            Clear
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <p>Loading users...</p>
+    }
+    else if (errorMessage is not null)
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    else
+    {
+        <ul class="list-group" style="max-height: 18rem; overflow-y: auto;">
+
+            <!-- Add User Row -->
+            <li class="list-group-item d-flex justify-content-between align-items-center bg-light sticky-top" style="z-index: 1;">
+                <div class="flex-fill">
+                    <div class="row g-2">
+                        <div class="col">
+                            <InputText class="form-control form-control-sm" placeholder="Username" @bind-Value="addUserModel.UserName" />
+                        </div>
+                        <div class="col">
+                            <InputText class="form-control form-control-sm" placeholder="Email" @bind-Value="addUserModel.Email" />
+                        </div>
+                        <div class="col">
+                            <InputText type="password" class="form-control form-control-sm" placeholder="Password" @bind-Value="addUserModel.Password" />
+                        </div>
+                        <div class="col">
+                            <select class="form-select form-select-sm" @bind="addUserModel.Role">
+                                <option value="Student">Student</option>
+                                <option value="Teacher">Teacher</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group ms-2">
+                    <button class="btn btn-sm btn-success" @onclick="SaveNewUser">
+                        <i class="bi bi-check2"></i>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" @onclick="ResetAddForm">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </li>
+
+            <!-- Existing Users -->
+            @foreach (var user in FilteredUsers)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    @if (editingUserId == user.Id)
+                    {
+                        <!-- Inline Edit -->
+                        <div class="flex-fill">
+                            <div class="row g-2">
+                                <div class="col">
+                                    <InputText class="form-control form-control-sm" @bind-Value="userEditModel.UserName" />
+                                </div>
+                                <div class="col">
+                                    <InputText class="form-control form-control-sm" @bind-Value="userEditModel.Email" />
+                                </div>
+                                <div class="col">
+                                    <select class="form-select form-select-sm" @bind="userEditModel.Role">
+                                        <option value="Student">Student</option>
+                                        <option value="Teacher">Teacher</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="btn-group ms-2">
+                            <button class="btn btn-sm btn-success" @onclick="() => SaveUser(user.Id)">
+                                <i class="bi bi-check2"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Normal Display -->
+                        <span class="flex-fill">
+                            <strong>@(user.FullName ?? user.UserName ?? "(No name)")</strong><br />
+                            <small class="text-muted">@user.Email</small>
+                        </span>
+
+                        <div class="btn-group ms-2">
+                            <button class="btn btn-sm @(IsTeacher(user) ? "btn-warning" : "btn-info")" disabled>
+                                @if (IsTeacher(user))
+                                {
+                                    <i class="bi bi-person-workspace"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-mortarboard"></i>
+                                }
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary ms-1" @onclick="() => StartEditUser(user)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteUser(user.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>

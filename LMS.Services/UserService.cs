@@ -130,4 +130,44 @@ public class UserService : IUserService
 
         return true;
     }
+    public async Task<UserDto?> CreateUserAsync(CreateUserDto dto)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = dto.UserName,
+            Email = dto.Email,
+            EmailConfirmed = false
+        };
+
+        var result = await _userManager.CreateAsync(user, dto.Password);
+        if (!result.Succeeded)
+        {
+            // Could log or throw depending on your error strategy
+            return null;
+        }
+
+        if (dto.Roles.Any())
+        {
+            foreach (var role in dto.Roles)
+            {
+                if (!await _roleManager.RoleExistsAsync(role))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+
+            await _userManager.AddToRolesAsync(user, dto.Roles);
+        }
+
+        // Map to UserDto
+        var roles = await _userManager.GetRolesAsync(user);
+        return new UserDto
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            Email = user.Email,
+            FullName = null,
+            Roles = roles.ToList()
+        };
+    }
 }
