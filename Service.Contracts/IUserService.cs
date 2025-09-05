@@ -14,5 +14,7 @@ namespace Service.Contracts
         Task<UserDto?> GetUserByIdAsync(string userId);
         Task<bool> UpdateUserAsync(string userId, UpdateUserDto dto);
         Task<bool> SetUserRolesAsync(string userId, IEnumerable<string> roles);
+
+        Task<UserDto?> CreateUserAsync(CreateUserDto dto);
     }
 }
