@@ -1,6 +1,7 @@
 ﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.Common;
 using LMS.Shared.DTOs.EntitiesDtos;
+using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
@@ -88,7 +89,17 @@ namespace LMS.Blazor.Client.Pages
                 StateHasChanged();
             }
         }
+        private ModuleDto? selectedModuleToEdit;
+        private bool expandModulesAccordion = false;
+        private void HandleEditModule(ModuleDto module)
+        {
+            selectedModuleToEdit = module;
+            expandModulesAccordion = true;
 
+            // manually expand accordion
+            JS.InvokeVoidAsync("bootstrap.Collapse.getOrCreateInstance",
+                "#collapseModules", new { toggle = true });
+        }
         private async Task CallAPIAsync()
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
