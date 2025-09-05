@@ -20,13 +20,20 @@ public class ServerNoopApiService : IApiService
         return Task.FromResult<T?>(default);
     }
 
+    public Task<bool> PutAsync(string endpoint, object data, CancellationToken ct = default)
+    {
+        // Pretend update succeeded
+        return Task.FromResult(true);
+    }
+
     public Task<bool> DeleteAsync(string endpoint, CancellationToken ct = default)
     {
         // Pretend delete succeeded
         return Task.FromResult(true);
     }
-    //Task<bool> IApiService.PutAsync(string endpoint, object data, CancellationToken ct)
-    //{
-    //    throw new NotImplementedException();
-    //}
+
+    public Task<T?> PutAsync<T>(string endpoint, object data, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 }

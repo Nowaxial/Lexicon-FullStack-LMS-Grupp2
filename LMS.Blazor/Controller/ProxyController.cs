@@ -13,11 +13,8 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ITokenStorage _tokenService = tokenService;
 
-    // Support GET, POST, PUT, DELETE automatically
-    [HttpGet]
-    [HttpPost]
-    [HttpPut]
-    [HttpDelete]
+    // Handle GET, POST, PUT, DELETE
+    [HttpGet, HttpPost, HttpPut, HttpDelete]
     public async Task<IActionResult> Proxy([FromQuery] string endpoint, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
@@ -28,27 +25,39 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
         if (!endpoint.Equals("api/contact", StringComparison.OrdinalIgnoreCase))
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (userId == null)
                 return Unauthorized();
 
             var accessToken = await _tokenService.GetAccessTokenAsync(userId);
-
             if (string.IsNullOrEmpty(accessToken))
                 return Unauthorized();
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         }
 
-        // Build target URI
-        var queryString = Request.QueryString.Value;
-        var targetUriBuilder = new UriBuilder($"{client.BaseAddress}{endpoint}");
-        if (!string.IsNullOrEmpty(queryString))
+        // --- Split endpoint path + query
+        var parts = endpoint.Split('?', 2);
+        var path = parts[0];
+        var query = parts.Length > 1 ? parts[1] : string.Empty;
+
+        // Merge with query params in current request (minus "endpoint")
+        var queryParams = HttpUtility.ParseQueryString(Request.QueryString.Value ?? string.Empty);
+        queryParams.Remove("endpoint");
+
+        if (!string.IsNullOrEmpty(query))
         {
-            var queryParams = HttpUtility.ParseQueryString(queryString);
-            queryParams.Remove("endpoint"); // don't forward "endpoint" itself
-            targetUriBuilder.Query = queryParams.ToString();
+            var endpointQuery = HttpUtility.ParseQueryString(query);
+            foreach (var key in endpointQuery.AllKeys)
+            {
+                queryParams[key] = endpointQuery[key];
+            }
         }
+
+        // Build target URI
+        var targetUriBuilder = new UriBuilder($"{client.BaseAddress}{path}")
+        {
+            Query = queryParams.ToString()
+        };
 
         // Forward request
         var method = new HttpMethod(Request.Method);
@@ -57,8 +66,6 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
         if (method != HttpMethod.Get && Request.ContentLength > 0)
         {
             requestMessage.Content = new StreamContent(Request.Body);
-
-            // Copy content headers (so Content-Type like application/json is preserved)
             foreach (var header in Request.Headers)
             {
                 if (header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
@@ -68,19 +75,19 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
             }
         }
 
-        // Copy regular headers
         foreach (var header in Request.Headers)
         {
             if (!header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase) &&
-                !header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase)) // skip content headers (already copied)
+                !header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
             {
                 requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
         }
 
-        var response = await client.SendAsync(requestMessage, ct);
+        var response = await client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, ct);
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json";
+        var stream = await response.Content.ReadAsStreamAsync(ct);
 
-        var content = await response.Content.ReadAsStringAsync();
-        return StatusCode((int)response.StatusCode, content);
+        return File(stream, contentType, enableRangeProcessing: false);
     }
 }
