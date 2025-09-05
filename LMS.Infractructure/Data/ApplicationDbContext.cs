@@ -15,7 +15,6 @@ namespace LMS.Infractructure.Data
             : base(options)
         {
         }
-        public DbSet<ProjDocument> ProjDocuments { get; set; } = null!;
 
         // DbSets
         public DbSet<Course> Courses { get; set; }
@@ -115,6 +114,5 @@ namespace LMS.Infractructure.Data
                 .WithMany()
                 .HasForeignKey(cu => cu.UserId);
         }
-        
     }
 }
