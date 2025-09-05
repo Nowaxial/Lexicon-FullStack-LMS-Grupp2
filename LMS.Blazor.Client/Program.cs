@@ -2,10 +2,13 @@ using LMS.Blazor.Client.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
+
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 builder.Services.AddScoped<IApiService, ClientApiService>();
 builder.Services.AddScoped<IAuthReadyService, AuthReadyService>();
+
+builder.Services.AddScoped<DocumentsClient>();
 
 builder.Services.AddHttpClient("BffClient", cfg =>
 {

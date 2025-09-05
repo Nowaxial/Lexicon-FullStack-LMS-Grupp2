@@ -24,8 +24,6 @@ namespace LMS.Presentation.Controllers
             _service = service;
         }
 
-        // -------- Upload (multipart/form-data) --------
-        // Form fields: DisplayName, Description, CourseId, ModuleId, ActivityId, StudentId, IsSubmission, File
         [HttpPost]
         [RequestFormLimits(MultipartBodyLengthLimit = 1024L * 1024 * 200)] // 200 MB example
         [RequestSizeLimit(1024L * 1024 * 200)]
@@ -55,7 +53,6 @@ namespace LMS.Presentation.Controllers
             return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
         }
 
-        // -------- Get metadata by id --------
         [HttpGet("{id:int}")]
         public async Task<ActionResult<ProjDocumentDto>> Get(int id, CancellationToken ct)
         {
@@ -63,7 +60,6 @@ namespace LMS.Presentation.Controllers
             return doc is null ? NotFound() : Ok(doc);
         }
 
-        // -------- Download file --------
         [HttpGet("{id:int}/download")]
         public async Task<IActionResult> Download(int id, CancellationToken ct)
         {

@@ -1,0 +1,52 @@
+﻿
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="@ModalId" tabindex="-1" aria-labelledby="@($"{ModalId}-label")" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="@($"{ModalId}-label")">Ladda upp fil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+
+            <div class="modal-body">
+                @if (!string.IsNullOrWhiteSpace(Error))
+                {
+                    <div class="alert alert-danger">@Error</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Visningsnamn</label>
+                    <input class="form-control" @bind="DisplayName" placeholder="t.ex. Inlämning – Uppgift 1" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Beskrivning (valfritt)</label>
+                    <textarea class="form-control" rows="3" @bind="Description" placeholder="Kort beskrivning..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Fil</label>
+                    <InputFile OnChange="OnFileSelected" />
+                    @if (HasFile)
+                    {
+                        <small class="text-muted d-block mt-1">
+                            Vald fil: <strong>@SelectedFileName</strong> · @SelectedFileSizeText
+                        </small>
+                    }
+                    <small class="text-muted d-block">Maxstorlek: @MaxUploadLabel</small>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal" disabled="@IsSubmitting">
+                    Avbryt
+                </button>
+                <button class="btn btn-primary" type="button" @onclick="SubmitAsync" disabled="@(IsSubmitting || !CanSubmit)">
+                    @(IsSubmitting ? "Laddar upp…" : "Ladda upp")
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>

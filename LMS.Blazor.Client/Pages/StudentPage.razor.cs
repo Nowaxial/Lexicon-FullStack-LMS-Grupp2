@@ -1,4 +1,5 @@
-﻿using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Components.CourseComponents;
+using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
@@ -23,6 +24,9 @@ namespace LMS.Blazor.Client.Components.Pages
         private Dictionary<int, List<ProjActivityDto>> moduleActivities = new();
         private HashSet<int> expandedModules = new();
         private List<UserDto> courseTeachers = new();
+
+        private UploadFileModal? uploadModal;
+
 
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -115,6 +119,18 @@ namespace LMS.Blazor.Client.Components.Pages
                     moduleActivities[moduleId] = activities?.ToList() ?? new List<ProjActivityDto>();
                 }
             }
+        }
+
+
+        private async Task OpenUploadFor(ProjActivityDto activity)
+        {
+            if (uploadModal is null) return;
+            uploadModal.CourseId = currentCourse?.Id;
+            uploadModal.ModuleId = activity.ModuleId;
+            uploadModal.ActivityId = activity.Id;
+            uploadModal.IsSubmission = true;
+
+            await uploadModal.ShowAsync();
         }
     }
 }
