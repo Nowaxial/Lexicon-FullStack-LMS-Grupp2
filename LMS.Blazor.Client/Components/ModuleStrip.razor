@@ -1,11 +1,13 @@
 ﻿@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
 @using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
+@inject IJSRuntime JS
 
 <div class="modules-strip-wrapper">
     <!-- Left button -->
-    <button class="carousel-btn left @(AddingNewModule ? "teacher-confirm" : (IsTeacher && ActiveIndex == 0 ? "teacher-add" : ""))"
+    <button class="carousel-btn left @(IsTeacher && ActiveIndex == 0 ? "teacher-add" : "")"
             type="button"
-            @onclick="OnLeftClick">
+            @onclick="OnLeftClick"
+            disabled="@IsLeftDisabled">
         <i class="@LeftIcon"></i>
     </button>
 
@@ -14,14 +16,17 @@
 
         @foreach (var (m, index) in EditableModules.Select((m, i) => (m, i)))
         {
-            <div class="module-card-container">
-                <div class="module-card @(index == ActiveIndex ? "active" : "")">
+            <div class="module-card-container" id="@($"module-{m.Id}")">
+                <div class="module-card @(index == ActiveIndex ? "active" : "")"
+                     @onclick="() => OnModuleClick(index)">
+
                     @if (IsTeacher)
                     {
                         <!-- Small edit button -->
                         <button class="module-edit-btn"
                                 title="Redigera modul"
-                                @onclick="() => OnEditModule(m)">
+                                @onclick="() => OnEditModuleClick(m)"
+                                @onclick:stopPropagation>
                             <i class="bi bi-pencil"></i>
                         </button>
                     }
@@ -56,13 +61,72 @@
     </div>
 
     <!-- Right button -->
-    <button class="carousel-btn right @(AddingNewModule ? "teacher-cancel" : "")"
+    <button class="carousel-btn right"
             type="button"
-            @onclick="OnRightClick">
+            @onclick="OnRightClick"
+            disabled="@IsRightDisabled">
         <i class="@RightIcon"></i>
     </button>
 </div>
 
 @code {
+    [Parameter] public IEnumerable<ModuleDto>? Modules { get; set; }
+    [Parameter] public string Id { get; set; } = "modulestrip";
+    [Parameter] public bool IsTeacher { get; set; } = false;
+    [Parameter] public int CourseId { get; set; }
 
+    [Parameter] public EventCallback OnAddModule { get; set; }
+    [Parameter] public EventCallback<ModuleDto> OnEditModuleRequested { get; set; }
+
+    private List<ModuleDto> EditableModules = new();
+    private ElementReference modulesStripRef;
+    private int ActiveIndex = 0;
+
+    protected override void OnParametersSet()
+    {
+        EditableModules = Modules?.ToList() ?? new();
+    }
+
+    private string LeftIcon =>
+        (IsTeacher && ActiveIndex == 0) ? "bi bi-plus-lg text-success" : "bi bi-chevron-left";
+
+    private string RightIcon => "bi bi-chevron-right";
+
+    private bool IsLeftDisabled => ActiveIndex == 0 && !IsTeacher;
+    private bool IsRightDisabled => ActiveIndex >= EditableModules.Count - 1;
+
+    private async Task OnLeftClick()
+    {
+        if (IsTeacher && ActiveIndex == 0)
+        {
+            if (OnAddModule.HasDelegate)
+                await OnAddModule.InvokeAsync();
+        }
+        else
+        {
+            await Scroll(-1);
+        }
+    }
+
+    private async Task OnRightClick() => await Scroll(1);
+
+    private async Task Scroll(int direction)
+    {
+        if (!EditableModules.Any()) return;
+
+        ActiveIndex = Math.Clamp(ActiveIndex + direction, 0, EditableModules.Count - 1);
+        await JS.InvokeVoidAsync("scrollStrip", ".modules-strip", direction);
+    }
+
+    private async Task OnModuleClick(int index)
+    {
+        ActiveIndex = index;
+        await JS.InvokeVoidAsync("scrollStrip", ".modules-strip", 0);
+    }
+
+    private async Task OnEditModuleClick(ModuleDto module)
+    {
+        if (OnEditModuleRequested.HasDelegate)
+            await OnEditModuleRequested.InvokeAsync(module);
+    }
 }

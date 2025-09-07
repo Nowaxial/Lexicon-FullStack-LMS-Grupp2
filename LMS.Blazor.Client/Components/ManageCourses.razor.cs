@@ -171,15 +171,61 @@ public partial class ManageCourses : ComponentBase
         editingCourseId = null;
         courseEditModel = new();
     }
+    private async Task HandleModuleUpdated(ModuleDto updatedModule)
+    {
+        var idx = selectedCourse?.Modules?.FindIndex(m => m.Id == updatedModule.Id) ?? -1;
+        if (idx >= 0 && selectedCourse?.Modules != null)
+            selectedCourse.Modules[idx] = updatedModule;
 
+        StateHasChanged();
+    }
+
+    private async Task HandleModuleDeleted(int moduleId)
+    {
+        if (selectedCourse?.Modules != null)
+            selectedCourse.Modules = selectedCourse.Modules.Where(m => m.Id != moduleId).ToList();
+
+        selectedModuleToEdit = null;
+        StateHasChanged();
+    }
     // --- Modules ---
-    private void HandleEditModule(ModuleDto module)
+    private async void HandleEditModule(ModuleDto module)
     {
         selectedModuleToEdit = module;
         expandModulesAccordion = true;
 
-        JS.InvokeVoidAsync("bootstrap.Collapse.getOrCreateInstance",
-            "#collapseModules", new { toggle = true });
+        // Force the "Manage Modules" accordion section open
+        await JS.InvokeVoidAsync("eval", @"
+        var el = document.querySelector('#collapseModules');
+        if (el) {
+            var inst = bootstrap.Collapse.getOrCreateInstance(el);
+            inst.show();
+        }
+    ");
+    }
+
+    private async Task HandleAddModule()
+    {
+        if (selectedCourse == null) return;
+
+        var newModule = new ModuleCreateDto
+        {
+            Name = "New Module",
+            Description = "",
+            Starts = DateOnly.FromDateTime(DateTime.Today),
+            Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
+        };
+
+        var created = await ApiService.PostAsync<ModuleDto>(
+            $"api/course/{selectedCourse.Id}/Modules", newModule);
+
+        if (created != null)
+        {
+            selectedCourse.Modules ??= new List<ModuleDto>();
+            selectedCourse.Modules.Insert(0, created);
+
+            StateHasChanged();
+        }
     }
 
     // --- Helper model ---

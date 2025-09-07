@@ -34,7 +34,9 @@
         <div id="collapseModules" class="accordion-collapse collapse"
              aria-labelledby="headingModules" data-bs-parent="#teacherToolsAccordion">
             <div class="accordion-body">
-                <ManageModules SelectedModule="selectedModuleToEdit" />
+                <ManageModules SelectedModule="selectedModuleToEdit"
+                               OnModuleUpdated="HandleModuleUpdated"
+                               OnModuleDeleted="HandleModuleDeleted" />
             </div>
         </div>
     </div>
@@ -55,11 +57,12 @@
         }
 
         <!-- Modules viewer -->
-        <ModuleStrip Modules="selectedCourse.Modules"
-                     CourseId="selectedCourse.Id"
+        <ModuleStrip Modules="selectedCourse?.Modules"
+                     CourseId="selectedCourse?.Id ?? 0"
                      Id="moduleViewer"
                      IsTeacher="IsTeacher"
-                     OnEditModuleRequested="HandleEditModule" />
+                     OnEditModuleRequested="HandleEditModule"
+                     OnAddModule="HandleAddModule" />
 
         <!-- Course navigation -->
     </div>

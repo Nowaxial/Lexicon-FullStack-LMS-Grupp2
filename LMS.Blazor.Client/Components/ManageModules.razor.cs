@@ -10,6 +10,12 @@ public partial class ManageModules : ComponentBase
     [Inject] private IApiService ApiService { get; set; } = default!;
     [Parameter] public ModuleDto? SelectedModule { get; set; }
 
+    // 🔔 notify parent when module changes
+    [Parameter] public EventCallback<ModuleDto> OnModuleUpdated { get; set; }
+
+    // 🔔 notify parent when module is deleted
+    [Parameter] public EventCallback<int> OnModuleDeleted { get; set; }
+
     private ModuleDto? activeModule;
     private int? editingModuleId;
     private ModuleEditModel moduleEditModel = new();
@@ -22,16 +28,12 @@ public partial class ManageModules : ComponentBase
     private bool isLoading = false;
     private string? errorMessage;
 
-    /// <summary>
-    /// Whenever a new SelectedModule is pushed in from outside (ModuleStrip → ManageCourses),
-    /// load its full details and open it in edit mode.
-    /// </summary>
     protected override Task OnParametersSetAsync()
     {
         if (SelectedModule != null)
         {
             activeModule = SelectedModule;
-            editingModuleId = activeModule.Id;
+
             moduleEditModel = new ModuleEditModel
             {
                 Name = activeModule.Name,
@@ -39,6 +41,8 @@ public partial class ManageModules : ComponentBase
                 Starts = activeModule.Starts,
                 Ends = activeModule.Ends
             };
+
+            editingModuleId = null;
         }
         else
         {
@@ -68,7 +72,7 @@ public partial class ManageModules : ComponentBase
         };
 
         var created = await ApiService.PostAsync<ProjActivityDto>(
-            $"api/modules-library/{activeModule.Id}/activities", dto);
+            $"api/modules/{activeModule.Id}/activities", dto);
 
         if (created != null)
         {
@@ -78,10 +82,10 @@ public partial class ManageModules : ComponentBase
             }
             else
             {
-                // Create a *new* ModuleDto copy with initialized Activities
                 activeModule = new ModuleDto
                 {
                     Id = activeModule.Id,
+                    CourseId = activeModule.CourseId,
                     Name = activeModule.Name,
                     Description = activeModule.Description,
                     Starts = activeModule.Starts,
@@ -89,6 +93,9 @@ public partial class ManageModules : ComponentBase
                     Activities = new List<ProjActivityDto> { created }
                 };
             }
+
+            if (OnModuleUpdated.HasDelegate)
+                await OnModuleUpdated.InvokeAsync(activeModule);
         }
 
         ResetAddActivityForm();
@@ -136,6 +143,9 @@ public partial class ManageModules : ComponentBase
                     Ends = dto.Ends
                 };
             }
+
+            if (OnModuleUpdated.HasDelegate)
+                await OnModuleUpdated.InvokeAsync(activeModule);
         }
 
         editingActivityId = null;
@@ -151,7 +161,12 @@ public partial class ManageModules : ComponentBase
     private async Task DeleteActivity(int id)
     {
         if (await ApiService.DeleteAsync($"api/activities/{id}"))
+        {
             activeModule?.Activities?.RemoveAll(a => a.Id == id);
+
+            if (OnModuleUpdated.HasDelegate && activeModule != null)
+                await OnModuleUpdated.InvokeAsync(activeModule);
+        }
     }
 
     // --- Module editing ---
@@ -173,17 +188,24 @@ public partial class ManageModules : ComponentBase
 
         var dto = new ModuleUpdateDto
         {
+            Id = activeModule.Id,
             Name = moduleEditModel.Name,
             Description = moduleEditModel.Description,
             Starts = moduleEditModel.Starts,
-            Ends = moduleEditModel.Ends
+            Ends = moduleEditModel.Ends,
+            CourseId = activeModule.CourseId,
         };
 
-        var success = await ApiService.PutAsync($"api/modules-library/{activeModule.Id}", dto);
+        var success = await ApiService.PutAsync(
+            $"api/course/{activeModule.CourseId}/Modules/{activeModule.Id}", dto);
+
         if (success)
         {
             activeModule = await ApiService.CallApiAsync<ModuleDto>(
-                $"api/modules-library/{activeModule.Id}?includeActivities=true");
+                $"api/course/{activeModule.CourseId}/Modules/{activeModule.Id}?includeActivities=true");
+
+            if (OnModuleUpdated.HasDelegate && activeModule != null)
+                await OnModuleUpdated.InvokeAsync(activeModule);
         }
 
         editingModuleId = null;
@@ -193,9 +215,16 @@ public partial class ManageModules : ComponentBase
 
     private async Task DeleteModule(int id)
     {
-        if (await ApiService.DeleteAsync($"api/modules-library/{id}"))
+        if (activeModule is null) return;
+
+        if (await ApiService.DeleteAsync(
+            $"api/course/{activeModule.CourseId}/Modules/{id}"))
         {
-            if (activeModule?.Id == id) activeModule = null;
+            var deletedId = activeModule.Id;
+            activeModule = null;
+
+            if (OnModuleDeleted.HasDelegate)
+                await OnModuleDeleted.InvokeAsync(deletedId);
         }
     }
 
