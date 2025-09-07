@@ -73,11 +73,28 @@ public partial class ManageCourses : ComponentBase
             Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
         };
 
+        // 1. Create the course
         var created = await ApiService.PostAsync<CourseDto>("api/courses", placeholder);
         if (created != null)
         {
-            courses = (courses ?? new List<CourseDto>()).Prepend(created).ToList();
+            // 2. Create an empty module for it
+            var newModule = new ModuleCreateDto
+            {
+                Name = "New Module",
+                Description = string.Empty
+            };
+
+            var module = await ApiService.PostAsync<ModuleDto>(
+                $"api/course/{created.Id}/Modules", newModule);
+
+            if (module != null)
+                created.Modules = new List<ModuleDto> { module };
+
+            // 3. Add to local state
+            courses ??= new List<CourseDto>();
+            courses.Insert(0, created);
             selectedCourse = created;
+
             StateHasChanged();
         }
     }
@@ -92,6 +109,28 @@ public partial class ManageCourses : ComponentBase
                 selectedCourse = null;
 
             StateHasChanged(); // force rerender
+        }
+    }
+    private async Task SaveCourseAsync(CourseDto course)
+    {
+        var dto = new UpdateCourseDto
+        {
+            Name = course.Name,
+            Description = course.Description,
+            Starts = course.Starts,
+            Ends = course.Ends
+        };
+
+        var success = await ApiService.PutAsync($"api/courses/{course.Id}", dto);
+        if (success)
+        {
+            // Replace updated course in the local list
+            var idx = courses!.FindIndex(c => c.Id == course.Id);
+            if (idx >= 0)
+                courses[idx] = course;
+
+            selectedCourse = course;
+            StateHasChanged();
         }
     }
 

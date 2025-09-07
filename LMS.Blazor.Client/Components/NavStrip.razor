@@ -129,6 +129,7 @@
     [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
     [Parameter] public EventCallback OnAddCourse { get; set; }
     [Parameter] public EventCallback<CourseDto> OnDeleteCourse { get; set; }
+    [Parameter] public EventCallback<CourseDto> OnSaveCourse { get; set; }   // <--- NEW
     [Parameter] public string Id { get; set; } = "navstrip";
     [Parameter] public bool IsTeacher { get; set; } = false;
 
@@ -152,23 +153,20 @@
 
     private async Task OnCourseClick(CourseDto course, int index)
     {
-        if (IsEditing) return; // prevent switching while editing
+        if (IsEditing) return;
 
         ActiveItem = course;
         await OnItemSelected.InvokeAsync(course);
 
         var elementId = $"course-{course.Id}";
         await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
-
-        StateHasChanged();
     }
 
     private void OnExpandClick(CourseDto course)
     {
-        if (IsEditing) return; // prevent collapsing while editing
+        if (IsEditing) return;
 
         ExpandedCourseId = ExpandedCourseId == course.Id ? null : course.Id;
-        StateHasChanged();
     }
 
     private void OnEditCourseClick(CourseDto course)
@@ -191,50 +189,39 @@
 
     private async Task SaveCourse(CourseDto course)
     {
+        // Update local model
         course.Name = EditModel.Name;
         course.Description = EditModel.Description;
         course.Starts = EditModel.Starts;
         course.Ends = EditModel.Ends;
 
-        // TODO: Hook API call here
-        // await ApiService.PutAsync($"api/courses/{course.Id}", course);
+        // 🔗 Forward to parent (ManageCourses)
+        if (OnSaveCourse.HasDelegate)
+            await OnSaveCourse.InvokeAsync(course);
 
         EditingCourseId = null;
-        StateHasChanged();
     }
 
     private async Task OnAddCourseClick()
     {
         if (OnAddCourse.HasDelegate)
-        {
             await OnAddCourse.InvokeAsync();
-
-            if (Items?.Any() == true)
-            {
-                var first = Items.First();
-                ActiveItem = first;
-                var elementId = $"course-{first.Id}";
-                await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
-                await OnItemSelected.InvokeAsync(first);
-            }
-        }
     }
 
     private async Task OnDeleteCourseClick(CourseDto course)
     {
         if (OnDeleteCourse.HasDelegate)
-        {
             await OnDeleteCourse.InvokeAsync(course);
 
-            if (ActiveItem?.Id == course.Id)
+        // If the deleted course was active, select another one
+        if (ActiveItem?.Id == course.Id)
+        {
+            ActiveItem = Items?.FirstOrDefault();
+            if (ActiveItem != null)
             {
-                ActiveItem = Items?.FirstOrDefault();
-                if (ActiveItem != null)
-                {
-                    var elementId = $"course-{ActiveItem.Id}";
-                    await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
-                    await OnItemSelected.InvokeAsync(ActiveItem);
-                }
+                var elementId = $"course-{ActiveItem.Id}";
+                await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+                await OnItemSelected.InvokeAsync(ActiveItem);
             }
         }
     }
