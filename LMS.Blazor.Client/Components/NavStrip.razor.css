@@ -1,76 +1,56 @@
-﻿/* --- NavStrip Wrapper --- */
-.navstrip-wrapper {
-    position: relative;
-    overflow: visible;
-    max-width: 1000px;
-    margin: 1rem auto;
-    padding: 0;
-}
-
-/* Strip as carousel */
+﻿/* --- NavStrip --- */
 .navstrip {
     display: flex;
     flex-wrap: nowrap;
     gap: 1rem;
-    padding: 0 20%; /* center peek */
+    padding: 0 15%; /* balanced centering */
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    -ms-overflow-style: none; /* hide IE scrollbar */
+    scrollbar-width: none; /* hide Firefox scrollbar */
     cursor: grab;
 }
 
     .navstrip::-webkit-scrollbar {
-        display: none;
+        display: none; /* hide Chrome scrollbar */
     }
 
-    .navstrip.dragging {
-        cursor: grabbing;
-        cursor: -webkit-grabbing;
-    }
-
-/* --- Card container with breathing room --- */
+/* --- Card container --- */
 .navstrip-card-container {
-    flex: 0 0 20%; /* 5 visible */
+    flex: 0 0 auto;
+    width: 220px; /* base compact width */
     display: flex;
     justify-content: center;
-    padding: 2rem 0; /* breathing space for shadows/hover */
+    padding: 1.5rem 0;
     scroll-snap-align: center;
+    transition: width 0.3s ease;
 }
+
+    .navstrip-card-container.expanded {
+        width: 440px; /* exactly double width */
+    }
 
 /* --- Card --- */
 .navstrip-card {
+    position: relative;
     width: 100%;
-    min-height: 120px; /* consistent card height */
+    min-height: 140px;
     border-radius: 12px;
-    background: var(--muted); /* inactive default hue fills entire card */
+    background: var(--muted);
     cursor: pointer;
     transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-    opacity: 0.85;
-    transform: scale(0.9);
-    z-index: 1;
+    opacity: 0.9;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-    /* force body to fill the card */
-    .navstrip-card .card-body {
-        flex: 1; /* take all space */
-        display: flex;
-        flex-direction: column;
-        justify-content: center; /* center text vertically */
-        align-items: center; /* keep consistent horizontal alignment */
-        padding: 1rem 1.25rem;
-        border-radius: 12px; /* match parent */
-        height: 100%; /* stretch fully */
-    }
-
-    /* Active card */
     .navstrip-card.active {
         opacity: 1;
-        transform: scale(1.05);
+        transform: scale(1.02); /* subtle bump only for active */
         background: var(--accent);
         color: var(--base);
         font-weight: 600;
@@ -79,14 +59,100 @@
     }
 
         .navstrip-card.active:hover {
-            transform: scale(1.08);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            transform: scale(1.05); /* slightly larger on hover */
         }
 
-/* --- Custom Scrollbar --- */
+/* --- Card body --- */
+.card-body {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.course-main {
+    flex: 0 0 auto;
+    text-align: left;
+}
+
+.course-extra {
+    flex: 1;
+    font-size: 0.9rem;
+    text-align: left;
+    padding-left: 1rem;
+    border-left: 1px solid rgba(0,0,0,0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* --- Expand Arrow --- */
+.expand-arrow {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.6);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.3s ease;
+}
+
+    .expand-arrow:hover {
+        background-color: var(--base);
+        opacity: 1;
+        transform: translateY(-50%) scale(1.1);
+    }
+
+/* --- Edit Button --- */
+.edit-btn {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--base);
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+    .edit-btn:hover {
+        background-color: var(--accent);
+        color: var(--base);
+    }
+
+/* --- Custom Scrollbar (bottom) --- */
 .navstrip-scrollbar {
     position: relative;
-    width: 240px;
+    width: 60%; /* proportional */
     height: 8px;
     margin: 0.75rem auto 0;
     background: var(--muted);
@@ -99,7 +165,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    width: 60px;
+    width: 15%; /* proportional thumb */
     background: var(--primary);
     border-radius: 4px;
     cursor: grab;

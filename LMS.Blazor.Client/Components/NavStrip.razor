@@ -1,24 +1,55 @@
 ﻿@using LMS.Shared.DTOs.EntitiesDtos
 
 <div class="navstrip-wrapper">
-    <div class="navstrip d-flex flex-row flex-nowrap" @ref="navStripRef">
-        <!-- Spacer before first card -->
+    <div class="navstrip" @ref="navStripRef">
         <div class="navstrip-spacer"></div>
 
         @foreach (var (c, index) in (Items ?? Enumerable.Empty<CourseDto>()).Select((c, i) => (c, i)))
         {
-            <div class="navstrip-card-container" id="@($"course-{c.Id}")">
-                <div class="navstrip-card @(ActiveItem?.Id == c.Id ? "active" : "")"
+            var isActive = ActiveItem?.Id == c.Id;
+            var isExpanded = ExpandedCourseId == c.Id;
+
+            <div class="navstrip-card-container @(isExpanded ? "expanded" : "")" id="@($"course-{c.Id}")">
+                <div class="navstrip-card @(isActive ? "active" : "")"
                      @onclick="() => OnCourseClick(c, index)">
+
                     <div class="card-body">
-                        <h6>@c.Name</h6>
-                        <small class="text-muted">@c.Starts – @c.Ends</small>
+                        <div class="course-main">
+                            <h6>@c.Name</h6>
+                            <small class="text-muted">@c.Starts – @c.Ends</small>
+                        </div>
+
+                        @if (isExpanded)
+                        {
+                            <div class="course-extra">
+                                @c.Description
+                            </div>
+                        }
                     </div>
+
+                    @if (isActive)
+                    {
+                        <!-- Expand / Collapse Arrow -->
+                        <button class="expand-arrow"
+                                @onclick="() => OnExpandClick(c)"
+                                @onclick:stopPropagation>
+                            <i class="bi @(isExpanded ? "bi-chevron-left" : "bi-chevron-right")"></i>
+                        </button>
+                    }
+
+                    @if (isExpanded)
+                    {
+                        <!-- Edit button (only when expanded) -->
+                        <button class="edit-btn"
+                                @onclick="() => OnEditCourseClick(c)"
+                                @onclick:stopPropagation>
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                    }
                 </div>
             </div>
         }
 
-        <!-- Spacer after last card -->
         <div class="navstrip-spacer"></div>
     </div>
 
@@ -34,8 +65,10 @@
     [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
     [Parameter] public string Id { get; set; } = "navstrip";
     [Parameter] public bool IsTeacher { get; set; } = false;
+
     private ElementReference navStripRef;
     private bool initialized;
+    private int? ExpandedCourseId; // Track expanded course
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
@@ -53,11 +86,22 @@
         ActiveItem = course;
         await OnItemSelected.InvokeAsync(course);
 
-        // Center clicked card
         var elementId = $"course-{course.Id}";
         await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
 
         StateHasChanged();
+    }
+
+    private void OnExpandClick(CourseDto course)
+    {
+        ExpandedCourseId = ExpandedCourseId == course.Id ? null : course.Id;
+        StateHasChanged();
+    }
+
+    private void OnEditCourseClick(CourseDto course)
+    {
+        Console.WriteLine($"Edit course {course.Name}");
+        // TODO: open edit modal
     }
 
     [JSInvokable]
@@ -72,3 +116,7 @@
         }
     }
 }
+
+<style>
+
+</style>
