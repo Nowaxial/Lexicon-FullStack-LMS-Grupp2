@@ -45,8 +45,9 @@ public partial class ManageCourses : ComponentBase
 
     private async Task OnCourseSelected(CourseDto course)
     {
+        // ✅ load modules *with activities*
         var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
-            $"api/course/{course.Id}/Modules");
+            $"api/course/{course.Id}/Modules?includeActivities=true");
 
         selectedCourse = new CourseDto
         {
@@ -104,13 +105,14 @@ public partial class ManageCourses : ComponentBase
         var success = await ApiService.DeleteAsync($"api/courses/{course.Id}");
         if (success && courses != null)
         {
-            courses = courses.Where(c => c.Id != course.Id).ToList(); // force new list
+            courses = courses.Where(c => c.Id != course.Id).ToList();
             if (selectedCourse?.Id == course.Id)
                 selectedCourse = null;
 
-            StateHasChanged(); // force rerender
+            StateHasChanged();
         }
     }
+
     private async Task SaveCourseAsync(CourseDto course)
     {
         var dto = new UpdateCourseDto
@@ -124,7 +126,6 @@ public partial class ManageCourses : ComponentBase
         var success = await ApiService.PutAsync($"api/courses/{course.Id}", dto);
         if (success)
         {
-            // Replace updated course in the local list
             var idx = courses!.FindIndex(c => c.Id == course.Id);
             if (idx >= 0)
                 courses[idx] = course;
@@ -134,43 +135,6 @@ public partial class ManageCourses : ComponentBase
         }
     }
 
-    private async Task SaveCourse()
-    {
-        if (selectedCourse == null) return;
-
-        var dto = new UpdateCourseDto
-        {
-            Name = courseEditModel.Name,
-            Description = courseEditModel.Description,
-            Starts = courseEditModel.Starts,
-            Ends = courseEditModel.Ends
-        };
-
-        var success = await ApiService.PutAsync($"api/courses/{selectedCourse.Id}", dto);
-        if (success)
-            await OnCourseSelected(selectedCourse);
-
-        editingCourseId = null;
-    }
-
-    // --- Course Editing ---
-    private void StartEditCourse(CourseDto course)
-    {
-        editingCourseId = course.Id;
-        courseEditModel = new CourseEditModel
-        {
-            Name = course.Name,
-            Description = course.Description,
-            Starts = course.Starts,
-            Ends = course.Ends
-        };
-    }
-
-    private void CancelEditCourse()
-    {
-        editingCourseId = null;
-        courseEditModel = new();
-    }
     private async Task HandleModuleUpdated(ModuleDto updatedModule)
     {
         var idx = selectedCourse?.Modules?.FindIndex(m => m.Id == updatedModule.Id) ?? -1;
@@ -188,20 +152,19 @@ public partial class ManageCourses : ComponentBase
         selectedModuleToEdit = null;
         StateHasChanged();
     }
+
     // --- Modules ---
     private async void HandleEditModule(ModuleDto module)
     {
         selectedModuleToEdit = module;
         expandModulesAccordion = true;
 
-        // Force the "Manage Modules" accordion section open
         await JS.InvokeVoidAsync("eval", @"
         var el = document.querySelector('#collapseModules');
         if (el) {
             var inst = bootstrap.Collapse.getOrCreateInstance(el);
             inst.show();
-        }
-    ");
+        }");
     }
 
     private async Task HandleAddModule()
