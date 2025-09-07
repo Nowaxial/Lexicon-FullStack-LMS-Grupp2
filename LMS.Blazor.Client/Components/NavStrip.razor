@@ -2,7 +2,7 @@
 @inject IJSRuntime JS
 
 <div class="navstrip-wrapper">
-    <div class="navstrip" @ref="navStripRef">
+    <div class="navstrip @(IsEditing ? "locked" : "")" @ref="navStripRef">
 
         @if (IsTeacher)
         {
@@ -19,26 +19,72 @@
         {
             var isActive = ActiveItem?.Id == c.Id;
             var isExpanded = ExpandedCourseId == c.Id;
+            var isEditing = EditingCourseId == c.Id;
 
             <div class="navstrip-card-container @(isExpanded ? "expanded" : "")" id="@($"course-{c.Id}")">
                 <div class="navstrip-card @(isActive ? "active" : "")"
-                     @onclick="() => OnCourseClick(c, index)">
+                     @onclick="() => OnCourseClick(c, index)"
+                     disabled="@IsEditing">
 
                     <div class="card-body">
-                        <div class="course-main">
-                            <h6>@c.Name</h6>
-                            <small class="text-muted">@c.Starts – @c.Ends</small>
-                        </div>
-
-                        @if (isExpanded)
+                        @if (isEditing)
                         {
-                            <div class="course-extra">
-                                @c.Description
+                            <div class="course-main w-100">
+                                <input class="form-control form-control-sm mb-1"
+                                       @bind="EditModel.Name"
+                                       placeholder="Course name" />
+
+                                <textarea class="form-control form-control-sm mb-1"
+                                          @bind="EditModel.Description"
+                                          placeholder="Description"></textarea>
+
+                                <!-- Dates + Save/Cancel in one row -->
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <div class="d-flex gap-2">
+                                        <input type="date" class="form-control form-control-sm date-input"
+                                               @bind="EditModel.Starts"
+                                               @bind:format="yyyy-MM-dd" />
+
+                                        <input type="date" class="form-control form-control-sm date-input"
+                                               @bind="EditModel.Ends"
+                                               @bind:format="yyyy-MM-dd" />
+                                    </div>
+
+                                    <div class="card-actions ms-2">
+                                        <!-- Save -->
+                                        <button class="card-action-btn"
+                                                @onclick="() => SaveCourse(c)"
+                                                @onclick:stopPropagation>
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+
+                                        <!-- Cancel -->
+                                        <button class="card-action-btn"
+                                                @onclick="CancelEdit"
+                                                @onclick:stopPropagation>
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
+                        }
+                        else
+                        {
+                            <div class="course-main">
+                                <h6>@c.Name</h6>
+                                <small class="text-muted">@c.Starts – @c.Ends</small>
+                            </div>
+
+                            @if (isExpanded)
+                            {
+                                <div class="course-extra">
+                                    @c.Description
+                                </div>
+                            }
                         }
                     </div>
 
-                    @if (isActive)
+                    @if (isActive && !IsEditing)
                     {
                         <!-- Expand / Collapse Arrow -->
                         <button class="expand-arrow"
@@ -48,15 +94,17 @@
                         </button>
                     }
 
-                    @if (isExpanded && IsTeacher)
+                    @if (isExpanded && IsTeacher && !isEditing)
                     {
                         <div class="card-actions">
+                            <!-- Edit -->
                             <button class="card-action-btn"
                                     @onclick="() => OnEditCourseClick(c)"
                                     @onclick:stopPropagation>
                                 <i class="bi bi-pencil-fill"></i>
                             </button>
 
+                            <!-- Delete -->
                             <button class="card-action-btn"
                                     @onclick="() => OnDeleteCourseClick(c)"
                                     @onclick:stopPropagation>
@@ -88,6 +136,11 @@
     private bool initialized;
     private int? ExpandedCourseId;
 
+    private int? EditingCourseId;
+    private CourseEditModel EditModel = new();
+
+    private bool IsEditing => EditingCourseId.HasValue;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && Items?.Any() == true)
@@ -99,6 +152,8 @@
 
     private async Task OnCourseClick(CourseDto course, int index)
     {
+        if (IsEditing) return; // prevent switching while editing
+
         ActiveItem = course;
         await OnItemSelected.InvokeAsync(course);
 
@@ -110,14 +165,42 @@
 
     private void OnExpandClick(CourseDto course)
     {
+        if (IsEditing) return; // prevent collapsing while editing
+
         ExpandedCourseId = ExpandedCourseId == course.Id ? null : course.Id;
         StateHasChanged();
     }
 
     private void OnEditCourseClick(CourseDto course)
     {
-        Console.WriteLine($"Edit course {course.Name}");
-        // TODO: open edit modal
+        EditingCourseId = course.Id;
+        EditModel = new CourseEditModel
+        {
+            Name = course.Name,
+            Description = course.Description,
+            Starts = course.Starts,
+            Ends = course.Ends
+        };
+    }
+
+    private void CancelEdit()
+    {
+        EditingCourseId = null;
+        EditModel = new();
+    }
+
+    private async Task SaveCourse(CourseDto course)
+    {
+        course.Name = EditModel.Name;
+        course.Description = EditModel.Description;
+        course.Starts = EditModel.Starts;
+        course.Ends = EditModel.Ends;
+
+        // TODO: Hook API call here
+        // await ApiService.PutAsync($"api/courses/{course.Id}", course);
+
+        EditingCourseId = null;
+        StateHasChanged();
     }
 
     private async Task OnAddCourseClick()
@@ -143,7 +226,6 @@
         {
             await OnDeleteCourse.InvokeAsync(course);
 
-            // Fallback: select first available course if active one was deleted
             if (ActiveItem?.Id == course.Id)
             {
                 ActiveItem = Items?.FirstOrDefault();
@@ -155,5 +237,13 @@
                 }
             }
         }
+    }
+
+    private class CourseEditModel
+    {
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public DateOnly Starts { get; set; }
+        public DateOnly Ends { get; set; }
     }
 }

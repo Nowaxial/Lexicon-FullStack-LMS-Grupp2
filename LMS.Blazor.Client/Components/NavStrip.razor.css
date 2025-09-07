@@ -246,3 +246,9 @@
     font-weight: bold;
     text-align: center;
 }
+.date-input {
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 120px;
+    flex: 0 0 auto;
+}
