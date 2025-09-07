@@ -1,8 +1,19 @@
 ﻿@using LMS.Shared.DTOs.EntitiesDtos
+@inject IJSRuntime JS
 
 <div class="navstrip-wrapper">
     <div class="navstrip" @ref="navStripRef">
-        <div class="navstrip-spacer"></div>
+
+        @if (IsTeacher)
+        {
+            <!-- Add new course card -->
+            <div class="navstrip-card-container add-card-container">
+                <div class="navstrip-card add-card"
+                     @onclick="OnAddCourseClick">
+                    <i class="bi bi-plus-lg add-icon"></i>
+                </div>
+            </div>
+        }
 
         @foreach (var (c, index) in (Items ?? Enumerable.Empty<CourseDto>()).Select((c, i) => (c, i)))
         {
@@ -37,20 +48,25 @@
                         </button>
                     }
 
-                    @if (isExpanded)
+                    @if (isExpanded && IsTeacher)
                     {
-                        <!-- Edit button (only when expanded) -->
-                        <button class="edit-btn"
-                                @onclick="() => OnEditCourseClick(c)"
-                                @onclick:stopPropagation>
-                            <i class="bi bi-pencil-fill"></i>
-                        </button>
+                        <div class="card-actions">
+                            <button class="card-action-btn"
+                                    @onclick="() => OnEditCourseClick(c)"
+                                    @onclick:stopPropagation>
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+
+                            <button class="card-action-btn"
+                                    @onclick="() => OnDeleteCourseClick(c)"
+                                    @onclick:stopPropagation>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     }
                 </div>
             </div>
         }
-
-        <div class="navstrip-spacer"></div>
     </div>
 
     <!-- Custom draggable scrollbar -->
@@ -60,17 +76,17 @@
 </div>
 
 @code {
-    [Parameter] public IEnumerable<CourseDto>? Items { get; set; }
+    [Parameter] public List<CourseDto>? Items { get; set; }
     [Parameter] public CourseDto? ActiveItem { get; set; }
     [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
+    [Parameter] public EventCallback OnAddCourse { get; set; }
+    [Parameter] public EventCallback<CourseDto> OnDeleteCourse { get; set; }
     [Parameter] public string Id { get; set; } = "navstrip";
     [Parameter] public bool IsTeacher { get; set; } = false;
 
     private ElementReference navStripRef;
     private bool initialized;
-    private int? ExpandedCourseId; // Track expanded course
-
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+    private int? ExpandedCourseId;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -104,19 +120,40 @@
         // TODO: open edit modal
     }
 
-    [JSInvokable]
-    public async Task OnCenteredIndexChanged(int index)
+    private async Task OnAddCourseClick()
     {
-        if (Items != null && index >= 0 && index < Items.Count())
+        if (OnAddCourse.HasDelegate)
         {
-            var selected = Items.ElementAt(index);
-            ActiveItem = selected;
-            await OnItemSelected.InvokeAsync(selected);
-            StateHasChanged();
+            await OnAddCourse.InvokeAsync();
+
+            if (Items?.Any() == true)
+            {
+                var first = Items.First();
+                ActiveItem = first;
+                var elementId = $"course-{first.Id}";
+                await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+                await OnItemSelected.InvokeAsync(first);
+            }
+        }
+    }
+
+    private async Task OnDeleteCourseClick(CourseDto course)
+    {
+        if (OnDeleteCourse.HasDelegate)
+        {
+            await OnDeleteCourse.InvokeAsync(course);
+
+            // Fallback: select first available course if active one was deleted
+            if (ActiveItem?.Id == course.Id)
+            {
+                ActiveItem = Items?.FirstOrDefault();
+                if (ActiveItem != null)
+                {
+                    var elementId = $"course-{ActiveItem.Id}";
+                    await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+                    await OnItemSelected.InvokeAsync(ActiveItem);
+                }
+            }
         }
     }
 }
-
-<style>
-
-</style>

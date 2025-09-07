@@ -10,33 +10,23 @@ public partial class ManageCourses : ComponentBase
 {
     [Parameter] public bool IsTeacher { get; set; }
     [Parameter] public EventCallback<ModuleDto> OnEditModuleRequested { get; set; }
+
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private IApiService ApiService { get; set; } = default!;
 
     private List<CourseDto>? courses;
     private CourseDto? selectedCourse;
 
-    private CreateCourseDto newCourse = new()
-    {
-        Starts = DateOnly.FromDateTime(DateTime.Today),
-        Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-    };
-
     private int? editingCourseId;
     private CourseEditModel courseEditModel = new();
+
     private ModuleDto? selectedModuleToEdit;
     private bool expandModulesAccordion = false;
-    private void HandleEditModule(ModuleDto module)
-    {
-        selectedModuleToEdit = module;
-        expandModulesAccordion = true;
 
-        // manually expand accordion
-        JS.InvokeVoidAsync("bootstrap.Collapse.getOrCreateInstance",
-            "#collapseModules", new { toggle = true });
-    }
+    // --- Lifecycle ---
     protected override async Task OnInitializedAsync() => await LoadCoursesAsync();
 
+    // --- Course Loading ---
     private async Task LoadCoursesAsync()
     {
         try
@@ -72,19 +62,36 @@ public partial class ManageCourses : ComponentBase
         if (idx >= 0) courses[idx] = selectedCourse;
     }
 
+    // --- Course CRUD ---
     private async Task AddCourseAsync()
     {
-        var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
+        var placeholder = new CreateCourseDto
+        {
+            Name = "New Course",
+            Description = "Placeholder description",
+            Starts = DateOnly.FromDateTime(DateTime.Today),
+            Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
+        };
+
+        var created = await ApiService.PostAsync<CourseDto>("api/courses", placeholder);
         if (created != null)
         {
-            courses ??= new();
-            courses.Add(created);
+            courses = (courses ?? new List<CourseDto>()).Prepend(created).ToList();
+            selectedCourse = created;
+            StateHasChanged();
+        }
+    }
 
-            newCourse = new CreateCourseDto
-            {
-                Starts = DateOnly.FromDateTime(DateTime.Today),
-                Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-            };
+    private async Task DeleteCourseAsync(CourseDto course)
+    {
+        var success = await ApiService.DeleteAsync($"api/courses/{course.Id}");
+        if (success && courses != null)
+        {
+            courses = courses.Where(c => c.Id != course.Id).ToList(); // force new list
+            if (selectedCourse?.Id == course.Id)
+                selectedCourse = null;
+
+            StateHasChanged(); // force rerender
         }
     }
 
@@ -107,18 +114,7 @@ public partial class ManageCourses : ComponentBase
         editingCourseId = null;
     }
 
-    private async Task DeleteSelectedCourse()
-    {
-        if (selectedCourse == null) return;
-
-        var success = await ApiService.DeleteAsync($"api/courses/{selectedCourse.Id}");
-        if (success)
-        {
-            courses?.Remove(selectedCourse);
-            selectedCourse = null;
-        }
-    }
-
+    // --- Course Editing ---
     private void StartEditCourse(CourseDto course)
     {
         editingCourseId = course.Id;
@@ -135,6 +131,16 @@ public partial class ManageCourses : ComponentBase
     {
         editingCourseId = null;
         courseEditModel = new();
+    }
+
+    // --- Modules ---
+    private void HandleEditModule(ModuleDto module)
+    {
+        selectedModuleToEdit = module;
+        expandModulesAccordion = true;
+
+        JS.InvokeVoidAsync("bootstrap.Collapse.getOrCreateInstance",
+            "#collapseModules", new { toggle = true });
     }
 
     // --- Helper model ---

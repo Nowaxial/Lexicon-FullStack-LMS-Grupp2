@@ -125,27 +125,58 @@
         transform: translateY(-50%) scale(1.1);
     }
 
-/* --- Edit Button --- */
-.edit-btn {
+/* --- Card Actions (Edit + Delete) --- */
+.card-actions {
     position: absolute;
     bottom: 0.75rem;
     right: 0.75rem;
-    width: 32px;
-    height: 32px;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+.card-action-btn {
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
+    border: none;
     background-color: var(--base);
     color: var(--accent);
-    border: 2px solid var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+    .card-action-btn:hover {
+        background-color: var(--muted);
+        transform: scale(1.05);
+    }
+
+/* Edit button */
+.edit-btn {
+    background-color: var(--base);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
     .edit-btn:hover {
         background-color: var(--accent);
+        color: var(--base);
+    }
+
+/* Delete button */
+.delete-btn {
+    background-color: var(--base);
+    color: red;
+    border-color: red;
+}
+
+    .delete-btn:hover {
+        background-color: red;
         color: var(--base);
     }
 
@@ -176,3 +207,42 @@
         cursor: grabbing;
         background: var(--accent);
     }
+
+/* --- Add Course Card Container --- */
+.navstrip-card-container.add-card-container {
+    flex: 0 0 180px; /* a bit narrower than others */
+    margin-left: -100px; /* makes it peek in from the left */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: start;
+    z-index: 2; /* ensure it stays above */
+}
+
+/* --- Add Course Card --- */
+.navstrip-card.add-card {
+    width: 100%;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--base);
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+    .navstrip-card.add-card:hover {
+        background: var(--accent);
+        color: var(--base);
+        transform: scale(1.05);
+    }
+
+/* --- Plus Icon --- */
+.add-icon {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+}
