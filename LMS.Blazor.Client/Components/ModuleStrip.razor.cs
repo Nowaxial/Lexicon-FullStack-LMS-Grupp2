@@ -40,7 +40,6 @@ public partial class ModuleStrip : ComponentBase
     {
         if (AddingNewModule)
         {
-            // ✅ Confirm → Save new module to backend and link to course
             AddingNewModule = false;
 
             var draft = EditableModules[ActiveIndex];
@@ -61,8 +60,6 @@ public partial class ModuleStrip : ComponentBase
             if (created != null)
             {
                 EditableModules[ActiveIndex] = created;
-
-                // ✅ Also add it to the parent’s module list
                 var modulesList = Modules?.ToList() ?? new List<ModuleDto>();
                 modulesList.Insert(0, created);
 

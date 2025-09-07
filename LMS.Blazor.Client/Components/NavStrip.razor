@@ -33,7 +33,7 @@
     [Parameter] public CourseDto? ActiveItem { get; set; }
     [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
     [Parameter] public string Id { get; set; } = "navstrip";
-
+    [Parameter] public bool IsTeacher { get; set; } = false;
     private ElementReference navStripRef;
     private bool initialized;
 

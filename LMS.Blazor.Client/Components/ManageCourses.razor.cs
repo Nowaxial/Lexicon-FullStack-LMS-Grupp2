@@ -1,14 +1,16 @@
-﻿using LMS.Shared.DTOs.EntitiesDtos;
+﻿using LMS.Blazor.Client.Services;
+using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
-using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
-using LMS.Blazor.Client.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace LMS.Blazor.Client.Components;
 
 public partial class ManageCourses : ComponentBase
 {
-    [Parameter] public bool IsTeacher { get; set; } = false;
+    [Parameter] public bool IsTeacher { get; set; }
+    [Parameter] public EventCallback<ModuleDto> OnEditModuleRequested { get; set; }
+    [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private IApiService ApiService { get; set; } = default!;
 
     private List<CourseDto>? courses;
@@ -22,13 +24,17 @@ public partial class ManageCourses : ComponentBase
 
     private int? editingCourseId;
     private CourseEditModel courseEditModel = new();
+    private ModuleDto? selectedModuleToEdit;
+    private bool expandModulesAccordion = false;
+    private void HandleEditModule(ModuleDto module)
+    {
+        selectedModuleToEdit = module;
+        expandModulesAccordion = true;
 
-    private List<UserDto>? users;
-    private bool usersLoaded = false;
-    private bool isLoadingUsers = false;
-    private string? usersError;
-    private string userFilter = string.Empty;
-
+        // manually expand accordion
+        JS.InvokeVoidAsync("bootstrap.Collapse.getOrCreateInstance",
+            "#collapseModules", new { toggle = true });
+    }
     protected override async Task OnInitializedAsync() => await LoadCoursesAsync();
 
     private async Task LoadCoursesAsync()
@@ -37,47 +43,20 @@ public partial class ManageCourses : ComponentBase
         {
             courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses"))?.ToList();
 
-            if (courses != null && courses.Any())
-            {
+            if (courses?.Any() == true)
                 await OnCourseSelected(courses.First());
-            }
         }
         catch (Exception ex)
         {
             courses = new List<CourseDto>();
-            Console.WriteLine("Failed to load courses: " + ex.Message);
+            Console.WriteLine($"Failed to load courses: {ex.Message}");
         }
     }
-    [Parameter] public EventCallback<ModuleDto> OnEditModuleRequested { get; set; }
 
-    private async Task HandleEditModule(ModuleDto module)
-    {
-        // bubble up to Courses page
-        await OnEditModuleRequested.InvokeAsync(module);
-    }
     private async Task OnCourseSelected(CourseDto course)
     {
         var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
             $"api/course/{course.Id}/Modules");
-        var moduleList = new List<ModuleDto>();
-        if (modules != null)
-        {
-            foreach (var m in modules)
-            {
-                var activities = await ApiService.CallApiAsync<IEnumerable<ProjActivityDto>>(
-                    $"api/modules/{m.Id}/activities");
-
-                moduleList.Add(new ModuleDto
-                {
-                    Id = m.Id,
-                    Name = m.Name,
-                    Description = m.Description,
-                    Starts = m.Starts,
-                    Ends = m.Ends,
-                    Activities = activities?.ToList() ?? new()
-                });
-            }
-        }
 
         selectedCourse = new CourseDto
         {
@@ -86,7 +65,7 @@ public partial class ManageCourses : ComponentBase
             Description = course.Description,
             Starts = course.Starts,
             Ends = course.Ends,
-            Modules = moduleList
+            Modules = modules?.ToList() ?? new()
         };
 
         var idx = courses!.FindIndex(c => c.Id == course.Id);
@@ -98,8 +77,9 @@ public partial class ManageCourses : ComponentBase
         var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
         if (created != null)
         {
-            courses ??= new List<CourseDto>();
+            courses ??= new();
             courses.Add(created);
+
             newCourse = new CreateCourseDto
             {
                 Starts = DateOnly.FromDateTime(DateTime.Today),
@@ -108,9 +88,29 @@ public partial class ManageCourses : ComponentBase
         }
     }
 
+    private async Task SaveCourse()
+    {
+        if (selectedCourse == null) return;
+
+        var dto = new UpdateCourseDto
+        {
+            Name = courseEditModel.Name,
+            Description = courseEditModel.Description,
+            Starts = courseEditModel.Starts,
+            Ends = courseEditModel.Ends
+        };
+
+        var success = await ApiService.PutAsync($"api/courses/{selectedCourse.Id}", dto);
+        if (success)
+            await OnCourseSelected(selectedCourse);
+
+        editingCourseId = null;
+    }
+
     private async Task DeleteSelectedCourse()
     {
         if (selectedCourse == null) return;
+
         var success = await ApiService.DeleteAsync($"api/courses/{selectedCourse.Id}");
         if (success)
         {
@@ -131,73 +131,13 @@ public partial class ManageCourses : ComponentBase
         };
     }
 
-    private async Task SaveCourse()
-    {
-        if (selectedCourse == null) return;
-
-        var dto = new UpdateCourseDto
-        {
-            Name = courseEditModel.Name,
-            Description = courseEditModel.Description,
-            Starts = courseEditModel.Starts,
-            Ends = courseEditModel.Ends
-        };
-
-        var success = await ApiService.PutAsync($"api/courses/{selectedCourse.Id}", dto);
-        if (success)
-        {
-            await OnCourseSelected(selectedCourse);
-        }
-
-        editingCourseId = null;
-    }
-
     private void CancelEditCourse()
     {
         editingCourseId = null;
         courseEditModel = new();
     }
 
-    private IEnumerable<UserDto> FilteredUsers =>
-        string.IsNullOrWhiteSpace(userFilter)
-            ? (users ?? Enumerable.Empty<UserDto>())
-            : (users ?? Enumerable.Empty<UserDto>())
-                .Where(u =>
-                    StartsWithIgnoreCase(u.FullName, userFilter) ||
-                    StartsWithIgnoreCase(u.UserName, userFilter) ||
-                    StartsWithIgnoreCase(u.Email, userFilter));
-
-    private static bool StartsWithIgnoreCase(string? value, string prefix) =>
-        !string.IsNullOrWhiteSpace(value) &&
-        !string.IsNullOrWhiteSpace(prefix) &&
-        value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
-
-    private async Task LoadUsersIfNeeded()
-    {
-        if (usersLoaded || isLoadingUsers) return;
-        await ReloadUsersAsync();
-    }
-
-    private async Task ReloadUsersAsync()
-    {
-        try
-        {
-            isLoadingUsers = true;
-            usersError = null;
-            var page = await ApiService.CallApiAsync<IEnumerable<UserDto>>("api/users");
-            users = page?.ToList() ?? new List<UserDto>();
-            usersLoaded = true;
-        }
-        catch (Exception ex)
-        {
-            usersError = "Failed to load users: " + ex.Message;
-        }
-        finally
-        {
-            isLoadingUsers = false;
-        }
-    }
-
+    // --- Helper model ---
     private class CourseEditModel
     {
         public string Name { get; set; } = "";
