@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Service.Contracts;
 using System;
 using System.Collections.Generic;
@@ -15,42 +16,67 @@ namespace LMS.Presentation.Controllers
     [ApiController]
     [Route("api/documents")]
     [Authorize]
+    [Tags("Documents")]
     public sealed class ProjDocumentsController : ControllerBase
     {
         private readonly IProjDocumentService _service;
-
-        public ProjDocumentsController(IProjDocumentService service)
+        private readonly ILogger<ProjDocumentsController> _logger;
+        public ProjDocumentsController(IProjDocumentService service, ILogger<ProjDocumentsController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
-        [HttpPost]
+        [HttpPost("/api/courses/{courseId:int}/modules/{moduleId:int}/activities/{activityId:int}/documents")]
+        [Consumes("multipart/form-data")]
         [RequestFormLimits(MultipartBodyLengthLimit = 1024L * 1024 * 200)] // 200 MB example
         [RequestSizeLimit(1024L * 1024 * 200)]
-        public async Task<ActionResult<ProjDocumentDto>> Upload([FromForm] UploadForm form, CancellationToken ct)
+        [ProducesResponseType(typeof(ProjDocumentDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<ProjDocumentDto>> Upload(
+            [FromRoute] int courseId,
+            [FromRoute] int moduleId,
+            [FromRoute] int activityId,
+            //[FromForm] string? DisplayName,
+            //[FromForm] string? Description,
+            //[FromForm] bool IsSubmission,
+            [FromForm] UploadActivityForm form,
+            CancellationToken ct)
         {
-            if (form.File is null || form.File.Length == 0)
-                return BadRequest("File is required.");
-
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized();
-
-            var meta = new UploadProjDocumentDto
+            try
             {
-                DisplayName = string.IsNullOrWhiteSpace(form.DisplayName) ? form.File.FileName : form.DisplayName,
-                Description = form.Description,
-                CourseId = form.CourseId,
-                ModuleId = form.ModuleId,
-                ActivityId = form.ActivityId,
-                StudentId = form.StudentId,
-                IsSubmission = form.IsSubmission
-            };
+                if (form.File is null || form.File.Length == 0)
+                    return BadRequest("File is required.");
 
-            await using var stream = form.File.OpenReadStream();
-            var dto = await _service.UploadAsync(meta, stream, form.File.FileName, userId, ct);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrWhiteSpace(userId))
+                    return Unauthorized();
 
-            return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
+                var meta = new UploadProjDocumentDto
+                {
+                    DisplayName = string.IsNullOrWhiteSpace(form.DisplayName) ? form.File.FileName : form.DisplayName,
+                    Description = form.Description,
+                    CourseId = courseId,
+                    ModuleId = moduleId,
+                    ActivityId = activityId,
+                    StudentId = userId,
+                    IsSubmission = form.IsSubmission
+                };
+
+                await using var stream = form.File.OpenReadStream();
+                var dto = await _service.UploadAsync(meta, stream, form.File.FileName, userId, ct);
+
+                return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Upload failed. courseId={CourseId}, moduleId={ModuleId}, activityId={ActivityId}, user={User}",
+                    courseId, moduleId, activityId, User?.Identity?.Name ?? "unknown");
+
+                return Problem(detail: ex.Message, statusCode: 500, title: "Upload failed");
+            }
         }
 
         [HttpGet("{id:int}")]
@@ -96,18 +122,19 @@ namespace LMS.Presentation.Controllers
             => Ok(await _service.GetByStudentAsync(studentId, trackChanges: false));
 
         // ----- Upload form model -----
-        public sealed class UploadForm
+        public sealed class UploadActivityForm
         {
             public string? DisplayName { get; set; }
             public string? Description { get; set; }
 
-            public int? CourseId { get; set; }
-            public int? ModuleId { get; set; }
-            public int? ActivityId { get; set; }
-            public string? StudentId { get; set; }
+            //public int? courseid { get; set; }
+            //public int? moduleid { get; set; }
+            //public int? activityid { get; set; }
+            //public string? studentid { get; set; }
 
-            public bool IsSubmission { get; set; }
+            public bool IsSubmission { get; set; } = false;
 
+            [FromForm(Name = "File")] 
             public IFormFile? File { get; set; }
         }
     }

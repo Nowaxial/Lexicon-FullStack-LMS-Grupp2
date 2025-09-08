@@ -8,19 +8,29 @@ namespace LMS.Blazor.Controller;
 
 [Route("proxy")]
 [ApiController]
+[IgnoreAntiforgeryToken]
 public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage tokenService) : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ITokenStorage _tokenService = tokenService;
+
+    private static readonly HashSet<string> HopByHop = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization",
+        "TE", "Trailer", "Transfer-Encoding", "Upgrade", "Proxy-Connection","Expect"
+    };
+
 
     // Support GET, POST, PUT, DELETE automatically
     [HttpGet]
     [HttpPost]
     [HttpPut]
     [HttpDelete]
+    [RequestSizeLimit(200L * 1024 * 1024)]
     public async Task<IActionResult> Proxy([FromQuery] string endpoint, CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrEmpty(endpoint);
+        if (string.IsNullOrWhiteSpace(endpoint))
+            return BadRequest("Missing endpoint.");
 
         var client = _httpClientFactory.CreateClient("LmsAPIClient");
 
@@ -28,59 +38,114 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
         if (!endpoint.Equals("api/contact", StringComparison.OrdinalIgnoreCase))
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
             if (userId == null)
                 return Unauthorized();
 
             var accessToken = await _tokenService.GetAccessTokenAsync(userId);
-
             if (string.IsNullOrEmpty(accessToken))
                 return Unauthorized();
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         }
 
-        // Build target URI
-        var queryString = Request.QueryString.Value;
-        var targetUriBuilder = new UriBuilder($"{client.BaseAddress}{endpoint}");
-        if (!string.IsNullOrEmpty(queryString))
-        {
-            var queryParams = HttpUtility.ParseQueryString(queryString);
-            queryParams.Remove("endpoint"); // don't forward "endpoint" itself
-            targetUriBuilder.Query = queryParams.ToString();
-        }
+        var baseRoot = new Uri(client.BaseAddress!, "/");
+        var targetUri = new Uri(baseRoot, "/" + endpoint.TrimStart('/'));
+        var qs = HttpUtility.ParseQueryString(Request.QueryString.Value ?? "");
+        qs.Remove("endpoint");
+        var ub = new UriBuilder(targetUri) { Query = qs.ToString() };
+        targetUri = ub.Uri;
 
-        // Forward request
         var method = new HttpMethod(Request.Method);
-        var requestMessage = new HttpRequestMessage(method, targetUriBuilder.Uri);
+        using var forward = new HttpRequestMessage(method, targetUri);
 
-        if (method != HttpMethod.Get && Request.ContentLength > 0)
+
+
+        // Build target URI
+        foreach (var (key, value) in Request.Headers)
         {
-            requestMessage.Content = new StreamContent(Request.Body);
+            if (key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase)) continue;
+            if (key.Equals("Host", StringComparison.OrdinalIgnoreCase)) continue;
+            if (HopByHop.Contains(key)) continue;              
+            forward.Headers.TryAddWithoutValidation(key, value.AsEnumerable());
+        }
 
-            // Copy content headers (so Content-Type like application/json is preserved)
-            foreach (var header in Request.Headers)
+
+        if (method != HttpMethod.Get && method != HttpMethod.Head)
+        {
+            if (!string.IsNullOrEmpty(Request.ContentType) &&
+                Request.ContentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
             {
-                if (header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+                // Allow reread and parse form
+                Request.EnableBuffering();
+                Request.Body.Position = 0;
+
+                var form = await Request.ReadFormAsync(ct);
+
+                // Rebuild multipart content from parsed fields/files
+                var multi = new MultipartFormDataContent();                              
+
+                // Copy simple fields
+                foreach (var kvp in form)
                 {
-                    requestMessage.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    foreach (var val in kvp.Value)
+                    {
+                        multi.Add(new StringContent(val), kvp.Key);                
+                    }
                 }
-            }
-        }
 
-        // Copy regular headers
-        foreach (var header in Request.Headers)
-        {
-            if (!header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase) &&
-                !header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase)) // skip content headers (already copied)
+                // Copy files (this is what the API binder needs)
+                foreach (var file in form.Files)
+                {
+                    var fileStream = file.OpenReadStream();                          
+                    var sc = new StreamContent(fileStream);
+                    if (!string.IsNullOrEmpty(file.ContentType))
+                    {
+                        sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                    }
+
+                
+                    multi.Add(sc, file.Name, file.FileName);                            
+                }
+
+                forward.Content = multi;                                             
+                                                                                       
+            }
+            else
             {
-                requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                Request.EnableBuffering();
+                Request.Body.Position = 0;
+
+                var buffer = new MemoryStream();
+                await Request.Body.CopyToAsync(buffer, ct);
+                buffer.Position = 0;
+
+                var content = new StreamContent(buffer);
+
+                if (!string.IsNullOrEmpty(Request.ContentType))
+                {
+                 
+                    content.Headers.TryAddWithoutValidation("Content-Type", Request.ContentType);
+                }
+
+                forward.Content = content;
             }
         }
 
-        var response = await client.SendAsync(requestMessage, ct);
 
-        var content = await response.Content.ReadAsStringAsync();
-        return StatusCode((int)response.StatusCode, content);
+
+        using var response = await client.SendAsync(forward, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        Response.StatusCode = (int)response.StatusCode;
+
+        foreach (var (k, v) in response.Headers)
+            if (!HopByHop.Contains(k)) Response.Headers[k] = v.ToArray();
+        foreach (var (k, v) in response.Content.Headers)
+            if (!HopByHop.Contains(k)) Response.Headers[k] = v.ToArray();
+
+        Response.Headers.Remove("transfer-encoding");
+        Response.Headers["X-Proxy-Target"] = targetUri.ToString();
+
+        await response.Content.CopyToAsync(Response.Body, ct);
+        return new EmptyResult();
     }
 }

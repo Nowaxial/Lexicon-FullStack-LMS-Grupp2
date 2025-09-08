@@ -1,7 +1,9 @@
-using LMS.API.Extensions;
+﻿using LMS.API.Extensions;
 using LMS.API.Services;
 using LMS.Infractructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Http;
 
 namespace LMS.API;
 
@@ -31,6 +33,21 @@ public class Program
         builder.Services.ConfigureCors();                          // "AllowAll"
         builder.Services.ConfigureOpenApi();
 
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "LMS API", Version = "v1" });
+     
+            c.ResolveConflictingActions(api => api.First());
+            c.CustomSchemaIds(t => t.FullName);
+
+            var asm = typeof(Program).Assembly;
+            var xml = Path.Combine(AppContext.BaseDirectory, $"{asm.GetName().Name}.xml");
+            if (File.Exists(xml))
+                c.IncludeXmlComments(xml, includeControllerXmlComments: true);
+        });
+
+
         // Swagger + JWT support (per your extension)
 
         var app = builder.Build();
@@ -44,6 +61,7 @@ public class Program
             app.UseSwaggerUI(opt =>
             {
                 opt.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+
             });
         }
 
@@ -57,10 +75,5 @@ public class Program
         app.MapControllers();
 
         app.Run();
-
-        //hej
-
-
-        //Showing
     }
 }

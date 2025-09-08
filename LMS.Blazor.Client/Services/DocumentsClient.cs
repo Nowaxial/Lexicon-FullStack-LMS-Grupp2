@@ -28,13 +28,17 @@ public sealed class DocumentsClient
 
     // ---------- Public API ----------
 
+    // DocumentsClient
     public Task<ProjDocumentDto?> UploadToActivityAsync(
-        int activityId,
-        UploadProjDocumentDto meta,
-        IBrowserFile file,
-        long maxBytes,
-        CancellationToken ct = default) =>
-        UploadAsync($"api/activities/{activityId}/documents", meta, file, maxBytes, ct);
+        int courseId,
+        int moduleId, 
+        int activityId, 
+        UploadProjDocumentDto meta, 
+        IBrowserFile file, long maxBytes, 
+        CancellationToken ct = default) => 
+        UploadAsync($"/api/courses/{courseId}/modules/{moduleId}/activities/{activityId}/documents", 
+            meta, file, maxBytes, ct);
+
 
     public Task<ProjDocumentDto?> UploadToModuleAsync(
         int moduleId,
@@ -55,36 +59,28 @@ public sealed class DocumentsClient
     // ---------- Core upload ----------
 
     public async Task<ProjDocumentDto?> UploadAsync(
-        string endpoint,
-        UploadProjDocumentDto meta,
-        IBrowserFile file,
-        long maxBytes,
-        CancellationToken ct)
+      string endpoint, UploadProjDocumentDto meta, IBrowserFile file, long maxBytes, CancellationToken ct)
     {
         await _authReady.WaitAsync(ct);
 
         using var content = BuildMultipart(meta, file, maxBytes, ct);
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"proxy?endpoint={endpoint}")
-        {
-            Content = content
-        };
+        var url = $"proxy?endpoint={Uri.EscapeDataString(endpoint)}";
 
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
         using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        if (HandleUnauthorized(response))
-            return default;
+        if (HandleUnauthorized(response)) return default;
 
-        response.EnsureSuccessStatusCode();
-
-        if (response.StatusCode == HttpStatusCode.NoContent)
-            return default;
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException($"API error {(int)response.StatusCode} {response.StatusCode}: {error}", null, response.StatusCode);
+        }
 
         var payload = await response.Content.ReadAsStringAsync(ct);
-        if (string.IsNullOrWhiteSpace(payload))
-            return default;
-
-        return JsonSerializer.Deserialize<ProjDocumentDto>(payload, JsonOpts);
+        return string.IsNullOrWhiteSpace(payload) ? default : JsonSerializer.Deserialize<ProjDocumentDto>(payload, JsonOpts);
     }
+
 
     // ---------- Helpers ----------
 
@@ -97,12 +93,12 @@ public sealed class DocumentsClient
         var form = new MultipartFormDataContent();
 
         if (!string.IsNullOrWhiteSpace(meta.DisplayName))
-            form.Add(new StringContent(meta.DisplayName, Encoding.UTF8), "displayName");
+            form.Add(new StringContent(meta.DisplayName, Encoding.UTF8), "DisplayName");
 
         if (!string.IsNullOrWhiteSpace(meta.Description))
-            form.Add(new StringContent(meta.Description, Encoding.UTF8), "description");
+            form.Add(new StringContent(meta.Description, Encoding.UTF8), "Description");
 
-        form.Add(new StringContent(meta.IsSubmission ? "true" : "false"), "isSubmission");
+        form.Add(new StringContent(meta.IsSubmission ? "true" : "false"), "IsSubmission");
 
         if (meta.CourseId.HasValue)
             form.Add(new StringContent(meta.CourseId.Value.ToString()), "courseId");
@@ -114,13 +110,13 @@ public sealed class DocumentsClient
             form.Add(new StringContent(meta.ActivityId.Value.ToString()), "activityId");
 
         if (!string.IsNullOrWhiteSpace(meta.StudentId))
-            form.Add(new StringContent(meta.StudentId), "studentId");
+            form.Add(new StringContent(meta.StudentId), "StudentId");
 
         // Binary
         var stream = file.OpenReadStream(maxAllowedSize: maxBytes, cancellationToken: ct);
         var fileContent = new StreamContent(stream);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
-        form.Add(fileContent, "file", file.Name);
+        form.Add(fileContent, "File", file.Name);
 
         return form;
     }

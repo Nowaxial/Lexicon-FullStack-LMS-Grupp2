@@ -27,7 +27,8 @@
 
                 <div class="mb-3">
                     <label class="form-label">Fil</label>
-                    <InputFile OnChange="OnFileSelected" />
+                 
+                    <InputFile OnChange="OnFileSelected" accept=".pdf,.doc,.docx,.ppt,.pptx,.xlsx,.txt,.png,.jpg,.jpeg,.zip" />  
                     @if (HasFile)
                     {
                         <small class="text-muted d-block mt-1">

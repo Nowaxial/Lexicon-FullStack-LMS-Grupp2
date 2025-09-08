@@ -221,10 +221,9 @@ else
 
 
 
-<UploadFileModal @ref="uploadModal"
+    <UploadFileModal @ref="_uploadModal"
                      IsSubmission="true"
-                     CourseId="@(currentCourse?.Id)"
-                     ModuleId="null"
-                     ActivityId="null"></UploadFileModal>
+                     CourseId="@(currentCourse?.Id)">
+    </UploadFileModal>
 
 }

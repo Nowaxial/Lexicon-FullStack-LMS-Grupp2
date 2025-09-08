@@ -25,7 +25,7 @@ namespace LMS.Blazor.Client.Components.Pages
         private HashSet<int> expandedModules = new();
         private List<UserDto> courseTeachers = new();
 
-        private UploadFileModal? uploadModal;
+        private UploadFileModal? _uploadModal;
 
 
 
@@ -124,13 +124,20 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private async Task OpenUploadFor(ProjActivityDto activity)
         {
-            if (uploadModal is null) return;
-            uploadModal.CourseId = currentCourse?.Id;
-            uploadModal.ModuleId = activity.ModuleId;
-            uploadModal.ActivityId = activity.Id;
-            uploadModal.IsSubmission = true;
+            if (_uploadModal is null) return;
 
-            await uploadModal.ShowAsync();
+            if (currentCourse?.Id is null || activity?.ModuleId is null || activity?.Id is null)
+            {
+                return;
+            }
+
+            _uploadModal.CourseId = currentCourse.Id;
+            _uploadModal.ModuleId = activity.ModuleId;
+            _uploadModal.ActivityId = activity.Id;
+
+            _uploadModal.IsSubmission = true;
+
+            await _uploadModal.ShowAsync();
         }
     }
 }

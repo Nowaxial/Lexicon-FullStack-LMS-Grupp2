@@ -35,9 +35,11 @@ public partial class UploadFileModal
     protected string MaxUploadLabel => FormatBytes(MaxUploadBytes);
 
     protected bool CanSubmit =>
-        HasFile &&
-        !string.IsNullOrWhiteSpace(DisplayName) &&
-        (CourseId.HasValue || ModuleId.HasValue || ActivityId.HasValue);
+    HasFile &&
+    !string.IsNullOrWhiteSpace(DisplayName) &&
+    CourseId.HasValue &&
+    ModuleId.HasValue &&
+    ActivityId.HasValue;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -86,25 +88,25 @@ public partial class UploadFileModal
         {
             var meta = new UploadProjDocumentDto
             {
-                DisplayName = DisplayName,
-                Description = Description,
+                DisplayName = DisplayName?.Trim(),
+                Description = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim(),
                 IsSubmission = IsSubmission,
-                CourseId = CourseId,
-                ModuleId = ModuleId,
-                ActivityId = ActivityId,
                 StudentId = StudentId
             };
 
             ProjDocumentDto? created = null;
 
-            if (ActivityId.HasValue)
-                created = await Api.UploadToActivityAsync(ActivityId.Value, meta, _file, MaxUploadBytes);
-            else if (ModuleId.HasValue)
-                created = await Api.UploadToModuleAsync(ModuleId.Value, meta, _file, MaxUploadBytes);
-            else if (CourseId.HasValue)
-                created = await Api.UploadToCourseAsync(CourseId.Value, meta, _file, MaxUploadBytes);
-            else
-                throw new InvalidOperationException("No target (course/module/activity) provided.");
+            if (!(ModuleId.HasValue && ActivityId.HasValue))
+                throw new InvalidOperationException("ModuleId och ActivityId krävs för uppladdning.");
+
+            created = await Api.UploadToActivityAsync(
+                      CourseId.Value,
+                      ModuleId.Value,
+                      ActivityId.Value,
+                      meta,
+                      _file!,
+                      MaxUploadBytes);
+
 
             if (created is null)
             {
@@ -116,6 +118,10 @@ public partial class UploadFileModal
             ResetForm();
             if (OnUploaded.HasDelegate)
                 await OnUploaded.InvokeAsync();
+        }
+        catch (HttpRequestException ex)                                           
+        {
+            Error = $"Uppladdningen misslyckades ({ex.StatusCode?.ToString() ?? "okänt fel"}): {ex.Message}";
         }
         catch (IOException)
         {
