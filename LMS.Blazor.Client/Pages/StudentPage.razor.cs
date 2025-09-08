@@ -145,7 +145,7 @@ namespace LMS.Blazor.Client.Components.Pages
         private async Task RefreshDocumentsAsync() 
         {
             if (_docsList is not null)
-                await _docsList.ReloadAsync();
+                await _docsList.RefreshAsync();
         }
     }
 }
