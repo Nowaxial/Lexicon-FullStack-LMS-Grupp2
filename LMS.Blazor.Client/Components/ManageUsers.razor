@@ -1,126 +1,348 @@
 ﻿@page "/manage-users"
 @using LMS.Shared.DTOs.UsersDtos
+@using LMS.Shared.DTOs.Common
+@using LMS.Blazor.Client.Services
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@inject IApiService ApiService
 
-<div class="manage-users">
+<div class="manage-users container-fluid">
+    <div class="row">
 
-    <!-- Search filter -->
-    <div class="input-group mb-3">
-        <span class="input-group-text"><i class="bi bi-search"></i></span>
-        <input class="form-control" placeholder="Filter users..."
-               @bind="userFilter" @bind:event="oninput" />
-        <button class="btn btn-outline-secondary"
-                @onclick="() => userFilter = string.Empty"
-                disabled="@string.IsNullOrWhiteSpace(userFilter)">
-            Clear
-        </button>
-    </div>
+        <!-- Left column: Create / Edit User Form -->
+        <div class="col-md-5">
+            <div class="card sticky-top" style="top: 1rem; z-index: 2;">
+                <div class="card-body">
+                    <h6 class="card-title">@((isEditing ? "Update User" : "Create New User"))</h6>
 
-    @if (isLoading)
-    {
-        <p>Loading users...</p>
-    }
-    else if (errorMessage is not null)
-    {
-        <div class="alert alert-danger">@errorMessage</div>
-    }
-    else
-    {
-        <ul class="list-group" style="max-height: 18rem; overflow-y: auto;">
-
-            <!-- Add User Row -->
-            <li class="list-group-item d-flex justify-content-between align-items-center bg-light sticky-top" style="z-index: 1;">
-                <div class="flex-fill">
-                    <div class="row g-2">
-                        <div class="col">
-                            <InputText class="form-control form-control-sm" placeholder="Username" @bind-Value="addUserModel.UserName" />
-                        </div>
-                        <div class="col">
-                            <InputText class="form-control form-control-sm" placeholder="Email" @bind-Value="addUserModel.Email" />
-                        </div>
-                        <div class="col">
-                            <InputText type="password" class="form-control form-control-sm" placeholder="Password" @bind-Value="addUserModel.Password" />
-                        </div>
-                        <div class="col">
-                            <select class="form-select form-select-sm" @bind="addUserModel.Role">
-                                <option value="Student">Student</option>
-                                <option value="Teacher">Teacher</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="btn-group ms-2">
-                    <button class="btn btn-sm btn-success" @onclick="SaveNewUser">
-                        <i class="bi bi-check2"></i>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" @onclick="ResetAddForm">
-                        <i class="bi bi-x-circle"></i>
-                    </button>
-                </div>
-            </li>
-
-            <!-- Existing Users -->
-            @foreach (var user in FilteredUsers)
-            {
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    @if (editingUserId == user.Id)
+                    @if (isEditing)
                     {
-                        <!-- Inline Edit -->
-                        <div class="flex-fill">
-                            <div class="row g-2">
-                                <div class="col">
-                                    <InputText class="form-control form-control-sm" @bind-Value="userEditModel.UserName" />
-                                </div>
-                                <div class="col">
-                                    <InputText class="form-control form-control-sm" @bind-Value="userEditModel.Email" />
-                                </div>
-                                <div class="col">
-                                    <select class="form-select form-select-sm" @bind="userEditModel.Role">
-                                        <option value="Student">Student</option>
-                                        <option value="Teacher">Teacher</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Update form -->
+                        <EditForm Model="@updateForm" OnValidSubmit="SaveUser">
+                            <DataAnnotationsValidator />
 
-                        <div class="btn-group ms-2">
-                            <button class="btn btn-sm btn-success" @onclick="() => SaveUser(user.Id)">
-                                <i class="bi bi-check2"></i>
-                            </button>
-                            <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">
-                                <i class="bi bi-x-circle"></i>
-                            </button>
-                        </div>
+                            <!-- Username -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Username</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="updateForm.UserName" />
+                                <ValidationMessage For="@(() => updateForm.UserName)" class="text-danger small" />
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Email</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="updateForm.Email" />
+                                <ValidationMessage For="@(() => updateForm.Email)" class="text-danger small" />
+                            </div>
+
+                            <!-- First Name -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">First Name</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="updateForm.FirstName" />
+                                <ValidationMessage For="@(() => updateForm.FirstName)" class="text-danger small" />
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Last Name</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="updateForm.LastName" />
+                                <ValidationMessage For="@(() => updateForm.LastName)" class="text-danger small" />
+                            </div>
+
+                            <!-- Role -->
+                            <div class="mb-3">
+                                <label class="form-label small mb-1">Role</label>
+                                <select class="form-select form-select-sm" @bind="updateForm.Role">
+                                    <option value="Student">Student</option>
+                                    <option value="Teacher">Teacher</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-sm btn-success me-2" type="submit">Update</button>
+                                <button class="btn btn-sm btn-secondary" type="button" @onclick="ResetForm">Cancel</button>
+                            </div>
+                        </EditForm>
                     }
                     else
                     {
-                        <!-- Normal Display -->
-                        <span class="flex-fill">
-                            <strong>@(user.FullName ?? user.UserName ?? "(No name)")</strong><br />
-                            <small class="text-muted">@user.Email</small>
-                        </span>
+                        <!-- Create form -->
+                        <EditForm Model="@createForm" OnValidSubmit="SaveNewUser">
+                            <DataAnnotationsValidator />
 
-                        <div class="btn-group ms-2">
-                            <button class="btn btn-sm @(IsTeacher(user) ? "btn-warning" : "btn-info")" disabled>
-                                @if (IsTeacher(user))
-                                {
-                                    <i class="bi bi-person-workspace"></i>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-mortarboard"></i>
-                                }
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary ms-1" @onclick="() => StartEditUser(user)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteUser(user.Id)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
+                            <!-- Username -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Username</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="createForm.UserName" />
+                                <ValidationMessage For="@(() => createForm.UserName)" class="text-danger small" />
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Email</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="createForm.Email" />
+                                <ValidationMessage For="@(() => createForm.Email)" class="text-danger small" />
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Password</label>
+                                <InputText type="password" class="form-control form-control-sm" @bind-Value="createForm.Password" />
+                                <ValidationMessage For="@(() => createForm.Password)" class="text-danger small" />
+                            </div>
+
+                            <!-- First Name -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">First Name</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="createForm.FirstName" />
+                                <ValidationMessage For="@(() => createForm.FirstName)" class="text-danger small" />
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Last Name</label>
+                                <InputText class="form-control form-control-sm" @bind-Value="createForm.LastName" />
+                                <ValidationMessage For="@(() => createForm.LastName)" class="text-danger small" />
+                            </div>
+
+                            <!-- Role -->
+                            <div class="mb-3">
+                                <label class="form-label small mb-1">Role</label>
+                                <select class="form-select form-select-sm" @bind="createForm.Role">
+                                    <option value="Student">Student</option>
+                                    <option value="Teacher">Teacher</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-sm btn-success me-2" type="submit">Create</button>
+                                <button class="btn btn-sm btn-secondary" type="button" @onclick="ResetForm">Cancel</button>
+                            </div>
+                        </EditForm>
                     }
-                </li>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column: User List -->
+        <div class="col-md-7">
+            <!-- Search filter -->
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input class="form-control" placeholder="Filter users..."
+                       @bind="userFilter" @bind:event="oninput" />
+                <button class="btn btn-outline-secondary"
+                        @onclick="() => userFilter = string.Empty"
+                        disabled="@string.IsNullOrWhiteSpace(userFilter)">
+                    Clear
+                </button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p>Loading users...</p>
             }
-        </ul>
-    }
+            else if (errorMessage is not null)
+            {
+                <div class="alert alert-danger">@errorMessage</div>
+            }
+            else
+            {
+                <ul class="list-group" style="max-height: 26rem; overflow-y: auto;">
+                    @foreach (var user in FilteredUsers)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span class="flex-fill">
+                                <strong>@(user.FullName ?? user.UserName ?? "(No name)")</strong><br />
+                                <small class="text-muted">@user.Email</small>
+                            </span>
+
+                            <div class="btn-group ms-2">
+                                <button class="btn btn-sm @(IsTeacher(user) ? "btn-warning" : "btn-info")" disabled>
+                                    @if (IsTeacher(user))
+                                    {
+                                        <i class="bi bi-person-workspace"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-mortarboard"></i>
+                                    }
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary ms-1" @onclick="() => StartEditUser(user)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteUser(user.Id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
 </div>
+
+@code {
+    private List<UserDto>? users;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string userFilter = string.Empty;
+
+    private bool isEditing = false;
+    private string? editingUserId;
+
+    private CreateUserForm createForm = new();
+    private UpdateUserForm updateForm = new();
+
+    // 🔹 Filtering support
+    private IEnumerable<UserDto> FilteredUsers =>
+        string.IsNullOrWhiteSpace(userFilter)
+            ? (users ?? Enumerable.Empty<UserDto>())
+            : (users ?? Enumerable.Empty<UserDto>())
+                .Where(u =>
+                    StartsWithIgnoreCase(u.FullName, userFilter) ||
+                    StartsWithIgnoreCase(u.UserName, userFilter) ||
+                    StartsWithIgnoreCase(u.Email, userFilter))
+                .OrderBy(u => u.FullName ?? u.UserName ?? u.Email);
+
+    private static bool StartsWithIgnoreCase(string? value, string prefix) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        !string.IsNullOrWhiteSpace(prefix) &&
+        value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+
+    protected override async Task OnInitializedAsync() => await LoadUsers();
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoading = true;
+            var page = await ApiService.CallApiAsync<PagedResult<UserDto>>("api/users?size=50");
+            users = page?.Items?.ToList() ?? new List<UserDto>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load users: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveNewUser()
+    {
+        var dto = new CreateUserDto
+        {
+            UserName = createForm.UserName,
+            Email = createForm.Email,
+            Password = createForm.Password,
+            FirstName = createForm.FirstName,
+            LastName = createForm.LastName,
+            Roles = new List<string> { createForm.Role }
+        };
+
+        var created = await ApiService.PostAsync<UserDto>("api/users", dto);
+        if (created != null)
+        {
+            users ??= new();
+            users.Add(created);
+        }
+        ResetForm();
+    }
+
+    private async Task SaveUser()
+    {
+        // 1️⃣ Update user details (without roles)
+        var dto = new UpdateUserDto
+        {
+            UserName = updateForm.UserName,
+            Email = updateForm.Email,
+            FirstName = updateForm.FirstName,
+            LastName = updateForm.LastName
+            // 🚫 Roles excluded here, handled separately
+        };
+
+        var success = await ApiService.PutAsync($"api/users/{editingUserId}", dto);
+
+        // 2️⃣ Update roles separately
+        var roleSuccess = await ApiService.PutAsync(
+            $"api/users/{editingUserId}/roles",
+            new SetRolesDto { Roles = new List<string> { updateForm.Role } }
+        );
+
+        if (success && roleSuccess && users is not null)
+        {
+            var existing = users.FirstOrDefault(u => u.Id == editingUserId);
+            if (existing != null)
+            {
+                var updated = new UserDto
+                {
+                    Id = existing.Id,
+                    UserName = dto.UserName ?? existing.UserName,
+                    Email = dto.Email ?? existing.Email,
+                    FirstName = dto.FirstName ?? existing.FirstName,
+                    LastName = dto.LastName ?? existing.LastName,
+                    Roles = new List<string> { updateForm.Role } // ✅ refreshed roles
+                };
+
+                users[users.IndexOf(existing)] = updated;
+            }
+        }
+
+        ResetForm();
+    }
+
+    private void StartEditUser(UserDto user)
+    {
+        isEditing = true;
+        editingUserId = user.Id;
+        updateForm = new UpdateUserForm
+        {
+            UserName = user.UserName ?? "",
+            Email = user.Email ?? "",
+            FirstName = user.FirstName ?? "",
+            LastName = user.LastName ?? "",
+            Role = user.Roles?.FirstOrDefault() ?? "Student"
+        };
+    }
+
+    private void ResetForm()
+    {
+        isEditing = false;
+        editingUserId = null;
+        createForm = new CreateUserForm();
+        updateForm = new UpdateUserForm();
+    }
+
+    private async Task DeleteUser(string id)
+    {
+        if (await ApiService.DeleteAsync($"api/users/{id}"))
+            users?.RemoveAll(u => u.Id == id);
+    }
+
+    private bool IsTeacher(UserDto user) =>
+        user.Roles?.Contains("Teacher") == true;
+
+    // form models
+    private class CreateUserForm
+    {
+        [Required, StringLength(50)] public string UserName { get; set; } = "";
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required, StringLength(100, MinimumLength = 6)] public string Password { get; set; } = "";
+        [Required, StringLength(50)] public string FirstName { get; set; } = "";
+        [Required, StringLength(50)] public string LastName { get; set; } = "";
+        [Required] public string Role { get; set; } = "Student";
+    }
+
+    private class UpdateUserForm
+    {
+        [Required, StringLength(50)] public string UserName { get; set; } = "";
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required, StringLength(50)] public string FirstName { get; set; } = "";
+        [Required, StringLength(50)] public string LastName { get; set; } = "";
+        [Required] public string Role { get; set; } = "Student";
+    }
+}

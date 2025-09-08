@@ -35,21 +35,28 @@ public class UserService : IUserService
 
         var total = await query.CountAsync();
 
-        var items = await query
+        var users = await query
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .Skip((page - 1) * size)
             .Take(size)
-            .Select(u => new UserDto
+            .ToListAsync();
+
+        var items = new List<UserDto>();
+
+        foreach (var u in users)
+        {
+            var roles = await _userManager.GetRolesAsync(u);
+            items.Add(new UserDto
             {
                 Id = u.Id,
                 FirstName = u.FirstName,
                 LastName = u.LastName,
-                FullName = u.FullName,
                 UserName = u.UserName,
-                Email = u.Email
-            })
-            .ToListAsync();
+                Email = u.Email,
+                Roles = roles.ToList()
+            });
+        }
 
         return new PagedResult<UserDto>
         {
@@ -62,20 +69,21 @@ public class UserService : IUserService
 
     public async Task<UserDto?> GetUserByIdAsync(string userId)
     {
-        var u = await _userManager.Users
-            .Where(x => x.Id == userId)
-            .Select(x => new UserDto
-            {
-                Id = x.Id,
-                FirstName = x.FirstName,
-                LastName = x.LastName,
-                FullName = x.FullName,
-                UserName = x.UserName,
-                Email = x.Email
-            })
-            .FirstOrDefaultAsync();
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return null;
 
-        return u;
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new UserDto
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            UserName = user.UserName,
+            Email = user.Email,
+            Roles = roles.ToList()
+        };
     }
 
     public async Task<bool> UpdateUserAsync(string userId, UpdateUserDto dto)
@@ -95,6 +103,18 @@ public class UserService : IUserService
         {
             user.Email = dto.Email;
             user.EmailConfirmed = false;
+            anyChange = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.FirstName) && dto.FirstName != user.FirstName)
+        {
+            user.FirstName = dto.FirstName;
+            anyChange = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.LastName) && dto.LastName != user.LastName)
+        {
+            user.LastName = dto.LastName;
             anyChange = true;
         }
 
@@ -130,19 +150,21 @@ public class UserService : IUserService
 
         return true;
     }
+
     public async Task<UserDto?> CreateUserAsync(CreateUserDto dto)
     {
         var user = new ApplicationUser
         {
             UserName = dto.UserName,
             Email = dto.Email,
-            EmailConfirmed = false
+            EmailConfirmed = false,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
         if (!result.Succeeded)
         {
-            // Could log or throw depending on your error strategy
             return null;
         }
 
@@ -159,14 +181,15 @@ public class UserService : IUserService
             await _userManager.AddToRolesAsync(user, dto.Roles);
         }
 
-        // Map to UserDto
         var roles = await _userManager.GetRolesAsync(user);
+
         return new UserDto
         {
             Id = user.Id,
             UserName = user.UserName,
             Email = user.Email,
-            FullName = null,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Roles = roles.ToList()
         };
     }
