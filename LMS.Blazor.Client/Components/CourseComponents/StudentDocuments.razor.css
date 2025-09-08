@@ -1,4 +1,4 @@
-
+﻿
 .documents-section {
     border: 1px solid #e6eeee;
     border-radius: 14px;
@@ -19,6 +19,18 @@
         padding: .75rem;
         
     }
+
+@media (min-width: 576px) {
+    .documents-section .docs-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .documents-section .docs-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
 
     /* Card */
  .docs-card {
@@ -97,17 +109,40 @@
         color: var(--primary);
         border-color: var(--primary);
     }
-    .docs-actions:hover, 
     .btn-outline-primary:hover {
         color: var(--base);
         background: var(--primary);
     }
-@media (max-width:576px) {
-  .docs-card {
-        align-items: flex-start
+
+@media (max-width: 640px) {
+    .documents-section .docs-card {
+        flex-direction: column;
+        align-items: stretch;
     }
 
-  host .docs-actions {
-        margin-left: 52px
+    .documents-section .docs-avatar {
+       display: none;
+    }
+
+    .documents-section .docs-actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        margin-left: 0;
+    }
+
+        .documents-section .docs-actions .btn {
+            flex: 1 1 0;
+        }
+}
+
+/* micro screens – avoid squish */
+@media (max-width: 380px) {
+    .documents-section .docs-name {
+        font-size: .95rem;
+    }
+
+    .documents-section .docs-actions .btn {
+        min-width: 0;
     }
 }
