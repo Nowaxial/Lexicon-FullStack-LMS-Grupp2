@@ -32,4 +32,11 @@ public class NotificationsController : ControllerBase
         await _notificationService.MarkAsReadAsync(id, userId!);
         return Ok();
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteNotification(string id)
+    {
+        await _notificationService.DeleteNotificationAsync(id);
+        return Ok();
+    }
 }

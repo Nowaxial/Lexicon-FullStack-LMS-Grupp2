@@ -127,8 +127,12 @@
                             Markera som läst
                         </button>
                     }
+                    <button type="button" class="btn btn-danger w-100 w-sm-auto" @onclick="() => DeleteNotification(selectedNotification.Id)">
+                        Ta bort
+                    </button>
                     <button type="button" class="btn btn-secondary w-100 w-sm-auto" @onclick="CloseModal">Stäng</button>
                 </div>
+
             </div>
         </div>
     </div>
@@ -253,6 +257,20 @@
         }
 
         StateHasChanged();
+    }
+
+    private async Task DeleteNotification(string id)
+    {
+        try
+        {
+            await NotificationService.DeleteNotificationAsync(id);
+            await LoadNotifications();
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"DeleteNotification error: {ex.Message}");
+        }
     }
 
     private void CloseModal()
