@@ -227,3 +227,10 @@ window.scrollCourseIntoCenter = (stripSelector, elementId) => {
         behavior: "smooth"
     });
 };
+
+window.scrollByOffset = (selector, offset) => {
+    const el = document.querySelector(selector);
+    if (el) {
+        el.scrollLeft = offset; // scroll right so first card peeks
+    }
+};
