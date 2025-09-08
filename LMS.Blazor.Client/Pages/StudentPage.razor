@@ -124,7 +124,12 @@ else
                                 <p class="text-muted">Inga moduler att visa.</p>
                             }
                         </article>
+                        <StudentDocuments @ref="_docsList"
+                                          CourseId="@(currentCourse?.Id)">
+                        </StudentDocuments>
                     </div>
+
+                   
 
                     <div class="col-12 col-lg-4">
                         <!-- Lärare -->
@@ -220,10 +225,10 @@ else
     </AuthorizeView>
 
 
-
     <UploadFileModal @ref="_uploadModal"
                      IsSubmission="true"
-                     CourseId="@(currentCourse?.Id)">
+                     CourseId="@(currentCourse?.Id)"
+                     OnUploaded="RefreshDocumentsAsync">
     </UploadFileModal>
 
 }

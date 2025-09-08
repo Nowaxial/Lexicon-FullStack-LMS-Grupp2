@@ -27,6 +27,8 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private UploadFileModal? _uploadModal;
 
+        private StudentDocuments? _docsList;
+
 
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -138,6 +140,12 @@ namespace LMS.Blazor.Client.Components.Pages
             _uploadModal.IsSubmission = true;
 
             await _uploadModal.ShowAsync();
+        }
+
+        private async Task RefreshDocumentsAsync() 
+        {
+            if (_docsList is not null)
+                await _docsList.ReloadAsync();
         }
     }
 }
