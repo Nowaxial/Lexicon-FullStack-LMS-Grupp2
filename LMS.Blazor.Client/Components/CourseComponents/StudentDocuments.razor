@@ -52,11 +52,14 @@
                                 @onclick="() => Download(d.Id)">
                             <i class="bi bi-download me-1"></i>Ladda ned
                         </button>
-                        @* Optional delete later
-                        <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(d.Id)">
+                        
+                        <button class="btn btn-sm btn-outline-danger"
+                                    disabled="@_deleting.Contains(d.Id)"
+                                    @onclick="() => DeleteAsync(d)">
                             <i class="bi bi-trash"></i>
+                                @(_deleting.Contains(d.Id) ? "Tar bort..." : "Ta bort")
                         </button>
-                        *@
+                        
                     </div>
                 </div>
             }

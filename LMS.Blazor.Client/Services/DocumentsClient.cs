@@ -136,4 +136,21 @@ public sealed class DocumentsClient
         }
         return false;
     }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    {
+        await _authReady.WaitAsync(ct);
+
+        var url = $"proxy?endpoint={Uri.EscapeDataString($"/api/documents/{id}")}";
+        using var response = await _http.DeleteAsync(url, ct);
+
+        if (HandleUnauthorized(response)) return false;
+
+        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+
+        response.EnsureSuccessStatusCode();
+
+        return true;
+
+    }
 }

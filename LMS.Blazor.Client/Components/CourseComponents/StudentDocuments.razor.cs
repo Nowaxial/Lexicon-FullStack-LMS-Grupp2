@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using LMS.Blazor.Client.Services;                 
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace LMS.Blazor.Client.Components.CourseComponents
 {
@@ -13,8 +14,10 @@ namespace LMS.Blazor.Client.Components.CourseComponents
     {
      
         [Inject] private IApiService Api { get; set; } = default!;
+        [Inject] private DocumentsClient DocsClient { get; set; } = default!;
+        [Inject] private IJSRuntime JS { get; set; } = default!;
 
-   
+
         [Parameter] public int? CourseId { get; set; }    
         [Parameter] public int? ModuleId { get; set; }    
         [Parameter] public int? ActivityId { get; set; }  
@@ -28,6 +31,8 @@ namespace LMS.Blazor.Client.Components.CourseComponents
 
         private CancellationTokenSource? _cts;
         private string? _lastEndpoint;
+
+        private readonly HashSet<int> _deleting = new();
 
         protected override async Task OnParametersSetAsync()
         {
@@ -74,7 +79,7 @@ namespace LMS.Blazor.Client.Components.CourseComponents
             }
             catch (OperationCanceledException)
             {
-                // ignore�newer load started
+                // ignore—newer load started
             }
             catch (Exception ex)
             {
@@ -111,11 +116,49 @@ namespace LMS.Blazor.Client.Components.CourseComponents
         private void Download(int id)
             => Nav.NavigateTo(BuildDownloadUrl(id), forceLoad: true);
 
+        private async Task DeleteAsync(ProjDocumentDto doc)
+        {
+            try
+            {
+                var okAsk = await JS.InvokeAsync<bool>("confirm",
+               $"Ta bort \"{doc.DisplayName}\"?");
+                if (!okAsk) return;
+
+                _deleting.Add(doc.Id);
+                StateHasChanged();
+
+                var ok = await DocsClient.DeleteAsync(doc.Id);
+                if (ok)
+                {
+                    _docs.RemoveAll(d => d.Id == doc.Id);
+                }
+                else
+                {
+                    _error = "Kunde inte ta bort filen (saknas eller behörighet saknas).";
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                _error = $"Borttagning misslyckades: {ex.Message}";
+            }
+            catch (Exception ex)
+            {
+                _error = $"Ett fel inträffade: {ex.Message}";
+            }
+            finally
+            {
+                _deleting.Remove(doc.Id);
+                StateHasChanged();
+            }
+        }
+
 
         public void Dispose()
         {
             _cts?.Cancel();
             _cts?.Dispose();
         }
+
+
     }
 }
