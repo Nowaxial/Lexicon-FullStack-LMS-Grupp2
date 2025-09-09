@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
+using System.ComponentModel.DataAnnotations;
 
 namespace LMS.Presentation.Controllers
 {
@@ -36,21 +37,44 @@ namespace LMS.Presentation.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProjActivityDto>> CreateActivity(int moduleId, CreateProjActivityDto dto)
+        public async Task<ActionResult<ProjActivityDto>> CreateActivity(int moduleId, [FromBody] CreateProjActivityDto dto)
         {
-            var createdActivity = await _serviceManager.ProjActivityService.CreateActivityAsync(moduleId, dto);
-            return CreatedAtAction(nameof(GetActivity), new { moduleId, id = createdActivity.Id }, createdActivity);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var createdActivity = await _serviceManager.ProjActivityService.CreateActivityAsync(moduleId, dto);
+                return CreatedAtAction(nameof(GetActivity), new { moduleId, id = createdActivity.Id }, createdActivity);
+            }
+            catch (ValidationException ex)
+            {
+                // Catches business rule violations (dates, module span, etc.)
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateActivity(int moduleId, int id, UpdateProjActivityDto dto)
+        public async Task<IActionResult> UpdateActivity(int moduleId, int id, [FromBody] UpdateProjActivityDto dto)
         {
-            var activity = await _serviceManager.ProjActivityService.GetActivityByIdAsync(id);
-            if (activity == null || activity.ModuleId != moduleId)
-                return NotFound();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            await _serviceManager.ProjActivityService.UpdateActivityAsync(id, dto);
-            return NoContent();
+            try
+            {
+                await  _serviceManager.ProjActivityService.UpdateActivityAsync(id, dto);
+                return NoContent();
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
