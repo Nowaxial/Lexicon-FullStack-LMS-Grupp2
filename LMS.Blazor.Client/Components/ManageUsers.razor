@@ -191,11 +191,11 @@
                                 <button class="btn btn-sm @(IsTeacher(user) ? "btn-warning" : "btn-info")" disabled>
                                     @if (IsTeacher(user))
                                     {
-                                        <i class="bi bi-person-workspace"></i>
+                                        <i class="bi bi-mortarboard me-1"></i>
                                     }
                                     else
                                     {
-                                        <i class="bi bi-mortarboard"></i>
+                                        <i class="bi bi-book me-1"></i>
                                     }
                                 </button>
                                 <button class="btn btn-sm btn-outline-primary ms-1" @onclick="() => StartEditUser(user)">
