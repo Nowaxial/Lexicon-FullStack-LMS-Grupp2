@@ -162,4 +162,17 @@ public class NotificationService : INotificationService
         }
     }
 
+    public async Task DeleteNotificationAsync(string notificationId)
+    {
+        var notifications = await GetAllNotificationsAsync();
+        var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
+
+        if (notification != null)
+        {
+            notifications.Remove(notification);
+            await SaveNotificationsAsync(notifications);
+        }
+    }
+
+
 }
