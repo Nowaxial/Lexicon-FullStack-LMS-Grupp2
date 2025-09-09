@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Student")]
 @namespace LMS.Blazor.Client.Components.Pages
 
+@using LMS.Blazor.Client.Components.CourseComponents
 @using LMS.Shared.DTOs.EntitiesDtos
 @using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
 @using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
@@ -96,6 +97,13 @@ else
                                                                             }
                                                                         </td>
                                                                         <td><span class="badge bg-secondary">@activity.Type</span></td>
+                                                                        <td class="text-end">
+                                                                            <button type="button"
+                                                                                    class="btn btn-sm btn-outline-secondary"
+                                                                                    @onclick="() => OpenUploadFor(activity)">
+                                                                                Ladda upp fil
+                                                                            </button>
+                                                                        </td>
                                                                     </tr>
                                                                 }
                                                             </tbody>
@@ -116,7 +124,12 @@ else
                                 <p class="text-muted">Inga moduler att visa.</p>
                             }
                         </article>
+                        <StudentDocuments @ref="_docsList"
+                                          CourseId="@(currentCourse?.Id)">
+                        </StudentDocuments>
                     </div>
+
+                   
 
                     <div class="col-12 col-lg-4">
                         <!-- Lärare -->
@@ -210,4 +223,12 @@ else
             </div>
         </NotAuthorized>
     </AuthorizeView>
+
+
+    <UploadFileModal @ref="_uploadModal"
+                     IsSubmission="true"
+                     CourseId="@(currentCourse?.Id)"
+                     OnUploaded="RefreshDocumentsAsync">
+    </UploadFileModal>
+
 }

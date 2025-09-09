@@ -1,0 +1,156 @@
+﻿using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+
+namespace LMS.Blazor.Client.Services;
+
+public sealed class DocumentsClient
+{
+    private readonly HttpClient _http;
+    private readonly NavigationManager _nav;
+    private readonly IAuthReadyService _authReady;
+
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    public DocumentsClient(IHttpClientFactory factory, NavigationManager nav, IAuthReadyService authReady)
+    {
+        _http = factory.CreateClient("BffClient");
+        _nav = nav;
+        _authReady = authReady;
+    }
+
+    // ---------- Public API ----------
+
+    // DocumentsClient
+    public Task<ProjDocumentDto?> UploadToActivityAsync(
+        int courseId,
+        int moduleId, 
+        int activityId, 
+        UploadProjDocumentDto meta, 
+        IBrowserFile file, long maxBytes, 
+        CancellationToken ct = default) => 
+        UploadAsync($"/api/courses/{courseId}/modules/{moduleId}/activities/{activityId}/documents", 
+            meta, file, maxBytes, ct);
+
+
+    public Task<ProjDocumentDto?> UploadToModuleAsync(
+        int moduleId,
+        UploadProjDocumentDto meta,
+        IBrowserFile file,
+        long maxBytes,
+        CancellationToken ct = default) =>
+        UploadAsync($"api/modules/{moduleId}/documents", meta, file, maxBytes, ct);
+
+    public Task<ProjDocumentDto?> UploadToCourseAsync(
+        int courseId,
+        UploadProjDocumentDto meta,
+        IBrowserFile file,
+        long maxBytes,
+        CancellationToken ct = default) =>
+        UploadAsync($"api/courses/{courseId}/documents", meta, file, maxBytes, ct);
+
+    // ---------- Core upload ----------
+
+    public async Task<ProjDocumentDto?> UploadAsync(
+      string endpoint, UploadProjDocumentDto meta, IBrowserFile file, long maxBytes, CancellationToken ct)
+    {
+        await _authReady.WaitAsync(ct);
+
+        using var content = BuildMultipart(meta, file, maxBytes, ct);
+        var url = $"proxy?endpoint={Uri.EscapeDataString(endpoint)}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        if (HandleUnauthorized(response)) return default;
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException($"API error {(int)response.StatusCode} {response.StatusCode}: {error}", null, response.StatusCode);
+        }
+
+        var payload = await response.Content.ReadAsStringAsync(ct);
+        return string.IsNullOrWhiteSpace(payload) ? default : JsonSerializer.Deserialize<ProjDocumentDto>(payload, JsonOpts);
+    }
+
+
+    // ---------- Helpers ----------
+
+    private static MultipartFormDataContent BuildMultipart(
+        UploadProjDocumentDto meta,
+        IBrowserFile file,
+        long maxBytes,
+        CancellationToken ct)
+    {
+        var form = new MultipartFormDataContent();
+
+        if (!string.IsNullOrWhiteSpace(meta.DisplayName))
+            form.Add(new StringContent(meta.DisplayName, Encoding.UTF8), "DisplayName");
+
+        if (!string.IsNullOrWhiteSpace(meta.Description))
+            form.Add(new StringContent(meta.Description, Encoding.UTF8), "Description");
+
+        form.Add(new StringContent(meta.IsSubmission ? "true" : "false"), "IsSubmission");
+
+        if (meta.CourseId.HasValue)
+            form.Add(new StringContent(meta.CourseId.Value.ToString()), "courseId");
+
+        if (meta.ModuleId.HasValue)
+            form.Add(new StringContent(meta.ModuleId.Value.ToString()), "moduleId");
+
+        if (meta.ActivityId.HasValue)
+            form.Add(new StringContent(meta.ActivityId.Value.ToString()), "activityId");
+
+        if (!string.IsNullOrWhiteSpace(meta.StudentId))
+            form.Add(new StringContent(meta.StudentId), "StudentId");
+
+        // Binary
+        var stream = file.OpenReadStream(maxAllowedSize: maxBytes, cancellationToken: ct);
+        var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
+        form.Add(fileContent, "File", file.Name);
+
+        return form;
+    }
+
+    private bool HandleUnauthorized(HttpResponseMessage response)
+    {
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            var returnUrl = Uri.EscapeDataString(_nav.Uri);
+            _nav.NavigateTo($"authentication/login?returnUrl={returnUrl}", forceLoad: true);
+            return true;
+        }
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            _nav.NavigateTo("AccessDenied", forceLoad: true);
+            return true;
+        }
+        return false;
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
+    {
+        await _authReady.WaitAsync(ct);
+
+        var url = $"proxy?endpoint={Uri.EscapeDataString($"/api/documents/{id}")}";
+        using var response = await _http.DeleteAsync(url, ct);
+
+        if (HandleUnauthorized(response)) return false;
+
+        if (response.StatusCode == HttpStatusCode.NotFound) return false;
+
+        response.EnsureSuccessStatusCode();
+
+        return true;
+
+    }
+}

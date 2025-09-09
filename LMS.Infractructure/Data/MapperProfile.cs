@@ -4,6 +4,7 @@ using LMS.Shared.DTOs.AuthDtos;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
+using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 
 namespace LMS.Infractructure.Data;
 
@@ -35,6 +36,10 @@ public class MapperProfile : Profile
         CreateMap<ProjActivity, ProjActivityDto>();
         CreateMap<CreateProjActivityDto, ProjActivity>();
         CreateMap<UpdateProjActivityDto, ProjActivity>();
+
+        CreateMap<ProjDocument, ProjDocumentDto>();
+        CreateMap<UploadProjDocumentDto, ProjDocument>();
+        CreateMap<UpdateProjDocumentDto, ProjDocument>();
     }
 
 }

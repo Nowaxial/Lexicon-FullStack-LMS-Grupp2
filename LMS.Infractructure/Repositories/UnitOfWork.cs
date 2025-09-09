@@ -11,18 +11,28 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     private readonly Lazy<ICourseRepository> _courseRepository;
     private readonly Lazy<ICourseUserRepository> _courseUserRepository;
     private readonly Lazy<IModuleRepository> _moduleRepository;
+    private readonly Lazy<IProjDocumentRepository> _projDocumentRepository;
 
     public ICourseRepository CourseRepository => _courseRepository.Value;
     public ICourseUserRepository CourseUserRepository => _courseUserRepository.Value;
     public IModuleRepository ModuleRepository => _moduleRepository.Value;   
     public IProjActivityRepository ProjActivityRepository => _projActivityRepository.Value;
-    public UnitOfWork(ApplicationDbContext context, Lazy<ICourseRepository> courseRepository, Lazy<ICourseUserRepository> courseUserRepository, Lazy<IModuleRepository> moduleRepository, Lazy<IProjActivityRepository> projActivityRepository)
+    public IProjDocumentRepository ProjDocumentRepository => _projDocumentRepository.Value;
+
+    public UnitOfWork(
+        ApplicationDbContext context, 
+        Lazy<ICourseRepository> courseRepository, 
+        Lazy<ICourseUserRepository> courseUserRepository, 
+        Lazy<IModuleRepository> moduleRepository, 
+        Lazy<IProjActivityRepository> projActivityRepository,
+        Lazy<IProjDocumentRepository> projDocumentRepository)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _courseRepository = courseRepository ?? throw new ArgumentNullException(nameof(courseRepository));
         _courseUserRepository = courseUserRepository ?? throw new ArgumentNullException(nameof(courseUserRepository));
         _moduleRepository = moduleRepository ?? throw new ArgumentNullException(nameof(moduleRepository));
         _projActivityRepository = projActivityRepository ?? throw new ArgumentNullException(nameof(projActivityRepository));
+        _projDocumentRepository = projDocumentRepository ?? throw new ArgumentNullException(nameof(projDocumentRepository));
     }
 
     public async Task CompleteAsync() => await _context.SaveChangesAsync();

@@ -1,4 +1,5 @@
-﻿using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Components.CourseComponents;
+using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
@@ -23,6 +24,11 @@ namespace LMS.Blazor.Client.Components.Pages
         private Dictionary<int, List<ProjActivityDto>> moduleActivities = new();
         private HashSet<int> expandedModules = new();
         private List<UserDto> courseTeachers = new();
+
+        private UploadFileModal? _uploadModal;
+
+        private StudentDocuments? _docsList;
+
 
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -115,6 +121,31 @@ namespace LMS.Blazor.Client.Components.Pages
                     moduleActivities[moduleId] = activities?.ToList() ?? new List<ProjActivityDto>();
                 }
             }
+        }
+
+
+        private async Task OpenUploadFor(ProjActivityDto activity)
+        {
+            if (_uploadModal is null) return;
+
+            if (currentCourse?.Id is null || activity?.ModuleId is null || activity?.Id is null)
+            {
+                return;
+            }
+
+            _uploadModal.CourseId = currentCourse.Id;
+            _uploadModal.ModuleId = activity.ModuleId;
+            _uploadModal.ActivityId = activity.Id;
+
+            _uploadModal.IsSubmission = true;
+
+            await _uploadModal.ShowAsync();
+        }
+
+        private async Task RefreshDocumentsAsync() 
+        {
+            if (_docsList is not null)
+                await _docsList.RefreshAsync();
         }
     }
 }

@@ -9,6 +9,7 @@ namespace Domain.Contracts.Repositories
         IModuleRepository ModuleRepository { get; }
 
         IProjActivityRepository ProjActivityRepository { get; }
+        IProjDocumentRepository ProjDocumentRepository { get; }
 
         Task CompleteAsync();
     }

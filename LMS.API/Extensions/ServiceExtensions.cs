@@ -1,10 +1,12 @@
 ﻿using LMS.Infractructure.Data;
 using LMS.Infractructure.Repositories;
+using LMS.Infractructure.Storage;
 using LMS.Presentation;
 using LMS.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Service.Contracts.Storage;
 
 namespace LMS.API.Extensions;
 
@@ -100,6 +102,7 @@ public static class ServiceExtensions
         services.AddScoped<ICourseRepository, CourseRepository>();
         services.AddScoped<ICourseUserRepository, CourseUserRepository>();
         services.AddScoped<IModuleRepository, ModuleRepository>();
+        services.AddScoped<IProjDocumentRepository, ProjDocumentRepository>();
 
         // Lazy<ICourseRepository> for UnitOfWork ctor
         services.AddScoped(provider =>
@@ -109,6 +112,8 @@ public static class ServiceExtensions
 
         services.AddScoped(provider =>
            new Lazy<IModuleRepository>(() => provider.GetRequiredService<IModuleRepository>()));
+        services.AddScoped(provider => 
+           new Lazy<IProjDocumentRepository>(() => provider.GetRequiredService<IProjDocumentRepository>()));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -129,11 +134,10 @@ public static class ServiceExtensions
         services.AddScoped(provider => new Lazy<ICourseService>(() =>
             provider.GetRequiredService<ICourseService>()));
 
-        // NEW: Users
         services.AddScoped<IUserService, UserService>();
         services.AddScoped(provider => new Lazy<IUserService>(() =>
             provider.GetRequiredService<IUserService>()));
-        services.AddScoped(provider => new Lazy<ICourseService>(() => provider.GetRequiredService<ICourseService>()));
+
 
         services.AddScoped<IModuleService, ModuleService>();
         services.AddScoped(provider => new Lazy<IModuleService>(() => provider.GetRequiredService<IModuleService>()));
@@ -141,10 +145,20 @@ public static class ServiceExtensions
         services.AddScoped<IProjActivityService, ProjActivityService>();
         services.AddScoped(provider => new Lazy<IProjActivityService>(() => provider.GetRequiredService<IProjActivityService>()));
 
+        services.AddScoped<IProjDocumentService, ProjDocumentService>();
+        services.AddScoped(provider => new Lazy<IProjDocumentService>(() =>
+            provider.GetRequiredService<IProjDocumentService>()));
+
         // Notification services
         services.AddScoped<EncryptionService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped(provider => new Lazy<INotificationService>(() =>
             provider.GetRequiredService<INotificationService>()));
+
+    }
+    public static void AddStorage(this IServiceCollection services, IConfiguration config)
+    {
+        services.Configure<FileStorageOptions>(config.GetSection("FileStorage"));
+        services.AddScoped<IFileStorage, LocalFileStorage>();
     }
 }

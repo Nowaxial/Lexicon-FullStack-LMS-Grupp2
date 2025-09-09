@@ -7,4 +7,5 @@ public interface IServiceManager
     IModuleService ModuleService { get; }
     IProjActivityService ProjActivityService { get; }
     INotificationService NotificationService { get; }
+    IProjDocumentService ProjDocumentService { get; }
 }
