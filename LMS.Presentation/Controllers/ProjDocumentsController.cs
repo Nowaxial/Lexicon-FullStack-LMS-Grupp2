@@ -137,5 +137,22 @@ namespace LMS.Presentation.Controllers
             [FromForm(Name = "File")] 
             public IFormFile? File { get; set; }
         }
+
+
+
+        //Set status on a document (Teacher only)
+        [HttpPost("{id:int}/status")]
+        [Authorize(Roles = "Teacher")]
+        public async Task<IActionResult> SetStatus(int id, [FromBody] SetDocumentStatusDto dto, CancellationToken ct)
+        {
+            if (dto is null) return BadRequest("Payload is required.");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+
+            var ok = await _service.SetStatusAsync(id, dto.Status, userId, ct);
+            return ok ? NoContent() : NotFound();
+        }
+
     }
 }

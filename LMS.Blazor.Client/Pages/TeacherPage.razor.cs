@@ -1,10 +1,13 @@
-﻿using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Components.CourseComponents;
+using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
+using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
+using UserDto = LMS.Shared.DTOs.UsersDtos.UserDto;
 
 namespace LMS.Blazor.Client.Components.Pages
 {
@@ -25,24 +28,13 @@ namespace LMS.Blazor.Client.Components.Pages
         private int activitiesPage = 1;
         private const int ActivitiesPageSize = 7;
 
-
         [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
         private string displayName = "Lärare";
 
- 
-        //private List<CourseDto>? courses;
-
-        //private CreateCourseDto newCourse = new()
-        //{
-        //    Starts = DateOnly.FromDateTime(DateTime.Today),
-        //    Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-        //};
-
         private List<ModuleDto> modules = new();
 
         private sealed record CourseItem(int Id, string Title, int Students, DateTime StartDate);
-
         private sealed record ModuleItem(string Title, int Items);
         private sealed record SubmissionItem(int Id, string Assignment, string Student, string Status);
 
@@ -53,15 +45,58 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private readonly List<ProjActivityDto> Upcoming = new();
 
-   
-        private readonly List<SubmissionItem> Submissions = new()
-        {
-            new(101,"Uppgift 1","Erik Svensson","Ej bedömd"),
-            new(102,"Uppgift 2","Sara Nilsson","Granskning"),
-            new(103,"Uppgift 3","Mikael Holm","Godkänd")
-        };
+        private readonly List<ProjDocumentDto> RecentDocs = new();
 
         private readonly Dictionary<int, string> _courseNameCache = new();
+
+        // ---- Documents (Nya inlämningar) ----
+        private sealed record DocItem(
+            int Id,
+            string DisplayName,
+            DateTime UploadedAt,
+            int CourseId,
+            int ActivityId,
+            string StudentId,
+            string StudentName,
+            string Status);
+
+        private readonly List<DocItem> _latestDocs = new();
+        private bool _loadingDocs;
+
+    
+        private static string BuildDownloadUrl(int id)
+            => $"proxy?endpoint={Uri.EscapeDataString($"api/documents/{id}/download")}";
+
+        private static readonly DocumentStatus[] _statusOptions = new[]
+         {
+            DocumentStatus.Pending, DocumentStatus.Review, DocumentStatus.Approved, DocumentStatus.Rejected
+        };
+
+        private readonly HashSet<int> _savingDocIds = new();
+
+        private static string LabelFor(DocumentStatus s) => s switch
+        {
+            DocumentStatus.Pending => "Ej bedömd",
+            DocumentStatus.Review => "Granskning",
+            DocumentStatus.Approved => "Godkänd",
+            DocumentStatus.Rejected => "Underkänd",
+            _ => s.ToString()
+        };
+
+
+        private static DocumentStatus ParseStatus(string? value)
+        {
+            var v = (value ?? "").Trim().ToLowerInvariant();
+            return v switch
+            {
+                "ej bedömd" or "pending" => DocumentStatus.Pending,
+                "granskning" or "review" => DocumentStatus.Review,
+                "godkänd" or "approved" => DocumentStatus.Approved,
+                "underkänd" or "rejected" => DocumentStatus.Rejected,
+                _ => DocumentStatus.Pending
+            };
+        }
+
 
         private string CourseTitle(int courseId)
         {
@@ -83,7 +118,7 @@ namespace LMS.Blazor.Client.Components.Pages
             if (!firstRenderDone)
             {
                 firstRenderDone = true;
-                isLoading = true; // Flytta hit
+                isLoading = true;
 
                 if (AuthStateTask is not null)
                 {
@@ -114,32 +149,10 @@ namespace LMS.Blazor.Client.Components.Pages
            await LoadMyCoursesAsync();
            await LoadUpcomingActivitiesAsync();
            await LoadModulesAsync();
+           await LoadLatestDocsAsync();
         }
 
         private void ToggleUpcoming() => showMoreUpcoming = !showMoreUpcoming;
-
-
-        //private async Task AddCourseAsync()
-        //{
-        //    var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
-        //    if (created is null) return;
-
-        //    courses ??= new List<CourseDto>();
-        //    courses.Add(created);
-
-        //    _courseNameCache[created.Id] = created.Name;
-
-        //    newCourse = new CreateCourseDto
-        //    {
-        //        Starts = DateOnly.FromDateTime(DateTime.Today),
-        //        Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-        //    };
-
-        //    await JS.InvokeVoidAsync(
-        //        "eval",
-        //        "bootstrap.Collapse.getOrCreateInstance(document.getElementById('addCourseTeacherPage')).hide()"
-        //    );
-        //}
 
         private Task LoadMyCoursesAsync() => LoadCoursesAsync();
 
@@ -240,6 +253,136 @@ namespace LMS.Blazor.Client.Components.Pages
             }
         }
 
+        private async Task LoadLatestDocsAsync(CancellationToken ct = default)
+        {
+            _loadingDocs = true;
+            try
+            {
+                _latestDocs.Clear();
+
+                if (Courses.Count == 0)
+                    return;
+
+                // fetch docs + users for each course in parallel
+                var perCourseTasks = Courses.Select(async course =>
+                {
+                    var docsTask = ApiService.CallApiAsync<IEnumerable<ProjDocumentDto>>(
+                                        $"api/documents/by-course/{course.Id}", ct);
+                    var usersTask = ApiService.CallApiAsync<IEnumerable<UserDto>>(
+                                        $"api/courses/{course.Id}/users", ct);
+
+                    var docs = await docsTask ?? Enumerable.Empty<ProjDocumentDto>();
+                    var users = await usersTask ?? Enumerable.Empty<UserDto>();
+
+                    var names = users.ToDictionary(
+                        u => u.Id ?? string.Empty,
+                        u => string.IsNullOrWhiteSpace(u.FirstName) && string.IsNullOrWhiteSpace(u.LastName)
+                                ? (u.UserName ?? u.Email ?? u.Id ?? "Okänd")
+                                : $"{u.FirstName} {u.LastName}".Trim());
+
+                    var submissions = docs.Where(d => d.IsSubmission)
+                                          .OrderByDescending(d => d.UploadedAt);
+
+                    var items = new List<DocItem>();
+                    foreach (var d in submissions)
+                    {
+                        ct.ThrowIfCancellationRequested();
+
+                        var studentId = d.StudentId ?? string.Empty;
+                        names.TryGetValue(studentId, out var studentName);
+                        studentName ??= string.IsNullOrWhiteSpace(studentId) ? "Okänd" : studentId;
+
+                        var statusEnum = ParseStatus(d.Status);
+                        var statusStr = statusEnum.ToString();
+
+                        items.Add(new DocItem(
+                            Id: d.Id,
+                            DisplayName: string.IsNullOrWhiteSpace(d.DisplayName) ? "Fil" : d.DisplayName!,
+                            UploadedAt: d.UploadedAt,
+                            CourseId: d.CourseId ?? course.Id,
+                            ActivityId: d.ActivityId ?? 0,
+                            StudentId: studentId,
+                            StudentName: studentName,
+                            Status: statusStr
+                        ));
+                    }
+
+                    return items;
+                });
+
+                var perCourseResults = await Task.WhenAll(perCourseTasks);
+
+                _latestDocs.AddRange(
+                    perCourseResults
+                        .SelectMany(x => x)
+                        .GroupBy(x => x.Id)
+                        .Select(g => g.First())
+                        .OrderByDescending(x => x.UploadedAt)
+                        .ThenByDescending(x => x.Id)
+                        .Take(25)
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                // ignore – a newer load likely started
+            }
+            finally
+            {
+                _loadingDocs = false;
+                StateHasChanged();
+            }
+        }
+
+
+        public Task RefreshLatestDocsAsync() => LoadLatestDocsAsync();
+
+        private static string StatusCss(string? status) => (status ?? "").ToLowerInvariant() switch
+        {
+            "godkänd" or "approved" => "ok",
+            "granskning" or "review" => "review",
+            "underkänd" or "rejected" => "bad",
+            _ => "pending" // Ej bedömd / Pending
+        };
+
+
+        private async Task ChangeStatusAsync(DocItem doc, DocumentStatus newStatus)
+        {
+            if (doc is null) return;
+
+            var current = ParseStatus(doc.Status);
+            if (current == newStatus) return;
+
+            var index = _latestDocs.FindIndex(x => x.Id == doc.Id);
+            if (index < 0) return;
+
+            var old = doc.Status;
+
+            _savingDocIds.Add(doc.Id);
+            _latestDocs[index] = doc with { Status = newStatus.ToString() }; 
+            StateHasChanged();
+
+            try
+            {
+                await SetStatusAsync(doc.Id, newStatus, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _latestDocs[index] = doc with { Status = old }; 
+                await JS.InvokeVoidAsync("console.error", $"SetStatus failed for doc {doc.Id}: {ex}");
+                await JS.InvokeVoidAsync("alert", "Kunde inte spara status. Försök igen.");
+            }
+            finally
+            {
+                _savingDocIds.Remove(doc.Id);
+                StateHasChanged();
+            }
+        }
+
+        private async Task SetStatusAsync(int documentId, DocumentStatus status, CancellationToken ct)
+        {
+            var dto = new SetDocumentStatusDto { Status = status };
+            await ApiService.PostAsync<object?>($"api/documents/{documentId}/status", dto);
+        }
 
     }
 }

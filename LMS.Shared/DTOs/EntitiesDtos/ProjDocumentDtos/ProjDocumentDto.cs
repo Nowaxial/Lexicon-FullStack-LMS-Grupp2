@@ -23,6 +23,7 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos
         public bool IsSubmission { get; init; }
 
         public string? ContentType { get; init; }  
-        public long? Size { get; init; }   
+        public long? Size { get; init; }
+        public string Status { get; set; } = "Ej bedömd";
     }
 }

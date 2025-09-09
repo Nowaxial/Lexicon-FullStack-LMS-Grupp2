@@ -25,5 +25,8 @@ namespace Service.Contracts
         Task<(Stream stream, string downloadFileName, string contentType)?> OpenReadAsync(int id, CancellationToken ct = default);
 
         Task<bool> DeleteAsync(int id, CancellationToken ct = default);
+
+        Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string changedByUserId, CancellationToken ct = default);
+
     }
 }

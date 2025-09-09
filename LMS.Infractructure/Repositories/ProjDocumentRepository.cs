@@ -13,7 +13,11 @@ namespace LMS.Infractructure.Repositories
     public sealed class ProjDocumentRepository
         : RepositoryBase<ProjDocument>, IProjDocumentRepository
     {
-        public ProjDocumentRepository(ApplicationDbContext context) : base(context) { }
+        private readonly ApplicationDbContext _context;
+        public ProjDocumentRepository(ApplicationDbContext context) : base(context) 
+        {
+            _context = context;
+        }
 
         public Task<ProjDocument?> GetByIdAsync(int id, bool trackChanges = false) =>
             FindByCondition(d => d.Id == id, trackChanges)
@@ -39,6 +43,20 @@ namespace LMS.Infractructure.Repositories
                 .OrderByDescending(d => d.UploadedAt)
                 .ToListAsync();
 
+
+        public async Task<bool> SetStatusAsync(int documentId, string status, string changedByUserId, CancellationToken ct)
+        {
+            var doc = await FindByCondition(d => d.Id == documentId, trackChanges: true)
+                           .FirstOrDefaultAsync(ct);
+
+            if (doc is null) return false;
+
+            doc.Status = status;
+
+            await _context.SaveChangesAsync(ct);
+            return true;
+        }
+
         public async Task<ProjDocument?> GetByIdWithDetailsAsync(int id, bool trackChanges)
         {
             return await FindByCondition(d => d.Id == id, trackChanges)
@@ -46,6 +64,7 @@ namespace LMS.Infractructure.Repositories
                 .Include(d => d.Module)
                 .Include(d => d.Activity)
                 .FirstOrDefaultAsync();
+
         }
     }
 }
