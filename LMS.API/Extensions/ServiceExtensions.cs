@@ -67,12 +67,21 @@ public static class ServiceExtensions
     {
         services.AddControllers(opt =>
         {
+            // Reject requests asking for anything other than JSON
             opt.ReturnHttpNotAcceptable = true;
+
+            // Force all controllers/actions to produce JSON
             opt.Filters.Add(new ProducesAttribute("application/json"));
 
+            // Optional: clear other formatters (forces JSON only)
+            opt.OutputFormatters.Clear();
         })
-                .AddNewtonsoftJson()
-                .AddApplicationPart(typeof(AssemblyReference).Assembly);
+        .AddNewtonsoftJson(options =>
+        {
+            options.SerializerSettings.ContractResolver =
+                new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+        })
+        .AddApplicationPart(typeof(AssemblyReference).Assembly);
     }
 
     public static void ConfigureSql(this IServiceCollection services, IConfiguration configuration)

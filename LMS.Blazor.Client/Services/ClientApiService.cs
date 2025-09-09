@@ -1,33 +1,49 @@
 ﻿using Microsoft.AspNetCore.Components;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 
 namespace LMS.Blazor.Client.Services;
 
-public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationManager navigationManager, IAuthReadyService authReady) : IApiService
+public class ClientApiService(
+    IHttpClientFactory httpClientFactory,
+    NavigationManager navigationManager,
+    IAuthReadyService authReady
+) : IApiService
 {
     private readonly HttpClient httpClient = httpClientFactory.CreateClient("BffClient");
 
+    // Unified serializer config
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
-    { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true
+    };
+
+    // --- Helpers ---
+    private static string WrapEndpoint(string endpoint)
+    {
+        var parts = endpoint.Split('?', 2);
+        var path = Uri.EscapeDataString(parts[0]);
+        return parts.Length == 2
+            ? $"proxy?endpoint={path}?{parts[1]}"
+            : $"proxy?endpoint={path}";
+    }
 
     private bool HandleUnauthorized(HttpResponseMessage response)
     {
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            // Send them to login and stop processing
             var returnUrl = Uri.EscapeDataString(navigationManager.Uri);
             navigationManager.NavigateTo($"authentication/login?returnUrl={returnUrl}", forceLoad: true);
-            return true; // handled
+            return true;
         }
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
             navigationManager.NavigateTo("AccessDenied", forceLoad: true);
-            return true; // handled
+            return true;
         }
-        return false; // not handled
+        return false;
     }
 
     // ---------------- GET ----------------
@@ -35,19 +51,16 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     {
         await authReady.WaitAsync();
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"proxy?endpoint={endpoint}");
-        var response = await httpClient.SendAsync(requestMessage, ct);
+        var response = await httpClient.GetAsync(WrapEndpoint(endpoint), ct);
 
-        if (HandleUnauthorized(response)) return default;   // for T? methods
-        response.EnsureSuccessStatusCode();
-
+        if (HandleUnauthorized(response)) return default;
         if (response.StatusCode == HttpStatusCode.NoContent)
             return default;
 
         response.EnsureSuccessStatusCode();
 
         // Handle empty/whitespace payloads safely
-        var payload = await response.Content.ReadAsStringAsync();
+        var payload = await response.Content.ReadAsStringAsync(ct);
         if (string.IsNullOrWhiteSpace(payload))
             return default;
 
@@ -59,15 +72,7 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
     {
         await authReady.WaitAsync();
 
-        var json = JsonSerializer.Serialize(data, _jsonSerializerOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"proxy?endpoint={endpoint}")
-        {
-            Content = content
-        };
-
-        var response = await httpClient.SendAsync(requestMessage, ct);
+        var response = await httpClient.PostAsJsonAsync(WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
 
         if (HandleUnauthorized(response)) return default;
         response.EnsureSuccessStatusCode();
@@ -75,50 +80,52 @@ public class ClientApiService(IHttpClientFactory httpClientFactory, NavigationMa
         if (response.StatusCode == HttpStatusCode.NoContent)
             return default;
 
+        return await response.Content.ReadFromJsonAsync<T>(_jsonSerializerOptions, ct);
+    }
+
+    // ---------------- PUT ----------------
+    // Generic version if you expect a result back
+    public async Task<T?> PutAsync<T>(string endpoint, object data, CancellationToken ct = default)
+    {
+        await authReady.WaitAsync();
+
+        var response = await httpClient.PutAsJsonAsync(WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
+
+        if (HandleUnauthorized(response)) return default;
+        if (response.StatusCode == HttpStatusCode.NoContent)
+            return default;
+
         response.EnsureSuccessStatusCode();
 
-        // Handle empty/whitespace payloads safely
-        var payload = await response.Content.ReadAsStringAsync();
+        var payload = await response.Content.ReadAsStringAsync(ct);
         if (string.IsNullOrWhiteSpace(payload))
             return default;
 
         return JsonSerializer.Deserialize<T>(payload, _jsonSerializerOptions);
     }
 
-    //// ---------------- PUT ----------------
-    //public async Task<T?> PutAsync<T>(string endpoint, object data, CancellationToken ct = default)
-    //{
-    //    await authReady.WaitAsync();
+    // Non-generic version if you only care about success/failure
+    public async Task<bool> PutAsync(string endpoint, object data, CancellationToken ct = default)
+    {
+        await authReady.WaitAsync();
 
-    //    var json = JsonSerializer.Serialize(data, _jsonSerializerOptions);
-    //    var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await httpClient.PutAsJsonAsync(WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
 
-    //    var requestMessage = new HttpRequestMessage(HttpMethod.Put, $"proxy?endpoint={endpoint}")
-    //    {
-    //        Content = content
-    //    };
+        if (HandleUnauthorized(response)) return false;
 
-    //    var response = await httpClient.SendAsync(requestMessage, ct);
-    //    response.EnsureSuccessStatusCode();
-
-    //    return await JsonSerializer.DeserializeAsync<T>(
-    //        await response.Content.ReadAsStreamAsync(),
-    //        _jsonSerializerOptions,
-    //        ct
-    //    );
-    //}
+        return response.IsSuccessStatusCode;
+    }
 
     // ---------------- DELETE ----------------
     public async Task<bool> DeleteAsync(string endpoint, CancellationToken ct = default)
     {
         await authReady.WaitAsync();
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"proxy?endpoint={endpoint}");
-        var response = await httpClient.SendAsync(requestMessage, ct);
+        var response = await httpClient.DeleteAsync(WrapEndpoint(endpoint), ct);
 
-        if (HandleUnauthorized(response)) return default;   // for T? methods
+        if (HandleUnauthorized(response)) return false;
+
         response.EnsureSuccessStatusCode();
-
         return response.IsSuccessStatusCode;
     }
 }

@@ -11,6 +11,8 @@ public interface INotificationService
     Task<ContactMessageDto?> DecryptMessageAsync(Guid id);
     Task MarkAsUnreadAsync(string notificationId, string userId);
     Task<ContactMessageDto?> DecryptContactMessageDirectAsync(string encryptedData);
+    Task DeleteNotificationAsync(string notificationId);
+
 
 
 }

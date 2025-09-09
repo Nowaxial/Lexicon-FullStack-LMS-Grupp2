@@ -70,3 +70,16 @@
 .navbar-dark .navbar-toggler-icon {
     filter: none;
 }
+
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-main);
+        z-index: 1000;
+        border-top: 1px solid rgba(255,255,255,.1);
+        padding: 0.8rem;
+    }
+}

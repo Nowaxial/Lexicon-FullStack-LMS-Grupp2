@@ -5,6 +5,8 @@
 @using LMS.Shared.DTOs.EntitiesDtos
 @using Microsoft.AspNetCore.Authorization
 @inject IHttpClientFactory HttpClientFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 
 <PageTitle>Home</PageTitle>
 
@@ -88,35 +90,35 @@
         <div class="d-flex justify-content-between align-items-end mb-3">
             <h2 class="courses-header m-0">Senaste kurser</h2>
             <a class="link-accent" href="courses">Visa alla</a>
-    </div>
+        </div>
 
-    @if (isLoading)
-    {
-        <p class="text-muted">Laddar kurser…</p>
-    }
-    else if (!string.IsNullOrWhiteSpace(error))
-    {
-        <div class="alert alert-danger">@error</div>
-    }
-    else if (courses.Count == 0)
-    {
-        <p class="text-muted m-0">Inga kurser hittades.</p>
-    }
-    else
-    {
-        <div class="row g-4">
-            @foreach (var c in courses)
-            {
-                <div class="col-12 col-md-6 col-lg-4">
+        @if (isLoading)
+        {
+            <p class="text-muted">Laddar kurser…</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="alert alert-danger">@error</div>
+        }
+        else if (courses.Count == 0)
+        {
+            <p class="text-muted m-0">Inga kurser hittades.</p>
+        }
+        else
+        {
+            <div class="row g-4">
+                @foreach (var c in courses)
+                {
+                    <div class="col-12 col-md-6 col-lg-4">
                         <article class="course-card h-100">
                             <div class="course-card__body">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <span class="badge bg-accent-subtle text-accent">Medel</span>
                                     <small class="text-muted">@Duration(c.Starts, c.Ends)</small>
                                 </div>
-                                
-                                    <h5 class="courses-header mb-3">@c.Name</h5>
-                          
+
+                                <h5 class="courses-header mb-3">@c.Name</h5>
+
                                 @if (!string.IsNullOrWhiteSpace(c.Description))
                                 {
                                     <p class="text-muted mb-2">@c.Description</p>
@@ -129,26 +131,31 @@
                                     <span class="stretched-link btn-sm btn-accent">Till kurs</span>
                                 </div>
                             </div>
-                    </article>
-                </div>
-            }
-        </div>
-    }
+                        </article>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </section>
 
 <!-- CTA banner -->
-<section class="py-5">
-    <div class="container-fluid lms-container">
-        <div class="cta-banner p-4 p-md-5 d-flex flex-column flex-md-row align-items-center justify-content-between">
-            <div class="mb-3 mb-md-0">
-                <h2 class="h4 mb-1 text-white">Elev eller lärare?</h2>
-                <p class="m-0 text-white-50">Logga in för att komma åt dina kurser och moduler.</p>
+<AuthorizeView>
+    <NotAuthorized>
+        <section class="py-5">
+            <div class="container-fluid lms-container">
+                <div class="cta-banner p-4 p-md-5 d-flex flex-column flex-md-row align-items-center justify-content-between">
+                    <div class="mb-3 mb-md-0">
+                        <h2 class="h4 mb-1 text-white">Elev eller lärare?</h2>
+                        <p class="m-0 text-white-50">Logga in för att komma åt dina kurser och moduler.</p>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <a class="btn btn-light btn-hero" href="Account/Login"><i class="bi bi-box-arrow-in-right me-1"></i> Logga in</a>
+                        <a class="btn btn-outline-light" href="courses"><i class="bi bi-journal-text me-1"></i> Utforska kurser</a>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex gap-3">
-                <a class="btn btn-light btn-hero" href="Account/Login"><i class="bi bi-box-arrow-in-right me-1"></i> Logga in</a>
-                <a class="btn btn-outline-light" href="courses"><i class="bi bi-journal-text me-1"></i> Utforska kurser</a>
-            </div>
-        </div>
-    </div>
-</section>
+        </section>
+    </NotAuthorized>
+</AuthorizeView>
+

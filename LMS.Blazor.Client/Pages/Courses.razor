@@ -1,207 +1,134 @@
 ﻿@page "/courses"
+@using LMS.Blazor.Client.Components
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
+@using Microsoft.AspNetCore.Components.Authorization
 @rendermode InteractiveWebAssembly
 
-@using LMS.Shared.DTOs.Common
-@using LMS.Shared.DTOs.EntitiesDtos
-@using LMS.Blazor.Client.Services
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.Security.Claims
+<PageTitle>Kurser</PageTitle>
 
-@* @attribute [Authorize] *@
-
-<PageTitle>Courses</PageTitle>
-
-<h1>Courses</h1>
-
-@* <button class="btn btn-primary mb-3" @onclick="CallAPIAsync">Load Courses</button>
-<AuthMessage />   *@
-
-@if (isLoading)
-{
-    <p class="text-muted">Loading courses…</p>
-}
-else
-{
-       <div class="d-flex justify-content-between align-items-center mb-3">
-        <AuthorizeView Roles="Teacher">
-            <Authorized Context="authContext">
-                <p class="mb-0">
-                    You are authenticated as a <strong>Teacher</strong> and can manage courses.
-                </p>
-
-                
-                <div class="btn-group">
-                    <!-- Toggle Add Course collapse -->
-                    <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#addCourseCollapse">
-                        <i class="bi bi-plus-circle"></i> Add Course
-                    </button>
-
-                    <!-- Assign User -->
-                    <button class="btn btn-secondary" type="button"
-                            data-bs-toggle="collapse" data-bs-target="#assignUserCollapse"
-                            @onclick="LoadUsersIfNeeded">
-                        <i class="bi bi-person-plus"></i> Assign User
-                    </button>
-
-                    <button class="btn btn-danger" @onclick="DeleteSelectedCourse" disabled="@(selectedCourse == null)">
-                        <i class="bi bi-trash"></i> Delete Selected
-                    </button>
-                </div>
-            </Authorized>
-        </AuthorizeView>
-       </div>
-
-            <!-- Add Course -->
-            <div class="collapse mb-3" id="addCourseCollapse">
-                <div class="card card-body">
-                    <EditForm Model="newCourse" OnValidSubmit="AddCourseAsync">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
-
-                        <div class="mb-2">
-                            <InputText class="form-control" placeholder="Name" @bind-Value="newCourse.Name" />
-                        </div>
-
-                        <div class="mb-2">
-                            <InputTextArea class="form-control" placeholder="Description" @bind-Value="newCourse.Description" />
-                        </div>
-
-                        <div class="mb-2">
-                            <InputDate class="form-control" @bind-Value="newCourse.Starts" />
-                        </div>
-
-                        <div class="mb-2">
-                            <InputDate class="form-control" @bind-Value="newCourse.Ends" />
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">Create Course</button>
-                    </EditForm>
-                </div>
-            </div>
-
-            <!-- Assign User -->
-            <div class="collapse mb-3" id="assignUserCollapse">
-                <div class="card card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="mb-0">All Users</h5>
-                        <div class="btn-group">
-                            <button class="btn btn-outline-secondary btn-sm" @onclick="ReloadUsersAsync">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh
-                            </button>
-                        </div>
+<!-- Student view -->
+<AuthorizeView>
+    <Authorized Context="authState">
+        @if (authState.User.IsInRole("Student") && !authState.User.IsInRole("Teacher"))
+        {
+            <section class="py-5">
+                <div class="container-fluid lms-container">
+                    <div class="d-flex justify-content-between align-items-end mb-3">
+                        <h2 class="courses-header m-0">Senaste kurser</h2>
                     </div>
 
-                    <!-- Filter -->
-                    <div class="input-group mb-2">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input class="form-control"
-                               placeholder="Filter users.."
-                               @bind="userFilter"
-                               @bind:event="oninput" />
-                        <button class="btn btn-outline-secondary"
-                                @onclick="() => userFilter = string.Empty"
-                                disabled="@string.IsNullOrWhiteSpace(userFilter)">
-                            Clear
-                        </button>
-                    </div>
-
-                    @if (isLoadingUsers)
+                    @if (isLoading)
                     {
-                        <div class="text-muted">Loading users…</div>
+                        <p class="text-muted">Laddar kurser…</p>
                     }
-                    else if (!string.IsNullOrWhiteSpace(usersError))
+                    else if (!string.IsNullOrWhiteSpace(error))
                     {
-                        <div class="alert alert-danger">@usersError</div>
+                        <div class="alert alert-danger">@error</div>
                     }
-                    else if (users == null || users.Count == 0)
+                    else if (!isLoading && (courses == null || !courses.Any()))
                     {
-                        <div class="text-muted">No users found.</div>
+                        <p class="text-muted">Inga kurser att visa.</p>
                     }
                     else
                     {
-                        var visible = FilteredUsers.ToList();
-                        if (visible.Count == 0)
-                        {
-                            <div class="text-muted">No matching users.</div>
-                        }
-                        else
-                        {
-                            <!-- Scroll container: shows ~5 items -->
-                            <div style="max-height:22.5rem; overflow-y:auto;">
-                                <ul class="list-group">
-                                    @foreach (var u in visible)
-                                    {
-                                        <li class="list-group-item" style="min-height:4.5rem;">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>@(u.FullName ?? u.UserName ?? "(No name)")</strong><br />
-                                                    <small class="text-muted">@u.Email</small>
-                                                </div>
-
-                                                <button class="btn btn-sm btn-primary"
-                                                        disabled="@(selectedCourse == null || isAssigningUser)"
-                                                        @onclick="() => AssignUserToSelectedCourse(u)">
-                                                    @(isAssigningUser ? "Assigning..." : "Assign to selected course")
-                                                </button>
+                        <!-- 2 per row on md+; 1 per row on mobile -->
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            @foreach (var c in courses)
+                            {
+                                <div class="col">
+                                    <article class="course-card h-100">
+                                        <div class="course-card__body">
+                                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                                <span class="badge bg-accent-subtle text-accent">Medel</span>
+                                                <small class="text-muted">@Duration(c.Starts, c.Ends)</small>
                                             </div>
-                                        </li>
-                                    }
-                                </ul>
 
-                                @if (!string.IsNullOrWhiteSpace(assignError))
-                                {
-                                    <div class="alert alert-danger mt-2">@assignError</div>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(assignSuccess))
-                                {
-                                    <div class="alert alert-success mt-2">@assignSuccess</div>
-                                }
-                            </div>
-                            <small class="text-muted">Showing up to 5 users at a time; scroll for more.</small>
-                        }
+                                            <h5 class="courses-header mb-3">@c.Name</h5>
+
+                                            @if (!string.IsNullOrWhiteSpace(c.Description))
+                                            {
+                                                <p class="text-muted mb-2">@c.Description</p>
+                                            }
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-calendar-event me-1"></i>
+                                                    Start @c.Starts.ToString("yyyy-MM-dd")
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            }
+                        </div>
                     }
                 </div>
+            </section>
+        }
+    </Authorized>
+
+    <NotAuthorized>
+        <section class="py-5">
+            <div class="container-fluid lms-container">
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <h2 class="courses-header m-0">Senaste kurser</h2>
+                </div>
+
+                @if (isLoading)
+                {
+                    <p class="text-muted">Laddar kurser...</p>
+                }
+                else if (!string.IsNullOrWhiteSpace(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+                else if (!isLoading && (courses == null || !courses.Any()))
+                {
+                    <p class="text-muted">Laddar kurser...</p>
+                }
+                else
+                {
+                    <!-- 2 per row on md+; 1 per row on mobile -->
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        @foreach (var c in courses)
+                        {
+                            <div class="col">
+                                <article class="course-card h-100">
+                                    <div class="course-card__body">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <span class="badge bg-accent-subtle text-accent">Medel</span>
+                                            <small class="text-muted">@Duration(c.Starts, c.Ends)</small>
+                                        </div>
+
+                                        <h5 class="courses-header mb-3">@c.Name</h5>
+
+                                        @if (!string.IsNullOrWhiteSpace(c.Description))
+                                        {
+                                            <p class="text-muted mb-2">@c.Description</p>
+                                        }
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                Start @c.Starts.ToString("yyyy-MM-dd")
+                                            </small>
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
-  
-
-    <AuthorizeView Roles="Student">
-        <Authorized Context="authContext">
-            <p>
-                You are authenticated as a <strong>Student</strong> and can view your assigned courses.
-            </p>
-        </Authorized>
-    </AuthorizeView>
-
- @if (courses == null)
-    {
-        <p>Loading...</p>
-    }
-    else if (!courses.Any())
-    {
-        <p>No courses available.</p>
-    }
-    else
-    {
-        <ul class="list-group">
-            @foreach (var c in courses)
-            {
-                <li class="list-group-item @(selectedCourse == c ? "active" : "")"
-                    style="cursor:pointer"
-                    @onclick="() => SelectCourse(c)">
-                    <strong>@c.Name</strong><br />
-                    @c.Description<br />
-                    <small>@c.Starts – @c.Ends</small>
-                </li>
-            }
-        </ul>
-    } 
-}
+        </section>
+    </NotAuthorized>
+</AuthorizeView>
 
 
-
-
-
-
-
+<!-- Main course manager -->
+<AuthorizeView Roles="Teacher">
+    <Authorized>
+        <ManageCourses IsTeacher="true" />
+    </Authorized>
+</AuthorizeView>
 <script src="app.js"></script>
+
+

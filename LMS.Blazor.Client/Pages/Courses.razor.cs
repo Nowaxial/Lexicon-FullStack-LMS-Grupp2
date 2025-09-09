@@ -1,10 +1,14 @@
 ﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.Common;
 using LMS.Shared.DTOs.EntitiesDtos;
+using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using System.Globalization;
 using System.Net.Http.Json;
+
 
 
 namespace LMS.Blazor.Client.Pages
@@ -38,6 +42,8 @@ namespace LMS.Blazor.Client.Pages
         private bool isAssigningUser;
         private string? assignError;
         private string? assignSuccess;
+        
+        private string? error;
 
 
         private string userFilter = string.Empty;
@@ -88,7 +94,17 @@ namespace LMS.Blazor.Client.Pages
                 StateHasChanged();
             }
         }
+        private ModuleDto? selectedModuleToEdit;
+        private bool expandModulesAccordion = false;
+        private void HandleEditModule(ModuleDto module)
+        {
+            selectedModuleToEdit = module;
+            expandModulesAccordion = true;
 
+            // manually expand accordion
+            JS.InvokeVoidAsync("bootstrap.Collapse.getOrCreateInstance",
+                "#collapseModules", new { toggle = true });
+        }
         private async Task CallAPIAsync()
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -156,6 +172,7 @@ namespace LMS.Blazor.Client.Pages
             {
                 firstRenderDone = true;
                 isLoading = true;
+                error = null;
                 try
                 {
                     await CallAPIAsync();
@@ -204,6 +221,23 @@ namespace LMS.Blazor.Client.Pages
                 isAssigningUser = false;
                 StateHasChanged();
             }
+        }
+
+
+        private string Duration(DateOnly start, DateOnly end)
+        {
+            var s = start.ToDateTime(TimeOnly.MinValue);
+            var e = end.ToDateTime(TimeOnly.MinValue);
+
+            if (e < s) return "-";
+
+            var days = (int)Math.Ceiling((e - s).TotalDays) + 1; // include end day
+            if (days < 7)
+                return days == 1 ? "1 dag" : $"{days} dagar";
+
+            var weeks = days / 7;
+            //var rem = days % 7;
+            return $"{weeks} veckor";
         }
     }
 }

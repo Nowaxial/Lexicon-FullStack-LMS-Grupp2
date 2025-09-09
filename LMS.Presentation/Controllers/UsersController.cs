@@ -1,4 +1,5 @@
-﻿using LMS.Shared.DTOs.UsersDtos;
+﻿using LMS.Shared.DTOs.Common;
+using LMS.Shared.DTOs.UsersDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
@@ -19,22 +20,31 @@ public class UsersController : ControllerBase
 
     // GET: api/users?search=...&page=1&size=20
     [HttpGet]
-    public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int size = 20)
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int size = 20)
     {
-        if (page < 1 || size < 1 || size > 200) return BadRequest("Invalid paging.");
+        if (page < 1 || size < 1 || size > 200)
+            return BadRequest("Invalid paging.");
+
+        // Service should now populate Roles in UserDto
         var result = await _services.UserService.GetUsersAsync(search, page, size);
-        return Ok(result); // return a paged DTO { items, total, page, size }
+        return Ok(result);
     }
 
     // GET: api/users/{id}
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetUserById(string id)
+    public async Task<ActionResult<UserDto>> GetUserById(string id)
     {
         var user = await _services.UserService.GetUserByIdAsync(id);
-        return user is null ? NotFound() : Ok(user);
+        if (user is null)
+            return NotFound();
+
+        return Ok(user); // includes Roles
     }
 
-    // OPTIONAL: update limited profile fields
+    // PATCH: api/users/{id}
     [HttpPatch("{id}")]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
     {
@@ -42,12 +52,24 @@ public class UsersController : ControllerBase
         return updated ? NoContent() : NotFound();
     }
 
-    // OPTIONAL: role management (admin only)
+    // PUT: api/users/{id}/roles
     [HttpPut("{id}/roles")]
-    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetUserRoles(string id, [FromBody] SetRolesDto dto)
     {
         var ok = await _services.UserService.SetUserRolesAsync(id, dto.Roles);
         return ok ? NoContent() : NotFound();
+    }
+    // POST: api/users
+    [HttpPost]
+    [Authorize(Roles = "Teacher")]
+    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto dto)
+    {
+        var created = await _services.UserService.CreateUserAsync(dto);
+        if (created is null)
+        {
+            return BadRequest("Failed to create user. Check password policy or duplicate email/username.");
+        }
+
+        return CreatedAtAction(nameof(GetUserById), new { id = created.Id }, created);
     }
 }

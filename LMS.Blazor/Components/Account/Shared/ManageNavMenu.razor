@@ -2,27 +2,80 @@
 
 @inject SignInManager<ApplicationUser> SignInManager
 
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
+<ul class="list-unstyled m-0">
+    <li class="module-row">
+        <NavLink class="manage-nav-link" href="Account/Manage" Match="NavLinkMatch.All">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-person-circle me-3"></i>
+                <div>
+                    <div class="fw-semibold">Profil</div>
+                    <small class="text-muted">Personlig information</small>
+                </div>
+            </div>
+        </NavLink>
     </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
+
+    <li class="module-row">
+        <NavLink class="manage-nav-link" href="Account/Manage/Email">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-envelope me-3"></i>
+                <div>
+                    <div class="fw-semibold">E-post</div>
+                    <small class="text-muted">Ändra e-postadress</small>
+                </div>
+            </div>
+        </NavLink>
     </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
+
+    <li class="module-row">
+        <NavLink class="manage-nav-link" href="Account/Manage/ChangePassword">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-shield-lock me-3"></i>
+                <div>
+                    <div class="fw-semibold">Lösenord</div>
+                    <small class="text-muted">Ändra lösenord</small>
+                </div>
+            </div>
+        </NavLink>
     </li>
+
     @if (hasExternalLogins)
     {
-        <li class="nav-item">
-            <NavLink class="nav-link" href="Account/Manage/ExternalLogins">External logins</NavLink>
+        <li class="module-row">
+            <NavLink class="manage-nav-link" href="Account/Manage/ExternalLogins">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-link-45deg me-3"></i>
+                    <div>
+                        <div class="fw-semibold">Externa inloggningar</div>
+                        <small class="text-muted">Hantera externa konton</small>
+                    </div>
+                </div>
+            </NavLink>
         </li>
     }
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</NavLink>
+
+    <li class="module-row">
+        <NavLink class="manage-nav-link" href="Account/Manage/TwoFactorAuthentication">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-shield-check me-3"></i>
+                <div>
+                    <div class="fw-semibold">Tvåfaktorsautentisering</div>
+                    <small class="text-muted">Extra säkerhet</small>
+                </div>
+            </div>
+        </NavLink>
     </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
+
+    <li class="module-row">
+        <NavLink class="manage-nav-link" href="Account/Manage/PersonalData">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-download me-3"></i>
+                <div>
+                    <div class="fw-semibold">Personlig data</div>
+                    <small class="text-muted">Ladda ner eller ta bort</small>
+                </div>
+            </div>
+        </NavLink>
     </li>
 </ul>
 

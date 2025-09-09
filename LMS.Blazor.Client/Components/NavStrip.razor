@@ -1,0 +1,236 @@
+﻿@using LMS.Shared.DTOs.EntitiesDtos
+@inject IJSRuntime JS
+
+<div class="navstrip-wrapper">
+    <div class="navstrip @(IsEditing ? "locked" : "")" @ref="navStripRef">
+
+        @if (IsTeacher)
+        {
+            <!-- Add new course card -->
+            <div class="navstrip-card-container add-card-container">
+                <div class="navstrip-card add-card"
+                     @onclick="OnAddCourseClick">
+                    <i class="bi bi-plus-lg add-icon"></i>
+                </div>
+            </div>
+        }
+
+        @foreach (var (c, index) in (Items ?? Enumerable.Empty<CourseDto>()).Select((c, i) => (c, i)))
+        {
+            var isActive = ActiveItem?.Id == c.Id;
+            var isExpanded = ExpandedCourseId == c.Id;
+            var isEditing = EditingCourseId == c.Id;
+
+            <div class="navstrip-card-container @(isExpanded ? "expanded" : "")" id="@($"course-{c.Id}")">
+                <div class="navstrip-card @(isActive ? "active" : "")"
+                     @onclick="() => OnCourseClick(c, index)"
+                     disabled="@IsEditing">
+
+                    <div class="card-body">
+                        @if (isEditing)
+                        {
+                            <div class="course-main w-100">
+                                <input class="form-control form-control-sm mb-1"
+                                       @bind="EditModel.Name"
+                                       placeholder="Course name" />
+
+                                <textarea class="form-control form-control-sm mb-1"
+                                          @bind="EditModel.Description"
+                                          placeholder="Description"></textarea>
+
+                                <!-- Dates + Save/Cancel in one row -->
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <div class="d-flex gap-2">
+                                        <input type="date" class="form-control form-control-sm date-input"
+                                               @bind="EditModel.Starts"
+                                               @bind:format="yyyy-MM-dd" />
+
+                                        <input type="date" class="form-control form-control-sm date-input"
+                                               @bind="EditModel.Ends"
+                                               @bind:format="yyyy-MM-dd" />
+                                    </div>
+
+                                    <div class="card-actions ms-2">
+                                        <!-- Save -->
+                                        <button class="card-action-btn"
+                                                @onclick="() => SaveCourse(c)"
+                                                @onclick:stopPropagation>
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+
+                                        <!-- Cancel -->
+                                        <button class="card-action-btn"
+                                                @onclick="CancelEdit"
+                                                @onclick:stopPropagation>
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="course-main">
+                                <h6>@c.Name</h6>
+                                <small class="text-muted">@c.Starts – @c.Ends</small>
+                            </div>
+
+                            @if (isExpanded)
+                            {
+                                <div class="course-extra">
+                                    @c.Description
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @if (isActive && !IsEditing)
+                    {
+                        <!-- Expand / Collapse Arrow -->
+                        <button class="expand-arrow"
+                                @onclick="() => OnExpandClick(c)"
+                                @onclick:stopPropagation>
+                            <i class="bi @(isExpanded ? "bi-chevron-left" : "bi-chevron-right")"></i>
+                        </button>
+                    }
+
+                    @if (isExpanded && IsTeacher && !isEditing)
+                    {
+                        <div class="card-actions">
+                            <!-- Edit -->
+                            <button class="card-action-btn"
+                                    @onclick="() => OnEditCourseClick(c)"
+                                    @onclick:stopPropagation>
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+
+                            <!-- Delete -->
+                            <button class="card-action-btn"
+                                    @onclick="() => OnDeleteCourseClick(c)"
+                                    @onclick:stopPropagation>
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Custom draggable scrollbar -->
+    <div class="navstrip-scrollbar">
+        <div class="navstrip-scrollbar-thumb" id="@($"{Id}-thumb")"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<CourseDto>? Items { get; set; }
+    [Parameter] public CourseDto? ActiveItem { get; set; }
+    [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
+    [Parameter] public EventCallback OnAddCourse { get; set; }
+    [Parameter] public EventCallback<CourseDto> OnDeleteCourse { get; set; }
+    [Parameter] public EventCallback<CourseDto> OnSaveCourse { get; set; }   // <--- NEW
+    [Parameter] public string Id { get; set; } = "navstrip";
+    [Parameter] public bool IsTeacher { get; set; } = false;
+
+    private ElementReference navStripRef;
+    private bool initialized;
+    private int? ExpandedCourseId;
+
+    private int? EditingCourseId;
+    private CourseEditModel EditModel = new();
+
+    private bool IsEditing => EditingCourseId.HasValue;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Items?.Any() == true)
+        {
+            initialized = true;
+            await JS.InvokeVoidAsync("initNavstripScrollbar", ".navstrip", $"#{Id}-thumb");
+        }
+    }
+
+    private async Task OnCourseClick(CourseDto course, int index)
+    {
+        if (IsEditing) return;
+
+        ActiveItem = course;
+        await OnItemSelected.InvokeAsync(course);
+
+        var elementId = $"course-{course.Id}";
+        await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+    }
+
+    private void OnExpandClick(CourseDto course)
+    {
+        if (IsEditing) return;
+
+        ExpandedCourseId = ExpandedCourseId == course.Id ? null : course.Id;
+    }
+
+    private void OnEditCourseClick(CourseDto course)
+    {
+        EditingCourseId = course.Id;
+        EditModel = new CourseEditModel
+        {
+            Name = course.Name,
+            Description = course.Description,
+            Starts = course.Starts,
+            Ends = course.Ends
+        };
+    }
+
+    private void CancelEdit()
+    {
+        EditingCourseId = null;
+        EditModel = new();
+    }
+
+    private async Task SaveCourse(CourseDto course)
+    {
+        // Update local model
+        course.Name = EditModel.Name;
+        course.Description = EditModel.Description;
+        course.Starts = EditModel.Starts;
+        course.Ends = EditModel.Ends;
+
+        // 🔗 Forward to parent (ManageCourses)
+        if (OnSaveCourse.HasDelegate)
+            await OnSaveCourse.InvokeAsync(course);
+
+        EditingCourseId = null;
+    }
+
+    private async Task OnAddCourseClick()
+    {
+        if (OnAddCourse.HasDelegate)
+            await OnAddCourse.InvokeAsync();
+    }
+
+    private async Task OnDeleteCourseClick(CourseDto course)
+    {
+        if (OnDeleteCourse.HasDelegate)
+            await OnDeleteCourse.InvokeAsync(course);
+
+        // If the deleted course was active, select another one
+        if (ActiveItem?.Id == course.Id)
+        {
+            ActiveItem = Items?.FirstOrDefault();
+            if (ActiveItem != null)
+            {
+                var elementId = $"course-{ActiveItem.Id}";
+                await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+                await OnItemSelected.InvokeAsync(ActiveItem);
+            }
+        }
+    }
+
+    private class CourseEditModel
+    {
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public DateOnly Starts { get; set; }
+        public DateOnly Ends { get; set; }
+    }
+}

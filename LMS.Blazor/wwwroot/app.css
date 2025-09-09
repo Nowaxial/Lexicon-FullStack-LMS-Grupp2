@@ -65,3 +65,41 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+/* CSS for Account/Manage */
+
+.btn-hero {
+    background: var(--base);
+    color: var(--bg-main);
+    border-color: var(--bg-main);
+}
+
+    .btn-hero:hover {
+        background: var(--bg-main);
+        color: var(--base);
+        border-color: var(--bg-main);
+    }
+
+.dash-card__head {
+    font-weight: 700;
+    margin-bottom: .75rem;
+    color: var(--bg-main);
+}
+
+.alert-custom-info {
+    color: var(--bg-main);
+    background-color: #b8d4d1;
+    border-color: #c3e6c3;
+}
+
+.badge-teacher {
+    background-color: var(--bg-main);
+    color: var(--base);
+}
+
+.badge-student {
+    background-color: var(--accent);
+    color: var(--base);
+}
+
+
