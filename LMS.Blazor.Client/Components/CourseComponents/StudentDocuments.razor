@@ -28,24 +28,34 @@
                         <i class="bi bi-file-earmark-text"></i>
                     </div>
 
-                    <div class="docs-info">
-                        <div class="docs-name">
-                            @d.DisplayName
-                            <span class="docs-ext">@GetExt(d.FileName)</span>
-                        </div>
+                        <div class="docs-info">
 
-                        @if (!string.IsNullOrWhiteSpace(d.Description))
-                        {
-                            <div class="docs-desc text-muted my-1">
-                                <i class="bi bi-chat-left-text me-1"></i>@d.Description
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="docs-name">
+                                    @d.DisplayName
+                                    <span class="docs-ext">@GetExt(d.FileName)</span>
+                                </div>
+
+                                @if (d.IsSubmission)
+                                {
+                                    <span class="btn btn-sm subm-status @StatusCss(d.Status)" disabled>
+                                        @LabelFor(ParseStatus(d.Status))
+                                    </span>
+                                }
                             </div>
-                        }
 
-                        <div class="docs-meta">
-                            <i class="bi bi-clock me-1"></i>
-                            @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            @if (!string.IsNullOrWhiteSpace(d.Description))
+                            {
+                                <div class="docs-desc text-muted my-1">
+                                    <i class="bi bi-chat-left-text me-1"></i>@d.Description
+                                </div>
+                            }
+
+                            <div class="docs-meta">
+                                <i class="bi bi-clock me-1"></i>
+                                @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </div>
                         </div>
-                    </div>
 
                     <div class="docs-actions">
                         <button class="btn btn-sm btn-outline-primary"

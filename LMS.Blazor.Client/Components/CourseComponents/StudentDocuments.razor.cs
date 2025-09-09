@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;                  
+using System.Net.Http;            
 using LMS.Blazor.Client.Services;                 
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
@@ -33,6 +35,36 @@ namespace LMS.Blazor.Client.Components.CourseComponents
         private string? _lastEndpoint;
 
         private readonly HashSet<int> _deleting = new();
+
+        private static string LabelFor(DocumentStatus s) => s switch
+        {
+            DocumentStatus.Pending => "Ej bedömd",
+            DocumentStatus.Review => "Granskning",
+            DocumentStatus.Approved => "Godkänd",
+            DocumentStatus.Rejected => "Underkänd",
+            _ => s.ToString()
+        };
+
+        private static DocumentStatus ParseStatus(string? value)
+        {
+            var v = (value ?? "").Trim().ToLowerInvariant();
+            return v switch
+            {
+                "ej bedömd" or "pending" => DocumentStatus.Pending,
+                "granskning" or "review" => DocumentStatus.Review,
+                "godkänd" or "approved" => DocumentStatus.Approved,
+                "underkänd" or "rejected" => DocumentStatus.Rejected,
+                _ => DocumentStatus.Pending
+            };
+        }
+
+        private static string StatusCss(string? status) => (status ?? "").ToLowerInvariant() switch
+        {
+            "godkänd" or "approved" => "ok",
+            "granskning" or "review" => "review",
+            "underkänd" or "rejected" => "bad",
+            _ => "pending"
+        };
 
         protected override async Task OnParametersSetAsync()
         {
@@ -72,10 +104,18 @@ namespace LMS.Blazor.Client.Components.CourseComponents
             {
                 var result = await Api.CallApiAsync<IEnumerable<ProjDocumentDto>>(endpoint, _cts.Token);
 
-                _docs = (result ?? Enumerable.Empty<ProjDocumentDto>())
-                        .OrderByDescending(d => d.UploadedAt)
-                        .ThenByDescending(d => d.Id)
-                        .ToList();
+                var docs = (result ?? Enumerable.Empty<ProjDocumentDto>());
+
+                if (!string.IsNullOrWhiteSpace(StudentId))
+                    docs = docs.Where(d => string.Equals(d.StudentId ?? "", StudentId, StringComparison.OrdinalIgnoreCase));
+
+                docs = docs.Where(d => d.IsSubmission);
+
+                _docs = docs
+                    .OrderByDescending(d => d.UploadedAt)
+                    .ThenByDescending(d => d.Id)
+                    .Take(50)
+                    .ToList();
             }
             catch (OperationCanceledException)
             {
