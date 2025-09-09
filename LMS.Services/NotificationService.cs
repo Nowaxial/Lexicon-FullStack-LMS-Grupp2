@@ -174,5 +174,10 @@ public class NotificationService : INotificationService
         }
     }
 
+    public async Task NotifyFileUploadAsync(string studentName, string courseName, string moduleName, string activityTitle, string fileName, int documentId)
+    {
+        var message = $"{studentName} laddade upp '{fileName}' i {courseName} > {moduleName} > {activityTitle}|{documentId}";
+        await AddNotificationAsync(message);
+    }
 
 }

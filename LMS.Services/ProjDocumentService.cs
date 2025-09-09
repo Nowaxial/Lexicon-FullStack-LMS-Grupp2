@@ -22,13 +22,17 @@ namespace LMS.Services
         private readonly IMapper _mapper;
         private readonly IFileStorage _storage;
         private readonly ILogger<ProjDocumentService> _logger;
+        private readonly INotificationService _notificationService;
+        private readonly IUserService _userService;
 
-        public ProjDocumentService(IUnitOfWork uow, IMapper mapper, IFileStorage storage, ILogger<ProjDocumentService> logger)
+        public ProjDocumentService(IUnitOfWork uow, IMapper mapper, IFileStorage storage, ILogger<ProjDocumentService> logger, INotificationService notificationService, IUserService userService)
         {
             _uow = uow;
             _mapper = mapper;
             _storage = storage;
             _logger = logger;
+            _notificationService = notificationService;
+            _userService = userService;
         }
 
         public async Task<ProjDocumentDto?> GetAsync(int id, bool trackChanges = false)
@@ -79,6 +83,20 @@ namespace LMS.Services
 
             _uow.ProjDocumentRepository.Create(entity);
             await _uow.CompleteAsync();
+
+            // 3) Send notification
+            if (entity.IsSubmission && entity.ActivityId.HasValue)
+            {
+                var doc = await _uow.ProjDocumentRepository.GetByIdWithDetailsAsync(entity.Id, trackChanges: false);
+
+                var user = await _userService.GetUserByIdAsync(uploaderUserId);
+                var studentName = user?.FullName ?? "Okänd student";
+                var courseName = doc?.Course?.Name ?? "Okänd kurs";
+                var moduleName = doc?.Module?.Name ?? "Okänd modul";
+                var activityTitle = doc?.Activity?.Title ?? "Okänd aktivitet";
+
+                await _notificationService.NotifyFileUploadAsync(studentName, courseName, moduleName, activityTitle, entity.DisplayName, entity.Id);
+            }
 
             return _mapper.Map<ProjDocumentDto>(entity);
         }

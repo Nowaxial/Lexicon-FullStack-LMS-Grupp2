@@ -38,5 +38,14 @@ namespace LMS.Infractructure.Repositories
             await FindByCondition(d => d.StudentId == studentId, trackChanges)
                 .OrderByDescending(d => d.UploadedAt)
                 .ToListAsync();
+
+        public async Task<ProjDocument?> GetByIdWithDetailsAsync(int id, bool trackChanges)
+        {
+            return await FindByCondition(d => d.Id == id, trackChanges)
+                .Include(d => d.Course)
+                .Include(d => d.Module)
+                .Include(d => d.Activity)
+                .FirstOrDefaultAsync();
+        }
     }
 }

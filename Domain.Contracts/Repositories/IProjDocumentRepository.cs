@@ -16,5 +16,8 @@ namespace Domain.Contracts.Repositories
         Task<IEnumerable<ProjDocument>> GetByActivityAsync(int activityId, bool trackChanges = false);
 
         Task<IEnumerable<ProjDocument>> GetByStudentAsync(string studentId, bool trackChanges = false);
+
+        Task<ProjDocument?> GetByIdWithDetailsAsync(int id, bool trackChanges);
+
     }
 }
