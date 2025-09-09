@@ -1,11 +1,6 @@
 ﻿using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LMS.Presentation.Controllers
 {
@@ -20,41 +15,55 @@ namespace LMS.Presentation.Controllers
             _serviceManager = serviceManager;
         }
 
-
-        // GET: api/Modules
+        // GET: api/course/{courseId}/Modules?includeActivities=true
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ModuleDto>>> GetModules(int courseId, bool includeActivities)
+        public async Task<ActionResult<IEnumerable<ModuleDto>>> GetModules(
+            int courseId,
+            [FromQuery] bool includeActivities = false)
         {
-            var modules = await _serviceManager.ModuleService.GetAllModulesAsync(courseId, includeActivities);
+            var modules = await _serviceManager.ModuleService
+                .GetAllModulesAsync(courseId, includeActivities);
+
             return Ok(modules);
         }
 
-        // GET: api/Modules/5
+        // GET: api/course/{courseId}/Modules/{id}?includeActivities=true
         [HttpGet("{id}")]
-        public async Task<ActionResult<ModuleDto>> GetModule(int courseId, int id, bool includeActivities)
+        public async Task<ActionResult<ModuleDto>> GetModule(
+            int courseId,
+            int id,
+            [FromQuery] bool includeActivities = false)
         {
-            var module = await _serviceManager.ModuleService.GetModuleByIdAsync(id, includeActivities);
+            var module = await _serviceManager.ModuleService
+                .GetModuleByIdAsync(id, includeActivities);
+
             if (module == null || module.CourseId != courseId)
                 return NotFound();
 
             return Ok(module);
         }
 
-        // POST: api/Modules
+        // POST: api/course/{courseId}/Modules
         [HttpPost]
-        public async Task<ActionResult<ModuleDto>> CreateModule(int courseId, ModuleCreateDto dto)
+        public async Task<ActionResult<ModuleDto>> CreateModule(
+            int courseId,
+            [FromBody] ModuleCreateDto dto)
         {
             var module = await _serviceManager.ModuleService.CreateModuleAsync(courseId, dto);
-            return CreatedAtAction(nameof(GetModule), new
-            {
-                courseId = courseId,
-                id = module.Id
-            }, module);
+
+            return CreatedAtAction(
+                nameof(GetModule),
+                new { courseId, id = module.Id },
+                module
+            );
         }
 
-        // PUT: api/Modules/5
+        // PUT: api/course/{courseId}/Modules/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateModule(int courseId, int id, ModuleUpdateDto dto)
+        public async Task<IActionResult> UpdateModule(
+            int courseId,
+            int id,
+            [FromBody] ModuleUpdateDto dto)
         {
             var module = await _serviceManager.ModuleService.GetModuleByIdAsync(id);
             if (module == null || module.CourseId != courseId)
@@ -63,10 +72,11 @@ namespace LMS.Presentation.Controllers
             var result = await _serviceManager.ModuleService.UpdateModuleAsync(id, dto);
             if (!result)
                 return StatusCode(500, "A problem happened while handling your request.");
+
             return NoContent();
         }
 
-        // DELETE: api/Modules/5
+        // DELETE: api/course/{courseId}/Modules/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteModule(int courseId, int id)
         {
@@ -77,6 +87,7 @@ namespace LMS.Presentation.Controllers
             var result = await _serviceManager.ModuleService.DeleteModuleAsync(id);
             if (!result)
                 return StatusCode(500, "A problem happened while handling your request.");
+
             return NoContent();
         }
     }

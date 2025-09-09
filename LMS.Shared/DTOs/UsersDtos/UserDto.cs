@@ -14,5 +14,9 @@
         public List<string> Roles { get; set; } = new();
 
         public bool? IsTeacher { get; init; }
+
+        // 🔹 Course assignment info
+        public int? CourseId { get; init; }
+        public string? CourseName { get; init; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Domain.Models.Entities;
+using LMS.Infractructure.Data;
 using LMS.Shared.DTOs.Common;
 using LMS.Shared.DTOs.UsersDtos;
 using Microsoft.AspNetCore.Identity;
@@ -9,11 +10,16 @@ public class UserService : IUserService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly ApplicationDbContext _context;
 
-    public UserService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public UserService(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        ApplicationDbContext context)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _context = context;
     }
 
     public async Task<PagedResult<UserDto>> GetUsersAsync(string? search, int page, int size)
@@ -21,7 +27,9 @@ public class UserService : IUserService
         if (page < 1) page = 1;
         if (size < 1) size = 20;
 
-        IQueryable<ApplicationUser> query = _userManager.Users;
+        IQueryable<ApplicationUser> query = _userManager.Users
+            .Include(u => u.CourseUsers)
+                .ThenInclude(cu => cu.Course);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -43,10 +51,10 @@ public class UserService : IUserService
             .ToListAsync();
 
         var items = new List<UserDto>();
-
         foreach (var u in users)
         {
             var roles = await _userManager.GetRolesAsync(u);
+            var course = u.CourseUsers.FirstOrDefault(); // only one course if you want
             items.Add(new UserDto
             {
                 Id = u.Id,
@@ -54,7 +62,9 @@ public class UserService : IUserService
                 LastName = u.LastName,
                 UserName = u.UserName,
                 Email = u.Email,
-                Roles = roles.ToList()
+                Roles = roles.ToList(),
+                CourseId = course?.CourseId,
+                CourseName = course?.Course?.Name
             });
         }
 
@@ -69,11 +79,15 @@ public class UserService : IUserService
 
     public async Task<UserDto?> GetUserByIdAsync(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-            return null;
+        var user = await _userManager.Users
+            .Include(u => u.CourseUsers)
+                .ThenInclude(cu => cu.Course)
+            .FirstOrDefaultAsync(x => x.Id == userId);
+
+        if (user is null) return null;
 
         var roles = await _userManager.GetRolesAsync(user);
+        var course = user.CourseUsers.FirstOrDefault();
 
         return new UserDto
         {
@@ -82,7 +96,9 @@ public class UserService : IUserService
             LastName = user.LastName,
             UserName = user.UserName,
             Email = user.Email,
-            Roles = roles.ToList()
+            Roles = roles.ToList(),
+            CourseId = course?.CourseId,
+            CourseName = course?.Course?.Name
         };
     }
 
@@ -183,6 +199,11 @@ public class UserService : IUserService
 
         var roles = await _userManager.GetRolesAsync(user);
 
+        // grab course if it exists
+        var course = await _context.CourseUsers
+            .Include(cu => cu.Course)
+            .FirstOrDefaultAsync(cu => cu.UserId == user.Id);
+
         return new UserDto
         {
             Id = user.Id,
@@ -190,7 +211,9 @@ public class UserService : IUserService
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            Roles = roles.ToList()
+            Roles = roles.ToList(),
+            CourseId = course?.CourseId,
+            CourseName = course?.Course?.Name
         };
     }
 }

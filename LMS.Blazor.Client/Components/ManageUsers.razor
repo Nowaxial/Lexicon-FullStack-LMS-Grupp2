@@ -19,35 +19,36 @@
                     @if (isEditing)
                     {
                         <!-- Update form -->
-                        <EditForm Model="@updateForm" OnValidSubmit="SaveUser">
+                        <EditForm Model="@updateForm" OnValidSubmit="@SaveUser">
                             <DataAnnotationsValidator />
+                            <ValidationSummary />
 
                             <!-- Username -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Username</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="updateForm.UserName" />
-                                <ValidationMessage For="@(() => updateForm.UserName)" class="text-danger small" />
+                                <ValidationMessage For="@(() => updateForm.UserName)" />
                             </div>
 
                             <!-- Email -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Email</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="updateForm.Email" />
-                                <ValidationMessage For="@(() => updateForm.Email)" class="text-danger small" />
+                                <ValidationMessage For="@(() => updateForm.Email)" />
                             </div>
 
                             <!-- First Name -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">First Name</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="updateForm.FirstName" />
-                                <ValidationMessage For="@(() => updateForm.FirstName)" class="text-danger small" />
+                                <ValidationMessage For="@(() => updateForm.FirstName)" />
                             </div>
 
                             <!-- Last Name -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Last Name</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="updateForm.LastName" />
-                                <ValidationMessage For="@(() => updateForm.LastName)" class="text-danger small" />
+                                <ValidationMessage For="@(() => updateForm.LastName)" />
                             </div>
 
                             <!-- Role -->
@@ -56,6 +57,18 @@
                                 <select class="form-select form-select-sm" @bind="updateForm.Role">
                                     <option value="Student">Student</option>
                                     <option value="Teacher">Teacher</option>
+                                </select>
+                            </div>
+
+                            <!-- Course -->
+                            <div class="mb-3">
+                                <label class="form-label small mb-1">Course</label>
+                                <select class="form-select form-select-sm" @bind="updateForm.CourseId">
+                                    <option value="">-- None --</option>
+                                    @foreach (var c in courses)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
                                 </select>
                             </div>
 
@@ -68,42 +81,43 @@
                     else
                     {
                         <!-- Create form -->
-                        <EditForm Model="@createForm" OnValidSubmit="SaveNewUser">
+                        <EditForm Model="@createForm" OnValidSubmit="@SaveNewUser">
                             <DataAnnotationsValidator />
+                            <ValidationSummary />
 
                             <!-- Username -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Username</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="createForm.UserName" />
-                                <ValidationMessage For="@(() => createForm.UserName)" class="text-danger small" />
+                                <ValidationMessage For="@(() => createForm.UserName)" />
                             </div>
 
                             <!-- Email -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Email</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="createForm.Email" />
-                                <ValidationMessage For="@(() => createForm.Email)" class="text-danger small" />
+                                <ValidationMessage For="@(() => createForm.Email)" />
                             </div>
 
                             <!-- Password -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Password</label>
                                 <InputText type="password" class="form-control form-control-sm" @bind-Value="createForm.Password" />
-                                <ValidationMessage For="@(() => createForm.Password)" class="text-danger small" />
+                                <ValidationMessage For="@(() => createForm.Password)" />
                             </div>
 
                             <!-- First Name -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">First Name</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="createForm.FirstName" />
-                                <ValidationMessage For="@(() => createForm.FirstName)" class="text-danger small" />
+                                <ValidationMessage For="@(() => createForm.FirstName)" />
                             </div>
 
                             <!-- Last Name -->
                             <div class="mb-2">
                                 <label class="form-label small mb-1">Last Name</label>
                                 <InputText class="form-control form-control-sm" @bind-Value="createForm.LastName" />
-                                <ValidationMessage For="@(() => createForm.LastName)" class="text-danger small" />
+                                <ValidationMessage For="@(() => createForm.LastName)" />
                             </div>
 
                             <!-- Role -->
@@ -112,6 +126,18 @@
                                 <select class="form-select form-select-sm" @bind="createForm.Role">
                                     <option value="Student">Student</option>
                                     <option value="Teacher">Teacher</option>
+                                </select>
+                            </div>
+
+                            <!-- Course -->
+                            <div class="mb-3">
+                                <label class="form-label small mb-1">Course</label>
+                                <select class="form-select form-select-sm" @bind="createForm.CourseId">
+                                    <option value="">-- None --</option>
+                                    @foreach (var c in courses)
+                                    {
+                                        <option value="@c.Id">@c.Name</option>
+                                    }
                                 </select>
                             </div>
 
@@ -127,7 +153,6 @@
 
         <!-- Right column: User List -->
         <div class="col-md-7">
-            <!-- Search filter -->
             <div class="input-group mb-3">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input class="form-control" placeholder="Filter users..."
@@ -155,7 +180,11 @@
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <span class="flex-fill">
                                 <strong>@(user.FullName ?? user.UserName ?? "(No name)")</strong><br />
-                                <small class="text-muted">@user.Email</small>
+                                <small class="text-muted">@user.Email</small><br />
+                                @if (!string.IsNullOrEmpty(user.CourseName))
+                                {
+                                    <small class="text-info">Course: @user.CourseName</small>
+                                }
                             </span>
 
                             <div class="btn-group ms-2">
@@ -175,6 +204,7 @@
                                 <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteUser(user.Id)">
                                     <i class="bi bi-trash"></i>
                                 </button>
+                                <!-- ❌ Removed assign button -->
                             </div>
                         </li>
                     }
@@ -186,6 +216,8 @@
 
 @code {
     private List<UserDto>? users;
+    private List<CourseDto> courses = new();
+
     private bool isLoading = true;
     private string? errorMessage;
     private string userFilter = string.Empty;
@@ -212,7 +244,11 @@
         !string.IsNullOrWhiteSpace(prefix) &&
         value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
 
-    protected override async Task OnInitializedAsync() => await LoadUsers();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+        await LoadCourses();
+    }
 
     private async Task LoadUsers()
     {
@@ -229,6 +265,19 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async Task LoadCourses()
+    {
+        try
+        {
+            var list = await ApiService.CallApiAsync<List<CourseDto>>("api/courses?includeModules=false&includeActivities=false");
+            courses = list ?? new List<CourseDto>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load courses: {ex.Message}";
         }
     }
 
@@ -249,50 +298,94 @@
         {
             users ??= new();
             users.Add(created);
+
+            if (createForm.CourseId.HasValue)
+            {
+                await AssignUserToCourse(created.Id, createForm.CourseId.Value);
+
+                var course = await ApiService.CallApiAsync<CourseDto>($"api/courses/{createForm.CourseId}");
+                var updated = created with
+                {
+                    CourseId = course?.Id,
+                    CourseName = course?.Name
+                };
+                users[users.IndexOf(created)] = updated;
+            }
         }
         ResetForm();
     }
 
     private async Task SaveUser()
     {
-        // 1️⃣ Update user details (without roles)
         var dto = new UpdateUserDto
         {
             UserName = updateForm.UserName,
             Email = updateForm.Email,
             FirstName = updateForm.FirstName,
-            LastName = updateForm.LastName
-            // 🚫 Roles excluded here, handled separately
+            LastName = updateForm.LastName,
+            Roles = new List<string> { updateForm.Role }
         };
 
+        // Update the user
         var success = await ApiService.PutAsync($"api/users/{editingUserId}", dto);
 
-        // 2️⃣ Update roles separately
+        // Update roles separately
         var roleSuccess = await ApiService.PutAsync(
             $"api/users/{editingUserId}/roles",
             new SetRolesDto { Roles = new List<string> { updateForm.Role } }
         );
 
-        if (success && roleSuccess && users is not null)
+        if (success && roleSuccess)
         {
-            var existing = users.FirstOrDefault(u => u.Id == editingUserId);
-            if (existing != null)
-            {
-                var updated = new UserDto
-                {
-                    Id = existing.Id,
-                    UserName = dto.UserName ?? existing.UserName,
-                    Email = dto.Email ?? existing.Email,
-                    FirstName = dto.FirstName ?? existing.FirstName,
-                    LastName = dto.LastName ?? existing.LastName,
-                    Roles = new List<string> { updateForm.Role } // ✅ refreshed roles
-                };
+            // Re-fetch the updated user from the API
+            var updatedUser = await ApiService.CallApiAsync<UserDto>($"api/users/{editingUserId}");
 
-                users[users.IndexOf(existing)] = updated;
+            if (updatedUser != null)
+            {
+                // If course assignment changed, handle it
+                var newCourseId = updateForm.CourseId;
+
+                if (newCourseId.HasValue)
+                {
+                    await AssignUserToCourse(updatedUser.Id, newCourseId.Value);
+
+                    var course = await ApiService.CallApiAsync<CourseDto>($"api/courses/{newCourseId}");
+                    updatedUser = updatedUser with
+                    {
+                        CourseId = course?.Id,
+                        CourseName = course?.Name
+                    };
+                }
+                else
+                {
+                    // Unassign if needed
+                    if (updatedUser.CourseId.HasValue)
+                        await UnassignUserFromCourse(updatedUser.Id, updatedUser.CourseId.Value);
+
+                    updatedUser = updatedUser with { CourseId = null, CourseName = null };
+                }
+
+                // Replace in local list
+                if (users != null)
+                {
+                    var idx = users.FindIndex(u => u.Id == updatedUser.Id);
+                    if (idx >= 0)
+                        users[idx] = updatedUser;
+                }
             }
         }
 
         ResetForm();
+    }
+
+    private async Task AssignUserToCourse(string userId, int courseId)
+    {
+        await ApiService.PostAsync<object>($"api/courses/{courseId}/users/{userId}", new { });
+    }
+
+    private async Task UnassignUserFromCourse(string userId, int courseId)
+    {
+        await ApiService.DeleteAsync($"api/courses/{courseId}/users/{userId}");
     }
 
     private void StartEditUser(UserDto user)
@@ -305,7 +398,8 @@
             Email = user.Email ?? "",
             FirstName = user.FirstName ?? "",
             LastName = user.LastName ?? "",
-            Role = user.Roles?.FirstOrDefault() ?? "Student"
+            Role = user.Roles?.FirstOrDefault() ?? "Student",
+            CourseId = user.CourseId
         };
     }
 
@@ -326,7 +420,6 @@
     private bool IsTeacher(UserDto user) =>
         user.Roles?.Contains("Teacher") == true;
 
-    // form models
     private class CreateUserForm
     {
         [Required, StringLength(50)] public string UserName { get; set; } = "";
@@ -335,6 +428,7 @@
         [Required, StringLength(50)] public string FirstName { get; set; } = "";
         [Required, StringLength(50)] public string LastName { get; set; } = "";
         [Required] public string Role { get; set; } = "Student";
+        public int? CourseId { get; set; }
     }
 
     private class UpdateUserForm
@@ -344,5 +438,12 @@
         [Required, StringLength(50)] public string FirstName { get; set; } = "";
         [Required, StringLength(50)] public string LastName { get; set; } = "";
         [Required] public string Role { get; set; } = "Student";
+        public int? CourseId { get; set; }
+    }
+
+    private class CourseDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
     }
 }
