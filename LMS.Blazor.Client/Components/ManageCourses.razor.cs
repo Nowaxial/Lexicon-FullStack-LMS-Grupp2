@@ -139,11 +139,14 @@ public partial class ManageCourses : ComponentBase
     {
         if (selectedCourse?.Modules == null) return;
 
+        updatedModule = updatedModule with { Course = selectedCourse };
+
         var idx = selectedCourse.Modules.FindIndex(m => m.Id == updatedModule.Id);
         if (idx >= 0)
         {
             selectedCourse.Modules[idx] = updatedModule;
         }
+
         selectedModuleToEdit = updatedModule;
 
         StateHasChanged();
@@ -178,7 +181,8 @@ public partial class ManageCourses : ComponentBase
     // --- Modules ---
     private async void HandleEditModule(ModuleDto module)
     {
-        selectedModuleToEdit = module;
+        // Attach the course reference so ManageModules has access to dates
+        selectedModuleToEdit = module with { Course = selectedCourse };
         expandModulesAccordion = true;
 
         await JS.InvokeVoidAsync("eval", @"
