@@ -128,10 +128,14 @@ namespace LMS.Services
             try { await _storage.DeleteAsync(doc.FileName, ct); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete blob for document {Id}", id); }
 
+            // Remove related notifications
+            await _notificationService.DeleteNotificationByDocumentIdAsync(id);
+
             _uow.ProjDocumentRepository.Delete(doc);
             await _uow.CompleteAsync();
             return true;
         }
+
 
 
         public async Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string changedByUserId, CancellationToken ct = default)

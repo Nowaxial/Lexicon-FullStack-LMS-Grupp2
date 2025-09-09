@@ -180,4 +180,22 @@ public class NotificationService : INotificationService
         await AddNotificationAsync(message);
     }
 
+    public async Task DeleteNotificationByDocumentIdAsync(int documentId)
+    {
+        var notifications = await GetAllNotificationsAsync();
+        var notificationsToRemove = notifications.Where(n =>
+            n.Message.Contains($"|{documentId}")).ToList();
+
+        foreach (var notification in notificationsToRemove)
+        {
+            notifications.Remove(notification);
+        }
+
+        if (notificationsToRemove.Any())
+        {
+            await SaveNotificationsAsync(notifications);
+        }
+    }
+
+
 }

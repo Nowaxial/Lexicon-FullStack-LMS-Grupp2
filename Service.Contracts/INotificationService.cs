@@ -13,6 +13,8 @@ public interface INotificationService
     Task<ContactMessageDto?> DecryptContactMessageDirectAsync(string encryptedData);
     Task DeleteNotificationAsync(string notificationId);
     Task NotifyFileUploadAsync(string studentName, string courseName, string moduleName, string activityTitle, string fileName, int documentId);
+    Task DeleteNotificationByDocumentIdAsync(int documentId);
+
 
 
 
