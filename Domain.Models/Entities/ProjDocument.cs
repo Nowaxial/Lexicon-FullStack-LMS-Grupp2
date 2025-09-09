@@ -21,5 +21,6 @@ namespace Domain.Models.Entities
         public string? StudentId { get; set; } // AspNetUser FK
 
         public bool IsSubmission { get; set; }
+        public string Status { get; set; } = "Ej bedömd";
     }
 }

@@ -28,18 +28,13 @@ namespace LMS.Blazor.Client.Components.Pages
         private int activitiesPage = 1;
         private const int ActivitiesPageSize = 7;
 
-
-
-
         [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
         private string displayName = "Lärare";
 
-
         private List<ModuleDto> modules = new();
 
         private sealed record CourseItem(int Id, string Title, int Students, DateTime StartDate);
-
         private sealed record ModuleItem(string Title, int Items);
         private sealed record SubmissionItem(int Id, string Assignment, string Student, string Status);
 
@@ -68,11 +63,40 @@ namespace LMS.Blazor.Client.Components.Pages
         private readonly List<DocItem> _latestDocs = new();
         private bool _loadingDocs;
 
-        private CancellationTokenSource? _docsCts;
-
-        // download url helper (reuse your proxy)
+    
         private static string BuildDownloadUrl(int id)
             => $"proxy?endpoint={Uri.EscapeDataString($"api/documents/{id}/download")}";
+
+        private static readonly DocumentStatus[] _statusOptions = new[]
+         {
+            DocumentStatus.Pending, DocumentStatus.Review, DocumentStatus.Approved, DocumentStatus.Rejected
+        };
+
+        private readonly HashSet<int> _savingDocIds = new();
+
+        private static string LabelFor(DocumentStatus s) => s switch
+        {
+            DocumentStatus.Pending => "Ej bedömd",
+            DocumentStatus.Review => "Granskning",
+            DocumentStatus.Approved => "Godkänd",
+            DocumentStatus.Rejected => "Underkänd",
+            _ => s.ToString()
+        };
+
+
+        private static DocumentStatus ParseStatus(string? value)
+        {
+            var v = (value ?? "").Trim().ToLowerInvariant();
+            return v switch
+            {
+                "ej bedömd" or "pending" => DocumentStatus.Pending,
+                "granskning" or "review" => DocumentStatus.Review,
+                "godkänd" or "approved" => DocumentStatus.Approved,
+                "underkänd" or "rejected" => DocumentStatus.Rejected,
+                _ => DocumentStatus.Pending
+            };
+        }
+
 
         private string CourseTitle(int courseId)
         {
@@ -129,29 +153,6 @@ namespace LMS.Blazor.Client.Components.Pages
         }
 
         private void ToggleUpcoming() => showMoreUpcoming = !showMoreUpcoming;
-
-
-        //private async Task AddCourseAsync()
-        //{
-        //    var created = await ApiService.PostAsync<CourseDto>("api/courses", newCourse);
-        //    if (created is null) return;
-
-        //    courses ??= new List<CourseDto>();
-        //    courses.Add(created);
-
-        //    _courseNameCache[created.Id] = created.Name;
-
-        //    newCourse = new CreateCourseDto
-        //    {
-        //        Starts = DateOnly.FromDateTime(DateTime.Today),
-        //        Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
-        //    };
-
-        //    await JS.InvokeVoidAsync(
-        //        "eval",
-        //        "bootstrap.Collapse.getOrCreateInstance(document.getElementById('addCourseTeacherPage')).hide()"
-        //    );
-        //}
 
         private Task LoadMyCoursesAsync() => LoadCoursesAsync();
 
@@ -291,8 +292,8 @@ namespace LMS.Blazor.Client.Components.Pages
                         names.TryGetValue(studentId, out var studentName);
                         studentName ??= string.IsNullOrWhiteSpace(studentId) ? "Okänd" : studentId;
 
-                        // fetch status (or default "Ej bedömd")
-                        var status = await GetStatusAsync(d.ActivityId ?? 0, studentId, ct);
+                        var statusEnum = ParseStatus(d.Status);
+                        var statusStr = statusEnum.ToString();
 
                         items.Add(new DocItem(
                             Id: d.Id,
@@ -302,7 +303,7 @@ namespace LMS.Blazor.Client.Components.Pages
                             ActivityId: d.ActivityId ?? 0,
                             StudentId: studentId,
                             StudentName: studentName,
-                            Status: status
+                            Status: statusStr
                         ));
                     }
 
@@ -311,7 +312,6 @@ namespace LMS.Blazor.Client.Components.Pages
 
                 var perCourseResults = await Task.WhenAll(perCourseTasks);
 
-                // flatten + dedup by Id, then sort & cap
                 _latestDocs.AddRange(
                     perCourseResults
                         .SelectMany(x => x)
@@ -341,30 +341,48 @@ namespace LMS.Blazor.Client.Components.Pages
             "godkänd" or "approved" => "ok",
             "granskning" or "review" => "review",
             "underkänd" or "rejected" => "bad",
-            _ => "pending" // Ej bedömd / default
+            _ => "pending" // Ej bedömd / Pending
         };
-        private async Task<string> GetStatusAsync(int activityId, string? studentId, CancellationToken ct)
+
+
+        private async Task ChangeStatusAsync(DocItem doc, DocumentStatus newStatus)
         {
-            if (activityId <= 0 || string.IsNullOrWhiteSpace(studentId))
-                return "Ej bedömd";
+            if (doc is null) return;
+
+            var current = ParseStatus(doc.Status);
+            if (current == newStatus) return;
+
+            var index = _latestDocs.FindIndex(x => x.Id == doc.Id);
+            if (index < 0) return;
+
+            var old = doc.Status;
+
+            _savingDocIds.Add(doc.Id);
+            _latestDocs[index] = doc with { Status = newStatus.ToString() }; 
+            StateHasChanged();
 
             try
             {
-                // Example endpoint (adjust to your API):
-                // returns a string like "Ej bedömd", "Granskning", "Godkänd", etc.
-                var status = await ApiService.CallApiAsync<string>(
-                    $"api/activities/{activityId}/submissions/{Uri.EscapeDataString(studentId!)}/status", ct);
-
-                return string.IsNullOrWhiteSpace(status) ? "Ej bedömd" : status!;
+                await SetStatusAsync(doc.Id, newStatus, CancellationToken.None);
             }
-            catch
+            catch (Exception ex)
             {
-                return "Ej bedömd";
+                _latestDocs[index] = doc with { Status = old }; 
+                await JS.InvokeVoidAsync("console.error", $"SetStatus failed for doc {doc.Id}: {ex}");
+                await JS.InvokeVoidAsync("alert", "Kunde inte spara status. Försök igen.");
+            }
+            finally
+            {
+                _savingDocIds.Remove(doc.Id);
+                StateHasChanged();
             }
         }
 
-
-
+        private async Task SetStatusAsync(int documentId, DocumentStatus status, CancellationToken ct)
+        {
+            var dto = new SetDocumentStatusDto { Status = status };
+            await ApiService.PostAsync<object?>($"api/documents/{documentId}/status", dto);
+        }
 
     }
 }

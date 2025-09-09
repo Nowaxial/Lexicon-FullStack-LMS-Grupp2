@@ -284,9 +284,37 @@ else
                                                         <span class="subm-ext">@ext</span>
                                                     }
                                                 </div>
+                                               
                                                     <div class="text-end">
-                                                        <span class="subm-status @StatusCss(d.Status)">@d.Status</span>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm dropdown-toggle subm-status @StatusCss(d.Status)"
+                                                                    type="button"
+                                                                    id="dd-@d.Id"
+                                                                    data-bs-toggle="dropdown"
+                                                                    aria-expanded="false"
+                                                                    disabled="@_savingDocIds.Contains(d.Id)">
+                                                                @LabelFor(ParseStatus(d.Status))
+                                                                @if (_savingDocIds.Contains(d.Id))
+                                                                {
+                                                                    <span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>
+                                                                }
+                                                            </button>
+
+                                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dd-@d.Id">
+                                                                @foreach (var opt in _statusOptions)
+                                                                {
+                                                                    var isActive = ParseStatus(d.Status) == opt;
+                                                                    <li>
+                                                                        <button class="dropdown-item @(isActive ? "active" : null)"
+                                                                                @onclick="() => ChangeStatusAsync(d, opt)">
+                                                                            @LabelFor(opt)
+                                                                        </button>
+                                                                    </li>
+                                                                }
+                                                            </ul>
+                                                        </div>
                                                     </div>
+
                                             </div>
 
                                                 <div class="subm-desc">

@@ -107,7 +107,6 @@ namespace LMS.Services
             var doc = await _uow.ProjDocumentRepository.GetByIdAsync(id, trackChanges: true);
             if (doc is null) return false;
 
-            // Delete from storage first; if it fails, log but still try to remove DB row
             try { await _storage.DeleteAsync(doc.FileName, ct); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete blob for document {Id}", id); }
 
@@ -115,5 +114,20 @@ namespace LMS.Services
             await _uow.CompleteAsync();
             return true;
         }
+
+
+        public async Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string changedByUserId, CancellationToken ct = default)
+        {
+            if (documentId <= 0) throw new ArgumentOutOfRangeException(nameof(documentId));
+            if (string.IsNullOrWhiteSpace(changedByUserId)) throw new ArgumentException("User is required.", nameof(changedByUserId));
+
+            var persisted = status.ToString();
+
+            var ok = await _uow.ProjDocumentRepository.SetStatusAsync(documentId, persisted, changedByUserId, ct);
+            
+            await _uow.CompleteAsync();
+            return ok;
+        }
+
     }
 }
