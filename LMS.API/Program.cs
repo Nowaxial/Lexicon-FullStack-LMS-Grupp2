@@ -11,7 +11,12 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            Args = args,
+            ContentRootPath = Directory.GetCurrentDirectory(),
+            WebRootPath = null
+        });
 
         // --- Services ---
         builder.Services.ConfigureSql(builder.Configuration);      // DbContext

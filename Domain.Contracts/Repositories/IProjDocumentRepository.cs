@@ -19,5 +19,8 @@ namespace Domain.Contracts.Repositories
 
         Task<bool> SetStatusAsync(int documentId, string status, string changedByUserId, CancellationToken ct);
 
+        Task<ProjDocument?> GetByIdWithDetailsAsync(int id, bool trackChanges);
+
+
     }
 }

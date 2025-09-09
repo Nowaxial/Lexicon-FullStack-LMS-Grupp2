@@ -183,7 +183,6 @@ namespace LMS.Services
                     Id = cu.User.Id,
                     FirstName = cu.User.FirstName,
                     LastName = cu.User.LastName,
-                    FullName = cu.User.FullName,
                     UserName = cu.User.UserName,
                     Email = cu.User.Email,
                     IsTeacher = cu.IsTeacher

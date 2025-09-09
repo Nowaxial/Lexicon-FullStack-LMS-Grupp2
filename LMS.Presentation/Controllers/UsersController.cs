@@ -28,7 +28,6 @@ public class UsersController : ControllerBase
         if (page < 1 || size < 1 || size > 200)
             return BadRequest("Invalid paging.");
 
-        // Service should now populate Roles in UserDto
         var result = await _services.UserService.GetUsersAsync(search, page, size);
         return Ok(result);
     }
@@ -41,16 +40,30 @@ public class UsersController : ControllerBase
         if (user is null)
             return NotFound();
 
-        return Ok(user); // includes Roles
+        return Ok(user);
     }
 
-    // PATCH: api/users/{id}
-    [HttpPatch("{id}")]
+    // PUT: api/users/{id}  <-- Full update
+    [HttpPut("{id}")]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var updated = await _services.UserService.UpdateUserAsync(id, dto);
         return updated ? NoContent() : NotFound();
     }
+
+    // PATCH: api/users/{id}  <-- Optional partial update
+    //[HttpPatch("{id}")]
+    //public async Task<IActionResult> PatchUser(string id, [FromBody] UpdateUserDto dto)
+    //{
+    //    if (!ModelState.IsValid)
+    //        return BadRequest(ModelState);
+
+    //    var updated = await _services.UserService.UpdateUserPartialAsync(id, dto);
+    //    return updated ? NoContent() : NotFound();
+    //}
 
     // PUT: api/users/{id}/roles
     [HttpPut("{id}/roles")]
@@ -59,11 +72,15 @@ public class UsersController : ControllerBase
         var ok = await _services.UserService.SetUserRolesAsync(id, dto.Roles);
         return ok ? NoContent() : NotFound();
     }
+
     // POST: api/users
     [HttpPost]
     [Authorize(Roles = "Teacher")]
     public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto dto)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var created = await _services.UserService.CreateUserAsync(dto);
         if (created is null)
         {

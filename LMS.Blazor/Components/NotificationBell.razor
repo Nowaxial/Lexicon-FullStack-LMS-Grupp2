@@ -1,7 +1,10 @@
 ﻿@using LMS.Shared.DTOs
 @using Service.Contracts
+@using Microsoft.JSInterop
 @inject INotificationService NotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient HttpClient
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -30,18 +33,20 @@
                     <button type="button" class="btn-close" @onclick="CloseNotificationModal"></button>
                 </div>
                 <div class="modal-body p-0 notification-list-body">
-
                     @if (notifications.Any())
                     {
                         @foreach (var notification in notifications)
                         {
                             <div class="notification-item @(notification.IsRead ? "" : "unread") p-3 border-bottom rounded"
-     style="cursor: pointer;" @onclick="() => ShowNotification(notification)">
-
+                                 style="cursor: pointer;" @onclick="() => ShowNotification(notification)">
                                 <div class="mb-1">
                                     @if (notification.Message.Contains("kontaktmeddelande från"))
                                     {
                                         @notification.Message.Replace("Nytt kontaktmeddelande från", "Nytt meddelande från")
+                                    }
+                                    else if (notification.Message.Contains("laddade upp"))
+                                    {
+                                        @notification.Message.Split('|')[0]
                                     }
                                     else
                                     {
@@ -70,11 +75,55 @@
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header lms-notification-modal-header">
-                    <h5 class="modal-title">Kontaktmeddelande</h5>
+                    <h5 class="modal-title">
+                        @if (selectedNotification.Message.Contains("laddade upp"))
+                        {
+                            <text>Filuppladdning</text>
+                        }
+                        else
+                        {
+                            <text>Kontaktmeddelande</text>
+                        }
+                    </h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-3 p-md-4">
-                    @if (decryptedMessage != null)
+                    @if (selectedNotification.Message.Contains("laddade upp"))
+                    {
+                        <div class="lms-field-group">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-cloud-upload-fill me-3" style="font-size: 2rem; color: var(--accent);"></i>
+                                <div>
+                                    <h6 class="mb-1 fw-bold" style="color: var(--bg-main);">Ny uppladdning</h6>
+                                    <small class="text-muted">@selectedNotification.Timestamp.ToString("yyyy-MM-dd HH:mm")</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">Student</label>
+                            <div class="lms-field-value">@GetStudentName(selectedNotification.Message)</div>
+                        </div>
+
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">Fil</label>
+                            <div class="lms-field-value d-flex justify-content-between align-items-center">
+                                <span>@GetFileName(selectedNotification.Message)</span>
+                                @if (GetDocumentId(selectedNotification.Message) > 0)
+                                {
+                                    <button class="btn btn-sm" style="background: var(--accent); color: var(--base);" @onclick="() => DownloadFile(GetDocumentId(selectedNotification.Message))">
+                                        <i class="bi bi-download me-1"></i>Ladda ner
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="lms-field-group">
+                            <label class="lms-field-label">Kursväg</label>
+                            <div class="lms-field-value">@GetCoursePath(selectedNotification.Message)</div>
+                        </div>
+                    }
+                    else if (decryptedMessage != null)
                     {
                         <div class="lms-field-group">
                             <label class="lms-field-label">Namn</label>
@@ -132,186 +181,8 @@
                     </button>
                     <button type="button" class="btn btn-secondary w-100 w-sm-auto" @onclick="CloseModal">Stäng</button>
                 </div>
-
             </div>
         </div>
     </div>
     <div class="modal-backdrop fade show"></div>
-}
-
-@code {
-    private List<NotificationItem>? notifications;
-    private NotificationItem? selectedNotification;
-    private ContactMessageDto? decryptedMessage;
-    private string? errorMessage;
-    private bool showNotificationModal = false;
-    private int unreadCount => notifications?.Count(n => !n.IsRead) ?? 0;
-    private Timer? _timer;
-    private bool isTeacher = false;
-    private string? userId;
-
-    private void OpenNotificationModal()
-    {
-        showNotificationModal = true;
-    }
-
-    private void CloseNotificationModal()
-    {
-        showNotificationModal = false;
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        isTeacher = authState.User.IsInRole("Teacher");
-        userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-        if (isTeacher && !string.IsNullOrEmpty(userId))
-        {
-            await LoadNotifications();
-            _timer = new Timer(async _ =>
-            {
-                try
-                {
-                    await InvokeAsync(LoadNotifications);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Timer error: {ex.Message}");
-                }
-            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
-        }
-    }
-
-    private async Task LoadNotifications()
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(userId)) return;
-
-            notifications = await NotificationService.GetNotificationsForUserAsync(userId);
-            await InvokeAsync(StateHasChanged);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"LoadNotifications ERROR: {ex.Message}");
-        }
-    }
-
-    private async Task ShowNotification(NotificationItem notification)
-    {
-        showNotificationModal = false;
-        selectedNotification = notification;
-        decryptedMessage = null;
-        errorMessage = null;
-
-        if (notification.Message.Contains("kontaktmeddelande från"))
-        {
-            try
-            {
-                Console.WriteLine($"Processing notification: {notification.Message}");
-
-                var parts = notification.Message.Split(": ");
-                Console.WriteLine($"Split parts: {string.Join(" | ", parts)}");
-
-                if (parts.Length >= 2)
-                {
-                    var subject = parts[1];
-                    Console.WriteLine($"Looking for subject: {subject}");
-
-                    var contactMessages = await NotificationService.GetAllContactMessagesAsync();
-                    Console.WriteLine($"Found {contactMessages.Count} contact messages");
-
-                    var matchingMessage = contactMessages
-                        .Where(m => m.Subject == subject)
-                        .OrderByDescending(m => m.Timestamp)
-                        .FirstOrDefault();
-
-                    if (matchingMessage != null)
-                    {
-                        Console.WriteLine($"Found matching message with ID: {matchingMessage.Id}");
-                        decryptedMessage = await NotificationService.DecryptMessageAsync(matchingMessage.Id);
-                        Console.WriteLine($"Decryption result: {(decryptedMessage != null ? "Success" : "Failed")}");
-                    }
-                    else
-                    {
-                        errorMessage = $"Kunde inte hitta kontaktmeddelande med ämne: {subject}";
-                        Console.WriteLine(errorMessage);
-                    }
-                }
-                else
-                {
-                    errorMessage = "Kunde inte extrahera ämne från notifikationen";
-                    Console.WriteLine(errorMessage);
-                }
-            }
-            catch (Exception ex)
-            {
-                errorMessage = $"Fel vid dekryptering: {ex.Message}";
-                Console.WriteLine($"Error loading contact message: {ex.Message}");
-            }
-        }
-        else
-        {
-            errorMessage = "Detta är inte ett kontaktmeddelande";
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task DeleteNotification(string id)
-    {
-        try
-        {
-            await NotificationService.DeleteNotificationAsync(id);
-            await LoadNotifications();
-            CloseModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"DeleteNotification error: {ex.Message}");
-        }
-    }
-
-    private void CloseModal()
-    {
-        selectedNotification = null;
-        decryptedMessage = null;
-        errorMessage = null;
-        StateHasChanged();
-    }
-
-    private async Task MarkAsRead(string id)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(userId)) return;
-
-            await NotificationService.MarkAsReadAsync(id, userId);
-            await LoadNotifications();
-            CloseModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"MarkAsRead error: {ex.Message}");
-        }
-    }
-
-    private async Task MarkAsUnread(string id)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(userId)) return;
-
-            await NotificationService.MarkAsUnreadAsync(id, userId);
-            await LoadNotifications();
-            CloseModal();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"MarkAsUnread error: {ex.Message}");
-        }
-    }
-
-    public void Dispose() => _timer?.Dispose();
 }

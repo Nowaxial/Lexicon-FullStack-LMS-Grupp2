@@ -25,8 +25,10 @@ public class ClientApiService(
     {
         var parts = endpoint.Split('?', 2);
         var path = Uri.EscapeDataString(parts[0]);
+
+        // ✅ Use & instead of ? so query parameters don’t get swallowed inside `endpoint`
         return parts.Length == 2
-            ? $"proxy?endpoint={path}?{parts[1]}"
+            ? $"proxy?endpoint={path}&{parts[1]}"
             : $"proxy?endpoint={path}";
     }
 
@@ -70,32 +72,47 @@ public class ClientApiService(
     // ---------------- POST ----------------
     public async Task<T?> PostAsync<T>(string endpoint, object data, CancellationToken ct = default)
     {
-        await authReady.WaitAsync();
+        await authReady.WaitAsync(ct);
 
-        var response = await httpClient.PostAsJsonAsync(WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
+        var response = await httpClient.PostAsJsonAsync(
+            WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
 
         if (HandleUnauthorized(response)) return default;
+
         response.EnsureSuccessStatusCode();
 
-        if (response.StatusCode == HttpStatusCode.NoContent)
+        // ✅ Bail out early if there's nothing to read
+        if (response.StatusCode == HttpStatusCode.NoContent ||
+            response.Content.Headers.ContentLength == 0)
+        {
+            return default;
+        }
+
+        var payload = await response.Content.ReadAsStringAsync(ct);
+        if (string.IsNullOrWhiteSpace(payload))
             return default;
 
-        return await response.Content.ReadFromJsonAsync<T>(_jsonSerializerOptions, ct);
+        return JsonSerializer.Deserialize<T>(payload, _jsonSerializerOptions);
     }
 
     // ---------------- PUT ----------------
-    // Generic version if you expect a result back
     public async Task<T?> PutAsync<T>(string endpoint, object data, CancellationToken ct = default)
     {
-        await authReady.WaitAsync();
+        await authReady.WaitAsync(ct);
 
-        var response = await httpClient.PutAsJsonAsync(WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
+        var response = await httpClient.PutAsJsonAsync(
+            WrapEndpoint(endpoint), data, _jsonSerializerOptions, ct);
 
         if (HandleUnauthorized(response)) return default;
-        if (response.StatusCode == HttpStatusCode.NoContent)
-            return default;
 
         response.EnsureSuccessStatusCode();
+
+        // ✅ Bail out early if there's nothing to read
+        if (response.StatusCode == HttpStatusCode.NoContent ||
+            response.Content.Headers.ContentLength == 0)
+        {
+            return default;
+        }
 
         var payload = await response.Content.ReadAsStringAsync(ct);
         if (string.IsNullOrWhiteSpace(payload))

@@ -43,6 +43,7 @@ namespace LMS.Infractructure.Repositories
                 .OrderByDescending(d => d.UploadedAt)
                 .ToListAsync();
 
+
         public async Task<bool> SetStatusAsync(int documentId, string status, string changedByUserId, CancellationToken ct)
         {
             var doc = await FindByCondition(d => d.Id == documentId, trackChanges: true)
@@ -54,6 +55,16 @@ namespace LMS.Infractructure.Repositories
 
             await _context.SaveChangesAsync(ct);
             return true;
+        }
+
+        public async Task<ProjDocument?> GetByIdWithDetailsAsync(int id, bool trackChanges)
+        {
+            return await FindByCondition(d => d.Id == id, trackChanges)
+                .Include(d => d.Course)
+                .Include(d => d.Module)
+                .Include(d => d.Activity)
+                .FirstOrDefaultAsync();
+
         }
     }
 }
