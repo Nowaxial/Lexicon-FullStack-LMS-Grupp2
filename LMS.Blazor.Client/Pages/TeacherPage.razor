@@ -234,25 +234,86 @@ else
                             }
                         </article>
 
+                      
+                        <article class="dash-card mt-4 teacher-inbox">
+                            <div class="dash-card__head d-flex justify-content-between align-items-center">
+                                <span>Nya inlämningar</span>
 
+                                @if (_loadingDocs)
+                                {
+                                    <small class="text-muted d-flex align-items-center gap-2">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        Laddar…
+                                    </small>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">@_latestDocs.Count</small>
+                                }
+                            </div>
 
-                    <article class="dash-card mt-4">
-                        <div class="dash-card__head">Nya inlämningar</div>
-                        <ul class="inbox list-unstyled m-0">
-                            @foreach (var s in Submissions)
+                            @if (_loadingDocs)
                             {
-                                <li class="inbox-row">
-                                    <div>
-                                        <div class="fw-semibold">@s.Assignment</div>
-                                        <small class="text-muted">@s.Student · @s.Status</small>
-                                    </div>
-                                    <a class="chev" href="@($"inlamningar/{s.Id}")">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                </li>
+                                <div class="p-3 text-muted">Hämtar inlämningar…</div>
                             }
-                        </ul>
-                    </article>
+                            else if (_latestDocs.Count == 0)
+                            {
+                                <div class="p-3 text-muted">Inga nya inlämningar.</div>
+                            }
+                            else
+                            {
+                                <ul class="subm-list">
+                                    @foreach (var d in _latestDocs)
+                                    {
+                                        var ext = System.IO.Path.GetExtension(d.DisplayName ?? string.Empty)
+                                        .TrimStart('.').ToUpperInvariant();
+
+
+                                        <li class="subm-card">
+                                            <div class="subm-avatar" title="@ext">
+                                                <i class="bi bi-file-earmark-text"></i>
+                                            </div>
+                                    
+
+                                            <div class="subm-info">
+                                                <div class="d-flex justify-content-between">
+                                                <div class="subm-name">
+                                                    @d.DisplayName
+                                                    @if (!string.IsNullOrWhiteSpace(ext))
+                                                    {
+                                                        <span class="subm-ext">@ext</span>
+                                                    }
+                                                </div>
+                                                    <div class="text-end">
+                                                        <span class="subm-status @StatusCss(d.Status)">@d.Status</span>
+                                                    </div>
+                                            </div>
+
+                                                <div class="subm-desc">
+                                                    <i class="bi bi-person me-1"></i>@d.StudentName
+                                                    
+                                                    <span class="sep">·</span>@CourseTitle(d.CourseId)
+                                                </div>
+
+                                                <div class="subm-meta">
+                                                    <i class="bi bi-clock me-1"></i>
+                                                    @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                                </div>
+                                            </div>
+
+                                            <div class="subm-actions">
+                                                <a class="btn btn-sm btn-outline-primary"
+                                                   href="@BuildDownloadUrl(d.Id)">
+                                                    <i class="bi bi-download me-1"></i>
+                                                </a>
+                                            </div>
+                                           
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </article>
+
                 </div>
             </div>
         </section>
@@ -266,5 +327,8 @@ else
     </NotAuthorized>
 </AuthorizeView>
 
+  
+
     <script src="app.js"></script>
 }
+
