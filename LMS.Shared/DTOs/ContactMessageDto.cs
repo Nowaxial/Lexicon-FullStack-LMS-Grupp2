@@ -26,6 +26,7 @@ public class NotificationItem
     public DateTime Timestamp { get; set; }
     public bool IsRead { get; set; }
     public List<string> ReadBy { get; set; } = new();
+    public List<string> TargetTeachers { get; set; } = new();
 }
 
 public class ContactMessageItem
