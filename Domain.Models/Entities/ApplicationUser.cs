@@ -13,5 +13,8 @@ public class ApplicationUser : IdentityUser
 
     public string? RefreshToken { get; set; }
     public DateTime RefreshTokenExpireTime { get; set; }
+
+    // 🔹 Add navigation property
+    public ICollection<CourseUser> CourseUsers { get; set; } = new List<CourseUser>();
 }
 

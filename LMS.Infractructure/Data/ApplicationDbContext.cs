@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using System.Diagnostics;
-using System.Reflection.Metadata;
 
 namespace LMS.Infractructure.Data
 {
@@ -124,7 +122,7 @@ namespace LMS.Infractructure.Data
 
             builder.Entity<CourseUser>()
                 .HasOne(cu => cu.User)
-                .WithMany()
+                .WithMany(u => u.CourseUsers) // ✅ use navigation property on ApplicationUser
                 .HasForeignKey(cu => cu.UserId);
         }
     }

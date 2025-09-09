@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.Models.Entities;
 
-namespace Domain.Models.Entities
+public class CourseUser
 {
-    public class CourseUser
-    {
-        public string UserId { get; set; } = null!; // FK to AspNetUser
-        public int CourseId { get; set; }
-        public bool IsTeacher { get; set; }
+    public int Id { get; set; } // Primary key
 
-        // Navigation
-        public Course Course { get; set; } = null!;
-        public ApplicationUser User { get; set; } = null!;
-    }
+    public string UserId { get; set; } = null!;
+    public int CourseId { get; set; }
+    public bool IsTeacher { get; set; }
+
+    public Course Course { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
 }

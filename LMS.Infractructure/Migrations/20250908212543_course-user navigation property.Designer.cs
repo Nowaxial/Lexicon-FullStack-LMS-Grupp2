@@ -4,6 +4,7 @@ using LMS.Infractructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LMS.Infractructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250908212543_course-user navigation property")]
+    partial class courseusernavigationproperty
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,27 +24,6 @@ namespace LMS.Infractructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("CourseUser", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("CourseId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsTeacher")
-                        .HasColumnType("bit");
-
-                    b.HasKey("UserId", "CourseId");
-
-                    b.HasIndex("CourseId");
-
-                    b.ToTable("CourseUsers");
-                });
 
             modelBuilder.Entity("Domain.Models.Entities.ApplicationUser", b =>
                 {
@@ -146,6 +128,24 @@ namespace LMS.Infractructure.Migrations
                     b.ToTable("Courses");
                 });
 
+            modelBuilder.Entity("Domain.Models.Entities.CourseUser", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsTeacher")
+                        .HasColumnType("bit");
+
+                    b.HasKey("UserId", "CourseId");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("CourseUsers");
+                });
+
             modelBuilder.Entity("Domain.Models.Entities.Module", b =>
                 {
                     b.Property<int>("Id")
@@ -228,18 +228,15 @@ namespace LMS.Infractructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsSubmission")
                         .HasColumnType("bit");
@@ -248,12 +245,10 @@ namespace LMS.Infractructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("StudentId")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UploadedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UploadedByUserId")
                         .IsRequired()
@@ -266,8 +261,6 @@ namespace LMS.Infractructure.Migrations
                     b.HasIndex("CourseId");
 
                     b.HasIndex("ModuleId");
-
-                    b.HasIndex("StudentId");
 
                     b.ToTable("Documents");
                 });
@@ -405,7 +398,7 @@ namespace LMS.Infractructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("CourseUser", b =>
+            modelBuilder.Entity("Domain.Models.Entities.CourseUser", b =>
                 {
                     b.HasOne("Domain.Models.Entities.Course", "Course")
                         .WithMany("CourseUsers")
