@@ -19,29 +19,22 @@
         </div>
     }
     else if (_docs is not null && _docs.Any())
-    {
-        <div class="docs-list">
-            @foreach (var d in _docs)
-            {
-                <div class="docs-card">
-                    <div class="docs-avatar" title="@GetExt(d.FileName)">
-                        <i class="bi bi-file-earmark-text"></i>
-                    </div>
+        {
 
-                        <div class="docs-info">
+            <div class="docs-list">
+                @foreach (var d in _docs)
+                {
+                    <div class="docs-card d-flex flex-column flex-sm-row align-items-start gap-3">
+                        <div class="docs-avatar align-self-center" title="@GetExt(d.FileName)">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
 
-                            <div class="d-flex justify-content-between align-items-center">
+                        <div class="docs-info flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                                 <div class="docs-name">
                                     @d.DisplayName
                                     <span class="docs-ext">@GetExt(d.FileName)</span>
                                 </div>
-
-                                @if (d.IsSubmission)
-                                {
-                                    <span class="btn btn-sm subm-status @StatusCss(d.Status)" disabled>
-                                        @LabelFor(ParseStatus(d.Status))
-                                    </span>
-                                }
                             </div>
 
                             @if (!string.IsNullOrWhiteSpace(d.Description))
@@ -51,29 +44,38 @@
                                 </div>
                             }
 
-                            <div class="docs-meta">
+                            <div class="docs-meta my-1">
                                 <i class="bi bi-clock me-1"></i>
                                 @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                             </div>
+
+
+                            @if (d.IsSubmission)
+                            {
+                                <span class="subm-status @StatusCss(d.Status)">
+                                    @LabelFor(ParseStatus(d.Status))
+                                </span>
+                            }
                         </div>
 
-                    <div class="docs-actions">
-                        <button class="btn btn-sm btn-outline-primary"
-                                @onclick="() => Download(d.Id)">
-                            <i class="bi bi-download me-1"></i>Ladda ned
-                        </button>
-                        
-                        <button class="btn btn-sm btn-outline-danger"
+                        <div class="docs-actions d-flex gap-2 ms-sm-auto mt-2 mt-sm-0 align-self-center">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    @onclick="() => Download(d.Id)">
+                                <i class="bi bi-download me-1"></i>Ladda ned
+                            </button>
+
+                            <button class="btn btn-sm btn-outline-danger"
                                     disabled="@_deleting.Contains(d.Id)"
                                     @onclick="() => DeleteAsync(d)">
-                            <i class="bi bi-trash"></i>
+                                <i class="bi bi-trash"></i>
                                 @(_deleting.Contains(d.Id) ? "Tar bort..." : "Ta bort")
-                        </button>
-                        
+                            </button>
+                        </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+
+
     }
     else
     {

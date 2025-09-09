@@ -34,8 +34,6 @@
 
     /* Card */
  .docs-card {
-        display: flex;
-        align-items: center;
         gap: .75rem;
         padding: .9rem 1rem;
         background: var(--base);
@@ -102,7 +100,7 @@
     /* Actions */
   .docs-actions {
         display: flex;
-        align-items: center;
+        align-items: end;
         gap: .5rem
     }
     .docs-actions .btn-outline-primary {
@@ -146,3 +144,42 @@
         min-width: 0;
     }
 }
+
+
+.subm-status {
+    display: inline-block;
+    padding: .15rem .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    line-height: 1;
+}
+
+    /* default / Ej bedömd */
+    .subm-status.pending {
+        color: #5c6b73;
+        background: #eef5f6;
+        border-color: #d7e6e8;
+    }
+
+    /* Granskning / Review */
+    .subm-status.review {
+        color: #8a6d3b;
+        background: #fff6e6;
+        border-color: #ffe1ad;
+    }
+
+    /* Godkänd / Approved */
+    .subm-status.ok {
+        color: #1e7a39;
+        background: #eaf8ee;
+        border-color: #bfe8ca;
+    }
+
+    /* Underkänd / Rejected */
+    .subm-status.bad {
+        color: #a42727;
+        background: #fdecec;
+        border-color: #f5bcbc;
+    }
