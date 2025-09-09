@@ -161,17 +161,34 @@ namespace LMS.Blazor.Client.Components.Pages
             var data = await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses/my");
 
             Courses.Clear();
-            foreach (var c in data ?? Enumerable.Empty<CourseDto>())
+
+            var courseTasks = (data ?? Enumerable.Empty<CourseDto>()).Select(async c =>
             {
-                Courses.Add(new CourseItem(
+                var users = await ApiService.CallApiAsync<IEnumerable<UserDto>>($"api/courses/{c.Id}/users");
+                var usersList = users?.ToList() ?? new List<UserDto>();
+
+                var studentCount = usersList.Count(u => u.IsTeacher != true);
+
+                return new CourseItem(
                     Id: c.Id,
                     Title: c.Name,
-                    Students: 0,
+                    Students: studentCount,
                     StartDate: c.Starts.ToDateTime(TimeOnly.MinValue)
-                ));
-                _courseNameCache[c.Id] = c.Name; 
+                );
+            });
+
+            var courseItems = await Task.WhenAll(courseTasks);
+
+            foreach (var item in courseItems)
+            {
+                Courses.Add(item);
+                _courseNameCache[item.Id] = item.Title;
             }
         }
+
+
+
+
 
         private async Task LoadUpcomingActivitiesAsync(CancellationToken ct = default)
         {
