@@ -9,10 +9,11 @@ namespace LMS.Blazor.Controller;
 [Route("proxy")]
 [ApiController]
 [IgnoreAntiforgeryToken]
-public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage tokenService) : ControllerBase
+public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage tokenService, ILogger<ProxyController> logger) : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ITokenStorage _tokenService = tokenService;
+    private readonly ILogger<ProxyController> _logger = logger;
 
     private static readonly HashSet<string> HopByHop = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -20,6 +21,41 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
         "TE", "Trailer", "Transfer-Encoding", "Upgrade", "Proxy-Connection","Expect"
     };
 
+    [HttpGet("download-document/{id}")]
+    public async Task<IActionResult> DownloadDocument(int id)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+            var accessToken = await _tokenService.GetAccessTokenAsync(userId);
+            if (string.IsNullOrEmpty(accessToken))
+                return Unauthorized();
+
+            using var client = _httpClientFactory.CreateClient("LmsAPIClient");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await client.GetAsync($"api/documents/{id}/download");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "file";
+                var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+
+                return File(content, contentType, fileName);
+            }
+
+            return NotFound();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading document {Id}", id);
+            return StatusCode(500);
+        }
+    }
 
     // Support GET, POST, PUT, DELETE automatically
     [HttpGet]
@@ -58,17 +94,14 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
         var method = new HttpMethod(Request.Method);
         using var forward = new HttpRequestMessage(method, targetUri);
 
-
-
         // Build target URI
         foreach (var (key, value) in Request.Headers)
         {
             if (key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase)) continue;
             if (key.Equals("Host", StringComparison.OrdinalIgnoreCase)) continue;
-            if (HopByHop.Contains(key)) continue;              
+            if (HopByHop.Contains(key)) continue;
             forward.Headers.TryAddWithoutValidation(key, value.AsEnumerable());
         }
-
 
         if (method != HttpMethod.Get && method != HttpMethod.Head)
         {
@@ -82,33 +115,31 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
                 var form = await Request.ReadFormAsync(ct);
 
                 // Rebuild multipart content from parsed fields/files
-                var multi = new MultipartFormDataContent();                              
+                var multi = new MultipartFormDataContent();
 
                 // Copy simple fields
                 foreach (var kvp in form)
                 {
                     foreach (var val in kvp.Value)
                     {
-                        multi.Add(new StringContent(val), kvp.Key);                
+                        multi.Add(new StringContent(val), kvp.Key);
                     }
                 }
 
                 // Copy files (this is what the API binder needs)
                 foreach (var file in form.Files)
                 {
-                    var fileStream = file.OpenReadStream();                          
+                    var fileStream = file.OpenReadStream();
                     var sc = new StreamContent(fileStream);
                     if (!string.IsNullOrEmpty(file.ContentType))
                     {
                         sc.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
                     }
 
-                
-                    multi.Add(sc, file.Name, file.FileName);                            
+                    multi.Add(sc, file.Name, file.FileName);
                 }
 
-                forward.Content = multi;                                             
-                                                                                       
+                forward.Content = multi;
             }
             else
             {
@@ -123,15 +154,12 @@ public class ProxyController(IHttpClientFactory httpClientFactory, ITokenStorage
 
                 if (!string.IsNullOrEmpty(Request.ContentType))
                 {
-                 
                     content.Headers.TryAddWithoutValidation("Content-Type", Request.ContentType);
                 }
 
                 forward.Content = content;
             }
         }
-
-
 
         using var response = await client.SendAsync(forward, HttpCompletionOption.ResponseHeadersRead, ct);
 
