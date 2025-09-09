@@ -88,14 +88,16 @@
                                             <InputText class="form-control form-control-sm" placeholder="Type" @bind-Value="addActivityModel.Type" />
                                         </div>
                                         <div class="col">
-                                            <input type="datetime-local" class="form-control form-control-sm"
-                                                   @bind="addActivityModel.Starts"
-                                                   @bind:format="yyyy-MM-ddTHH:mm" />
+                                            <input type="datetime-local"
+                                                   class="form-control form-control-sm"
+                                                   value="@addActivityModel.Starts.ToString("yyyy-MM-ddTHH:mm")"
+                                                   @onchange="e => addActivityModel.Starts = DateTime.Parse(e.Value?.ToString() ?? DateTime.Now.ToString())" />
                                         </div>
                                         <div class="col">
-                                            <input type="datetime-local" class="form-control form-control-sm"
-                                                   @bind="addActivityModel.Ends"
-                                                   @bind:format="yyyy-MM-ddTHH:mm" />
+                                            <input type="datetime-local"
+                                                   class="form-control form-control-sm"
+                                                   value="@addActivityModel.Ends.ToString("yyyy-MM-ddTHH:mm")"
+                                                   @onchange="e => addActivityModel.Ends = DateTime.Parse(e.Value?.ToString() ?? DateTime.Now.ToString())" />
                                         </div>
                                     </div>
                                 </div>
@@ -125,14 +127,16 @@
                                                         <InputText class="form-control form-control-sm" @bind-Value="activityEditModel.Type" />
                                                     </div>
                                                     <div class="col">
-                                                        <input type="datetime-local" class="form-control form-control-sm"
-                                                               @bind="activityEditModel.Starts"
-                                                               @bind:format="yyyy-MM-ddTHH:mm" />
+                                                        <input type="datetime-local"
+                                                               class="form-control form-control-sm"
+                                                               value="@activityEditModel.Starts.ToString("yyyy-MM-ddTHH:mm")"
+                                                               @onchange="e => activityEditModel.Starts = DateTime.Parse(e.Value?.ToString() ?? DateTime.Now.ToString())" />
                                                     </div>
                                                     <div class="col">
-                                                        <input type="datetime-local" class="form-control form-control-sm"
-                                                               @bind="activityEditModel.Ends"
-                                                               @bind:format="yyyy-MM-ddTHH:mm" />
+                                                        <input type="datetime-local"
+                                                               class="form-control form-control-sm"
+                                                               value="@activityEditModel.Ends.ToString("yyyy-MM-ddTHH:mm")"
+                                                               @onchange="e => activityEditModel.Ends = DateTime.Parse(e.Value?.ToString() ?? DateTime.Now.ToString())" />
                                                     </div>
                                                 </div>
                                             </div>

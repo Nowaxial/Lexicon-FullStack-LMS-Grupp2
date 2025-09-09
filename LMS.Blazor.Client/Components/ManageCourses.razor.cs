@@ -137,17 +137,39 @@ public partial class ManageCourses : ComponentBase
 
     private async Task HandleModuleUpdated(ModuleDto updatedModule)
     {
-        var idx = selectedCourse?.Modules?.FindIndex(m => m.Id == updatedModule.Id) ?? -1;
-        if (idx >= 0 && selectedCourse?.Modules != null)
+        if (selectedCourse?.Modules == null) return;
+
+        var idx = selectedCourse.Modules.FindIndex(m => m.Id == updatedModule.Id);
+        if (idx >= 0)
+        {
             selectedCourse.Modules[idx] = updatedModule;
+        }
+        selectedModuleToEdit = updatedModule;
 
         StateHasChanged();
     }
 
     private async Task HandleModuleDeleted(int moduleId)
     {
-        if (selectedCourse?.Modules != null)
-            selectedCourse.Modules = selectedCourse.Modules.Where(m => m.Id != moduleId).ToList();
+        if (selectedCourse is null) return;
+
+        var updatedModules = selectedCourse.Modules?
+            .Where(m => m.Id != moduleId)
+            .ToList() ?? new List<ModuleDto>();
+
+        selectedCourse = new CourseDto
+        {
+            Id = selectedCourse.Id,
+            Name = selectedCourse.Name,
+            Description = selectedCourse.Description,
+            Starts = selectedCourse.Starts,
+            Ends = selectedCourse.Ends,
+            Modules = updatedModules
+        };
+
+        courses = courses?
+            .Select(c => c.Id == selectedCourse.Id ? selectedCourse : c)
+            .ToList();
 
         selectedModuleToEdit = null;
         StateHasChanged();
