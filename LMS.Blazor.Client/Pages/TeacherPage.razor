@@ -26,12 +26,9 @@ else
                     <h1 class="display-6 fw-bold m-0">Välkommen, @displayName!</h1>
 
                     <div class="header-actions ms-auto d-flex gap-2">
-                        <button type="button"
-                                class="btn btn-outline-secondary btn-create"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#addCourseTeacherPage">
+                        <a class="btn btn-outline-secondary btn-create" href="courses">
                             Skapa kurs
-                        </button>
+                        </a>
 
                         <a class="btn btn-hero btn-manage" href="/Account/Manage">
                             Hantera ditt konto
@@ -57,7 +54,7 @@ else
                                     </div>
                                     <div class="course-row__actions">
                                         <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
-                                            <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="@($"courses/{c.Id}/edit")">Hantera</NavLink>
+                                            <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="courses">Hantera</NavLink>
                                     </div>
                                 </div>
                             }
