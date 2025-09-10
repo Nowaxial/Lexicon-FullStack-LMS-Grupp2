@@ -82,6 +82,8 @@ else
                                                                     <th>Datum</th>
                                                                     <th>Aktivitet</th>
                                                                     <th>Typ</th>
+                                                                    <th>Status</th>
+                                                                    <th></th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
@@ -97,6 +99,14 @@ else
                                                                             }
                                                                         </td>
                                                                         <td><span class="badge bg-secondary">@activity.Type</span></td>
+
+                                                                        <td class="text-nowrap">
+                                                                            @{
+                                                                                var st = GetActivityUiStatus(activity);
+                                                                            }
+                                                                            <span class="@st.cssClass">@st.label</span>
+                                                                        </td>
+
                                                                         <td class="text-end">
                                                                             <button type="button"
                                                                                     class="btn btn-sm btn-outline-secondary"

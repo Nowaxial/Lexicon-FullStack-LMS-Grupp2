@@ -3,8 +3,10 @@ using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
+using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 using UserDto = LMS.Shared.DTOs.UsersDtos.UserDto;
 
 namespace LMS.Blazor.Client.Components.Pages
@@ -29,6 +31,13 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private StudentDocuments? _docsList;
 
+        private string? _userId;
+        private readonly HashSet<int> completedActivityIds = new();
+
+        private const string LABEL_DONE = "Klar";
+        private const string LABEL_WAITING = "Väntar";
+        private const string LABEL_POSTPONED = "Försenad";
+
 
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -44,6 +53,12 @@ namespace LMS.Blazor.Client.Components.Pages
                     displayName = !string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName)
                         ? $"{firstName} {lastName}".Trim()
                         : auth.User.Identity?.Name ?? displayName;
+
+                    _userId =
+                        auth.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                        auth.User.FindFirst("sub")?.Value ??
+                        auth.User.FindFirst("Id")?.Value ??
+                        auth.User.Identity?.Name;
                 }
 
                 await LoadStudentDataAsync();
@@ -63,7 +78,7 @@ namespace LMS.Blazor.Client.Components.Pages
             }
         }
 
-        
+
 
 
         private async Task LoadStudentCourseAsync()
@@ -120,6 +135,8 @@ namespace LMS.Blazor.Client.Components.Pages
 
                     moduleActivities[moduleId] = activities?.ToList() ?? new List<ProjActivityDto>();
                 }
+
+                await LoadApprovedCompletionsForModuleAsync(moduleId);
             }
         }
 
@@ -142,10 +159,84 @@ namespace LMS.Blazor.Client.Components.Pages
             await _uploadModal.ShowAsync();
         }
 
-        private async Task RefreshDocumentsAsync() 
+        private async Task RefreshDocumentsAsync()
         {
             if (_docsList is not null)
                 await _docsList.RefreshAsync();
+
+            foreach (var moduleId in expandedModules.ToList())
+            {
+                await LoadApprovedCompletionsForModuleAsync(moduleId, force: true);
+            }
+
+            StateHasChanged();
         }
+
+        private async Task LoadApprovedCompletionsForModuleAsync(int moduleId, bool force = false)
+        {
+            if (currentCourse is null || string.IsNullOrWhiteSpace(_userId))
+                return;
+
+            var docs = await ApiService.CallApiAsync<IEnumerable<ProjDocumentDto>>(
+                $"api/documents/by-module/{moduleId}");
+
+            var approvedActivityIds = (docs ?? Enumerable.Empty<ProjDocumentDto>())
+                .Where(d =>
+                    d.IsSubmission &&
+                    d.ActivityId.HasValue &&
+                    string.Equals(d.StudentId ?? "", _userId, StringComparison.OrdinalIgnoreCase) &&
+                    IsApprovedStatus(d.Status))
+                .Select(d => d.ActivityId!.Value)
+                .ToHashSet();
+
+
+            if(force)
+            {
+                if (moduleActivities.TryGetValue(moduleId, out var acts) && acts?.Count > 0)
+                {
+                    var moduleActIds = acts.Select(a => a.Id).ToHashSet();
+                    completedActivityIds.RemoveWhere(id => moduleActIds.Contains(id));
+                }
+            }
+
+            foreach (var id in approvedActivityIds)
+                completedActivityIds.Add(id);
+
+        }
+
+        private static bool IsApprovedStatus(string? status)
+        {
+            var v = (status ?? "").Trim().ToLowerInvariant();
+            return v is "approved" or "godkänd";
+        }
+
+        private DateOnly? GetActivityDue(ProjActivityDto a)
+        {
+            object ends = a.Ends;
+
+            return ends switch
+            {
+                DateOnly d when d != default => d,
+                DateTime dt when dt != default => DateOnly.FromDateTime(dt),
+                _ => null
+            };
+        }
+
+        private static DateOnly Today() => DateOnly.FromDateTime(DateTime.Now);
+
+        private (string label, string cssClass) GetActivityUiStatus(ProjActivityDto a)
+        {
+            if (completedActivityIds.Contains(a.Id))
+                return (LABEL_DONE, "badge bg-success");
+
+            var due = GetActivityDue(a);
+            
+            if (due.HasValue && Today() > due.Value)
+                return (LABEL_POSTPONED, "badge bg-danger");
+
+            return (LABEL_WAITING, "badge bg-warning text-dark");
+        }
+
+
     }
 }
