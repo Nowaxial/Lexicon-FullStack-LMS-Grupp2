@@ -1,5 +1,4 @@
-﻿using LMS.Blazor.Client.Components.CourseComponents;
-using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
@@ -63,7 +62,7 @@ namespace LMS.Blazor.Client.Components.Pages
         private readonly List<DocItem> _latestDocs = new();
         private bool _loadingDocs;
 
-    
+
         private static string BuildDownloadUrl(int id)
             => $"proxy?endpoint={Uri.EscapeDataString($"api/documents/{id}/download")}";
 
@@ -146,10 +145,10 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private async Task CallAPIAsync()
         {
-           await LoadMyCoursesAsync();
-           await LoadUpcomingActivitiesAsync();
-           await LoadModulesAsync();
-           await LoadLatestDocsAsync();
+            await LoadMyCoursesAsync();
+            await LoadUpcomingActivitiesAsync();
+            await LoadModulesAsync();
+            await LoadLatestDocsAsync();
         }
 
         private void ToggleUpcoming() => showMoreUpcoming = !showMoreUpcoming;
@@ -222,7 +221,7 @@ namespace LMS.Blazor.Client.Components.Pages
             await Task.WhenAll(moduleFetches);
 
             Upcoming.Sort((x, y) => DateTime.Compare(x.Starts, y.Starts));
-            if (Upcoming.Count > 20) 
+            if (Upcoming.Count > 20)
                 Upcoming.RemoveRange(20, Upcoming.Count - 20);
         }
 
@@ -254,12 +253,12 @@ namespace LMS.Blazor.Client.Components.Pages
                     $"api/modules/{m.Id}/activities", ct
                 ) ?? Enumerable.Empty<ProjActivityDto>();
 
-                return new {Module = m, Count = acts.Count()};
+                return new { Module = m, Count = acts.Count() };
             });
 
             var counted = await Task.WhenAll(countActivities);
 
-            foreach(var c in  counted
+            foreach (var c in counted
                 .OrderBy(c => c.Module.Starts)
                 .ThenBy(c => c.Module.Name))
             {
@@ -375,7 +374,7 @@ namespace LMS.Blazor.Client.Components.Pages
             var old = doc.Status;
 
             _savingDocIds.Add(doc.Id);
-            _latestDocs[index] = doc with { Status = newStatus.ToString() }; 
+            _latestDocs[index] = doc with { Status = newStatus.ToString() };
             StateHasChanged();
 
             try
@@ -384,7 +383,7 @@ namespace LMS.Blazor.Client.Components.Pages
             }
             catch (Exception ex)
             {
-                _latestDocs[index] = doc with { Status = old }; 
+                _latestDocs[index] = doc with { Status = old };
                 await JS.InvokeVoidAsync("console.error", $"SetStatus failed for doc {doc.Id}: {ex}");
                 await JS.InvokeVoidAsync("alert", "Kunde inte spara status. Försök igen.");
             }
