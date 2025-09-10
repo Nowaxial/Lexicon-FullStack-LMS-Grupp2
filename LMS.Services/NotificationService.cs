@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using LMS.Shared.DTOs;
 using Service.Contracts;
+using Domain.Contracts.Repositories;
 
 namespace LMS.Services;
 
@@ -10,10 +11,21 @@ public class NotificationService : INotificationService
     private static readonly string NotificationsFilePath = Path.Combine(DataFolder, "notifications.json");
     private static readonly string ContactFilePath = Path.Combine(DataFolder, "contact-messages.json");
     private readonly EncryptionService _encryptionService;
+    private readonly IUnitOfWork? _uow;
 
+    // Konstruktor för Blazor (utan UnitOfWork)
     public NotificationService(EncryptionService encryptionService)
     {
         _encryptionService = encryptionService;
+        _uow = null;
+        Directory.CreateDirectory(DataFolder);
+    }
+
+    // Konstruktor för API (med UnitOfWork)
+    public NotificationService(EncryptionService encryptionService, IUnitOfWork uow)
+    {
+        _encryptionService = encryptionService;
+        _uow = uow;
         Directory.CreateDirectory(DataFolder);
     }
 
@@ -26,14 +38,17 @@ public class NotificationService : INotificationService
     public async Task<List<NotificationItem>> GetNotificationsForUserAsync(string userId)
     {
         var notifications = await GetAllNotificationsAsync();
-        return notifications.Select(n => new NotificationItem
-        {
-            Id = n.Id,
-            Message = n.Message,
-            Timestamp = n.Timestamp,
-            IsRead = n.ReadBy.Contains(userId),
-            ReadBy = n.ReadBy
-        }).ToList();
+        return notifications
+            .Where(n => n.TargetTeachers.Count == 0 || n.TargetTeachers.Contains(userId))
+            .Select(n => new NotificationItem
+            {
+                Id = n.Id,
+                Message = n.Message,
+                Timestamp = n.Timestamp,
+                IsRead = n.ReadBy.Contains(userId),
+                ReadBy = n.ReadBy,
+                TargetTeachers = n.TargetTeachers
+            }).ToList();
     }
 
     public async Task MarkAsReadAsync(string notificationId, string userId)
@@ -117,7 +132,8 @@ public class NotificationService : INotificationService
             Id = Guid.NewGuid().ToString(),
             Message = message,
             Timestamp = DateTime.Now,
-            ReadBy = new List<string>()
+            ReadBy = new List<string>(),
+            TargetTeachers = new List<string>()
         };
 
         notifications.Insert(0, newNotification);
@@ -149,6 +165,7 @@ public class NotificationService : INotificationService
             await SaveNotificationsAsync(notifications);
         }
     }
+
     public async Task<ContactMessageDto?> DecryptContactMessageDirectAsync(string encryptedData)
     {
         try
@@ -174,10 +191,27 @@ public class NotificationService : INotificationService
         }
     }
 
-    public async Task NotifyFileUploadAsync(string studentName, string courseName, string moduleName, string activityTitle, string fileName, int documentId)
+    public async Task NotifyFileUploadAsync(string studentName, string courseName, string moduleName, string activityTitle, string fileName, int documentId, int courseId)
     {
-        var message = $"{studentName} laddade upp '{fileName}' i {courseName} > {moduleName} > {activityTitle}|{documentId}";
-        await AddNotificationAsync(message);
+        if (_uow != null)
+        {
+            var teacherIds = await _uow.CourseUserRepository.GetTeacherUserIdsByCourseAsync(courseId);
+
+            var message = $"{studentName} laddade upp '{fileName}' i {courseName} > {moduleName} > {activityTitle}|{documentId}";
+
+            var newNotification = new NotificationItem
+            {
+                Id = Guid.NewGuid().ToString(),
+                Message = message,
+                Timestamp = DateTime.Now,
+                ReadBy = new List<string>(),
+                TargetTeachers = teacherIds.ToList()
+            };
+
+            var notifications = await GetAllNotificationsAsync();
+            notifications.Insert(0, newNotification);
+            await SaveNotificationsAsync(notifications);
+        }
     }
 
     public async Task DeleteNotificationByDocumentIdAsync(int documentId)
@@ -196,6 +230,4 @@ public class NotificationService : INotificationService
             await SaveNotificationsAsync(notifications);
         }
     }
-
-
 }

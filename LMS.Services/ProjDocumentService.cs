@@ -95,7 +95,9 @@ namespace LMS.Services
                 var moduleName = doc?.Module?.Name ?? "Okänd modul";
                 var activityTitle = doc?.Activity?.Title ?? "Okänd aktivitet";
 
-                await _notificationService.NotifyFileUploadAsync(studentName, courseName, moduleName, activityTitle, entity.DisplayName, entity.Id);
+                await _notificationService.NotifyFileUploadAsync(studentName, courseName, moduleName, activityTitle, entity.DisplayName, entity.Id, meta.CourseId ?? 0);
+
+
             }
 
             return _mapper.Map<ProjDocumentDto>(entity);

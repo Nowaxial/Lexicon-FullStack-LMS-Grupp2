@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Service.Contracts;
 
+await Task.Delay(5000);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
