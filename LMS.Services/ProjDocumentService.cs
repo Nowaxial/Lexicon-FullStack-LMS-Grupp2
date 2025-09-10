@@ -2,16 +2,9 @@
 using Domain.Contracts.Repositories;
 using Domain.Models.Entities;
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Service.Contracts;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.StaticFiles;
 using Service.Contracts.Storage;
 
 namespace LMS.Services
@@ -96,8 +89,6 @@ namespace LMS.Services
                 var activityTitle = doc?.Activity?.Title ?? "Okänd aktivitet";
 
                 await _notificationService.NotifyFileUploadAsync(studentName, courseName, moduleName, activityTitle, entity.DisplayName, entity.Id, meta.CourseId ?? 0);
-
-
             }
 
             return _mapper.Map<ProjDocumentDto>(entity);
@@ -138,20 +129,28 @@ namespace LMS.Services
             return true;
         }
 
-
-
-        public async Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string changedByUserId, CancellationToken ct = default)
+        // Updated method for setting status
+        public async Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string? feedback, string changedByUserId, CancellationToken ct = default)
         {
             if (documentId <= 0) throw new ArgumentOutOfRangeException(nameof(documentId));
             if (string.IsNullOrWhiteSpace(changedByUserId)) throw new ArgumentException("User is required.", nameof(changedByUserId));
 
-            var persisted = status.ToString();
+            var document = await _uow.ProjDocumentRepository.GetByIdAsync(documentId, trackChanges: true);
+            if (document == null) return false;
 
-            var ok = await _uow.ProjDocumentRepository.SetStatusAsync(documentId, persisted, changedByUserId, ct);
-            
+            // Kombinera status och feedback i Status-fältet
+            document.Status = string.IsNullOrEmpty(feedback)
+                ? status.ToString()
+                : $"{status}: {feedback}";
+
             await _uow.CompleteAsync();
-            return ok;
+            return true;
         }
 
+        // Keeped for backwards compatibility
+        public async Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string changedByUserId, CancellationToken ct = default)
+        {
+            return await SetStatusAsync(documentId, status, null, changedByUserId, ct);
+        }
     }
 }

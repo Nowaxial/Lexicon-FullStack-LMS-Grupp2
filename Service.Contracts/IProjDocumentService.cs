@@ -26,7 +26,6 @@ namespace Service.Contracts
 
         Task<bool> DeleteAsync(int id, CancellationToken ct = default);
 
-        Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string changedByUserId, CancellationToken ct = default);
-
+        Task<bool> SetStatusAsync(int documentId, DocumentStatus status, string? feedback, string userId, CancellationToken ct);
     }
 }

@@ -19,9 +19,9 @@
 }
 else
 {
-<AuthorizeView Roles="Teacher" Context="ctx">
-    <Authorized>
-        <section class="container-fluid lms-container teacher-wrap py-4">
+    <AuthorizeView Roles="Teacher" Context="ctx">
+        <Authorized>
+            <section class="container-fluid lms-container teacher-wrap py-4">
                 <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
                     <h1 class="display-6 fw-bold m-0">Välkommen, @displayName!</h1>
 
@@ -39,134 +39,124 @@ else
                     </div>
                 </div>
 
+                <div class="row g-4">
+                    <div class="col-12 col-lg-8">
+                        <article class="dash-card">
+                            <div class="d-flex flex-column">
+                                <div class="dash-card__head">Mina kurser</div>
 
-
-            <div class="row g-4">
-                <div class="col-12 col-lg-8">
-                    <article class="dash-card">
-                        <div class="d-flex flex-column">
-                            <div class="dash-card__head">Mina kurser</div>
-
-                            @foreach (var c in Courses)
-                            {
-                                <div class="course-row">
-                                    <div class="course-row__title">@c.Title</div>
-                                    <div class="course-row__meta">
-                                        <div><span class="label">Elever</span><span>@c.Students</span></div>
-                                        <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
-                                    </div>
-                                    <div class="course-row__actions">
-                                        <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
+                                @foreach (var c in Courses)
+                                {
+                                    <div class="course-row">
+                                        <div class="course-row__title">@c.Title</div>
+                                        <div class="course-row__meta">
+                                            <div><span class="label">Elever</span><span>@c.Students</span></div>
+                                            <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
+                                        </div>
+                                        <div class="course-row__actions">
+                                            <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
                                             <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="@($"courses/{c.Id}/edit")">Hantera</NavLink>
+                                        </div>
                                     </div>
-                                </div>
-                            }
-                        </div>
-                    </article>
-
+                                }
+                            </div>
+                        </article>
 
                         <article class="dash-card mt-4">
-    <div class="dash-card__head d-flex justify-content-between align-items-center">
-        <span>Kommande aktiviteter</span>
-        @{
-            var totalCount = Upcoming?.Count ?? 0;
-            var totalPagesLocal = Math.Max(1, (int)Math.Ceiling(totalCount / (double)ActivitiesPageSize));
-        }
-        @if (totalCount > ActivitiesPageSize)
-        {
-            <small class="text-muted">Sida @activitiesPage av @totalPagesLocal</small>
-        }
-    </div>
-
-    @{
-        var list = (Upcoming ?? new List<ProjActivityDto>()).OrderBy(a => a.Starts).ToList();
-        var count = list.Count;
-        var totalPages = Math.Max(1, (int)Math.Ceiling(count / (double)ActivitiesPageSize));
-
-        if (activitiesPage < 1) activitiesPage = 1;
-        if (activitiesPage > totalPages) activitiesPage = totalPages;
-
-        var skip = (activitiesPage - 1) * ActivitiesPageSize;
-        var pageItems = list.Skip(skip).Take(ActivitiesPageSize).ToList();
-    }
-
-    <div class="table-responsive">
-        <table class="table table-sm table-borderless align-middle m-0">
-            <thead>
-                <tr class="text-muted">
-                    <th style="width: 140px;">Datum</th>
-                    <th>Aktivitet</th>
-                    <th style="width: 160px;" class="text-end">Kurs</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (pageItems.Count == 0)
-                {
-                    <tr>
-                        <td colspan="3" class="text-muted">Inga kommande aktiviteter.</td>
-                    </tr>
-                }
-                else
-                {
-                    @foreach (var a in pageItems)
-                    {
-                        <tr class="rowline">
-                            <!-- Datum (Module above date) -->
-                            <td class="text-nowrap align-middle" style="width:140px;">
-                                <div class="d-flex flex-column text-start">
-                                    <small class="text-muted">Modul @a.ModuleId</small>
-                                    <span class="acts-data">@a.Starts.ToString("dd MMM")</span>
-                                </div>
-                            </td>
-
-                            <!-- Aktivitet -->
-                            <td>
-                                <div class="fw-semibold">@a.Title</div>
-                                @if (!string.IsNullOrWhiteSpace(a.Description))
-                                {
-                                    <small class="text-muted d-block text-truncate" style="max-width:36rem;">
-                                        @a.Description
-                                    </small>
+                            <div class="dash-card__head d-flex justify-content-between align-items-center">
+                                <span>Kommande aktiviteter</span>
+                                @{
+                                    var totalCount = Upcoming?.Count ?? 0;
+                                    var totalPagesLocal = Math.Max(1, (int)Math.Ceiling(totalCount / (double)ActivitiesPageSize));
                                 }
-                            </td>
+                                @if (totalCount > ActivitiesPageSize)
+                                {
+                                    <small class="text-muted">Sida @activitiesPage av @totalPagesLocal</small>
+                                }
+                            </div>
 
-                            <!-- Kurs -->
-                            <td class="text-end text-nowrap" style="width:160px;">
-                                <a class="link-accent" href="@($"/courses/{a.CourseId}")">
-                                    @CourseTitle(a.CourseId)
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-    </div>
+                            @{
+                                var list = (Upcoming ?? new List<ProjActivityDto>()).OrderBy(a => a.Starts).ToList();
+                                var count = list.Count;
+                                var totalPages = Math.Max(1, (int)Math.Ceiling(count / (double)ActivitiesPageSize));
 
-    @if (totalPages > 1)
-    {
-        <div class="d-flex justify-content-between align-items-center mt-2">
-            <button class="btn btn-sm btn-outline-secondary"
-                    disabled="@(activitiesPage <= 1)"
-                    @onclick="() => activitiesPage = Math.Max(1, activitiesPage - 1)">
-                ‹ Föregående
-            </button>
+                                if (activitiesPage < 1) activitiesPage = 1;
+                                if (activitiesPage > totalPages) activitiesPage = totalPages;
 
-            <small class="text-muted">Sida @activitiesPage / @totalPages</small>
+                                var skip = (activitiesPage - 1) * ActivitiesPageSize;
+                                var pageItems = list.Skip(skip).Take(ActivitiesPageSize).ToList();
+                            }
 
-            <button class="btn btn-sm btn-outline-secondary"
-                    disabled="@(activitiesPage >= totalPages)"
-                    @onclick="() => activitiesPage = Math.Min(totalPages, activitiesPage + 1)">
-                Nästa ›
-            </button>
-        </div>
-    }
-</article>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless align-middle m-0">
+                                    <thead>
+                                        <tr class="text-muted">
+                                            <th style="width: 140px;">Datum</th>
+                                            <th>Aktivitet</th>
+                                            <th style="width: 160px;" class="text-end">Kurs</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (pageItems.Count == 0)
+                                        {
+                                            <tr>
+                                                <td colspan="3" class="text-muted">Inga kommande aktiviteter.</td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var a in pageItems)
+                                            {
+                                                <tr class="rowline">
+                                                    <td class="text-nowrap align-middle" style="width:140px;">
+                                                        <div class="d-flex flex-column text-start">
+                                                            <small class="text-muted">Modul @a.ModuleId</small>
+                                                            <span class="acts-data">@a.Starts.ToString("dd MMM")</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="fw-semibold">@a.Title</div>
+                                                        @if (!string.IsNullOrWhiteSpace(a.Description))
+                                                        {
+                                                            <small class="text-muted d-block text-truncate" style="max-width:36rem;">
+                                                                @a.Description
+                                                            </small>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end text-nowrap" style="width:160px;">
+                                                        <a class="link-accent" href="@($"/courses/{a.CourseId}")">
+                                                            @CourseTitle(a.CourseId)
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
 
+                            @if (totalPages > 1)
+                            {
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            disabled="@(activitiesPage <= 1)"
+                                            @onclick="() => activitiesPage = Math.Max(1, activitiesPage - 1)">
+                                        ‹ Föregående
+                                    </button>
 
-                </div>
+                                    <small class="text-muted">Sida @activitiesPage / @totalPages</small>
 
-                    
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            disabled="@(activitiesPage >= totalPages)"
+                                            @onclick="() => activitiesPage = Math.Min(totalPages, activitiesPage + 1)">
+                                        Nästa ›
+                                    </button>
+                                </div>
+                            }
+                        </article>
+
+                    </div>
+
                     <div class="col-12 col-lg-4">
 
                         <article class="dash-card">
@@ -234,7 +224,6 @@ else
                             }
                         </article>
 
-                      
                         <article class="dash-card mt-4 teacher-inbox">
                             <div class="dash-card__head d-flex justify-content-between align-items-center">
                                 <span>Nya inlämningar</span>
@@ -268,29 +257,24 @@ else
                                         var ext = System.IO.Path.GetExtension(d.DisplayName ?? string.Empty)
                                         .TrimStart('.').ToUpperInvariant();
 
-
                                         <li class="subm-card">
                                             <div class="subm-avatar" title="@ext">
                                                 <i class="bi bi-file-earmark-text"></i>
                                             </div>
-                                    
 
                                             <div class="subm-info">
                                                 <div class="d-flex justify-content-between">
-                                                <div class="subm-name">
-                                                    @d.DisplayName
-                                                    @if (!string.IsNullOrWhiteSpace(ext))
-                                                    {
-                                                        <span class="subm-ext">@ext</span>
-                                                    }
+                                                    <div class="subm-name">
+                                                        @d.DisplayName
+                                                        @if (!string.IsNullOrWhiteSpace(ext))
+                                                        {
+                                                            <span class="subm-ext">@ext</span>
+                                                        }
+                                                    </div>
                                                 </div>
-                          
-
-                                            </div>
 
                                                 <div class="subm-desc">
                                                     <i class="bi bi-person me-1"></i>@d.StudentName
-                                                    
                                                     <span class="sep">·</span>@CourseTitle(d.CourseId)
                                                 </div>
 
@@ -299,21 +283,20 @@ else
                                                     @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                                 </div>
 
-
                                                 <div class="">
                                                     <div class="dropdown">
-                                                        <button class="btn btn-sm dropdown-toggle subm-status @StatusCss(d.Status)"
-                                                                type="button"
-                                                                id="dd-@d.Id"
-                                                                data-bs-toggle="dropdown"
-                                                                aria-expanded="false"
-                                                                disabled="@_savingDocIds.Contains(d.Id)">
+                                                        <span class="dropdown-toggle subm-status @StatusCss(d.Status)"
+                                                              role="button"
+                                                              id="dd-@d.Id"
+                                                              data-bs-toggle="dropdown"
+                                                              aria-expanded="false"
+                                                              style="cursor: pointer;">
                                                             @LabelFor(ParseStatus(d.Status))
                                                             @if (_savingDocIds.Contains(d.Id))
                                                             {
                                                                 <span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>
                                                             }
-                                                        </button>
+                                                        </span>
 
                                                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dd-@d.Id">
                                                             @foreach (var opt in _statusOptions)
@@ -321,7 +304,8 @@ else
                                                                 var isActive = ParseStatus(d.Status) == opt;
                                                                 <li>
                                                                     <button class="dropdown-item @(isActive ? "active" : null)"
-                                                                            @onclick="() => ChangeStatusAsync(d, opt)">
+                                                                            @onclick="() => ChangeStatusAsync(d, opt)"
+                                                                            disabled="@_savingDocIds.Contains(d.Id)">
                                                                         @LabelFor(opt)
                                                                     </button>
                                                                 </li>
@@ -329,6 +313,20 @@ else
                                                         </ul>
                                                     </div>
                                                 </div>
+
+                                                <div class="feedback-row mt-2">
+                                                    <span class="subm-feedback-badge"
+                                                          @onclick="() => OpenFeedbackModal(d)"
+                                                          style="cursor: pointer;"
+                                                          disabled="@_savingDocIds.Contains(d.Id)">
+                                                        <i class="bi bi-chat-text me-1"></i>Feedback
+                                                        @if (_savingDocIds.Contains(d.Id))
+                                                        {
+                                                            <span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>
+                                                        }
+                                                    </span>
+                                                </div>
+
                                             </div>
 
                                             <div class="subm-actions">
@@ -337,28 +335,89 @@ else
                                                     <i class="bi bi-download me-1"></i>
                                                 </a>
                                             </div>
-                                           
                                         </li>
                                     }
                                 </ul>
                             }
                         </article>
 
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feedback Modal -->
+            <div class="modal fade" id="feedbackModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content lms-modal">
+                        <div class="modal-header lms-modal-header">
+                            <h5 class="modal-title">
+                                <i class="bi bi-chat-text me-2"></i>Ge feedback
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body lms-modal-body">
+                            <div class="lms-form-group">
+                                <label class="lms-label">Fil:</label>
+                                <p class="lms-text-muted">@currentDocument?.DisplayName</p>
+                            </div>
+                            <div class="lms-form-group">
+                                <label class="lms-label">Student:</label>
+                                <p class="lms-text-muted">@currentDocument?.StudentName</p>
+                            </div>
+                            <div class="lms-form-group">
+                                <label class="lms-label">Tidigare feedback:</label>
+                                @if (currentDocument?.Status.Contains(":") == true)
+                                {
+                                    <div class="previous-feedback">
+                                        @{
+                                            var previousFeedback = currentDocument.Status.Split(':', 2)[1].Trim();
+                                        }
+                                        <pre class="lms-previous-feedback">@previousFeedback</pre>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <p class="lms-text-muted">Ingen tidigare feedback</p>
+                                }
+                            </div>
+                            <div class="lms-form-group">
+                                <label class="lms-label">Status:</label>
+                                <select @bind="feedbackStatus" class="lms-select">
+                                    <option value="Godkänd">Godkänd</option>
+                                    <option value="Underkänd">Underkänd</option>
+                                    <option value="Granskning">Granskning</option>
+                                    <option value="Ej bedömd">Ej bedömd</option>
+                                </select>
+                            </div>
+
+                            <div class="lms-form-group">
+                                <label class="lms-label">Ny feedback:</label>
+                                <textarea @bind="feedbackText" class="lms-textarea" rows="4" placeholder="Skriv din nya feedback här..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer lms-modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Avbryt</button>
+                            <button type="button" class="btn btn-hero" @onclick="SaveFeedbackAsync" disabled="@_savingFeedback">
+                                @if (_savingFeedback)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                }
+                                Spara
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </section>
-    </Authorized>
 
-    <NotAuthorized>
-        <div class="container py-5">
-            <div class="alert alert-warning">Du måste vara inloggad som lärare för att visa denna sida.</div>
-            <NavLink class="btn btn-primary" href="Account/Login">Logga in</NavLink>
-        </div>
-    </NotAuthorized>
-</AuthorizeView>
+        </Authorized>
 
-  
+        <NotAuthorized>
+            <div class="container py-5">
+                <div class="alert alert-warning">Du måste vara inloggad som lärare för att visa denna sida.</div>
+                <NavLink class="btn btn-primary" href="Account/Login">Logga in</NavLink>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
 
     <script src="app.js"></script>
 }
-

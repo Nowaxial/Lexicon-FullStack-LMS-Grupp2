@@ -382,3 +382,113 @@ a.link-accent:hover {
         background: #fdecec;
         border-color: #f5bcbc;
     }
+
+
+/* Feedback badge */
+.subm-feedback-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem .6rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--base);
+    background: var(--bg-main);
+    border: 1px solid var(--bg-main);
+    border-radius: 9999px;
+    line-height: 1;
+    margin-top: .5rem;
+    transition: all .15s ease;
+}
+
+    .subm-feedback-badge:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,.1);
+    }
+
+/* Modal styling */
+.lms-modal {
+    border: 1px solid #e6e6e6;
+    border-radius: .75rem;
+    box-shadow: 0 10px 40px rgba(23,37,42,.15);
+}
+
+.lms-modal-header {
+    background: var(--muted);
+    border-bottom: 1px solid #e6e6e6;
+    border-radius: .75rem .75rem 0 0;
+    padding: 1.25rem 1.5rem;
+}
+
+    .lms-modal-header .modal-title {
+        color: var(--bg-main);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+    }
+
+.lms-modal-body {
+    padding: 1.5rem;
+}
+
+.lms-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.lms-label {
+    display: block;
+    font-weight: 600;
+    color: var(--bg-main);
+    margin-bottom: .5rem;
+}
+
+.lms-text-muted {
+    color: var(--bs-secondary-color, #6c757d);
+    margin: 0;
+    padding: .5rem .75rem;
+    background: #f8f9fa;
+    border-radius: .5rem;
+    border: 1px solid #e6e6e6;
+}
+
+.lms-select {
+    width: 100%;
+    padding: .6rem .75rem;
+    border: 1px solid #e6e6e6;
+    border-radius: .5rem;
+    background: var(--base);
+    color: var(--text);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+    .lms-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(43,122,120,.1);
+    }
+
+.lms-textarea {
+    width: 100%;
+    padding: .75rem;
+    border: 1px solid #e6e6e6;
+    border-radius: .5rem;
+    background: var(--base);
+    color: var(--text);
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+    .lms-textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(43,122,120,.1);
+    }
+
+.lms-modal-footer {
+    background: #f8f9fa;
+    border-top: 1px solid #e6e6e6;
+    border-radius: 0 0 .75rem .75rem;
+    padding: 1rem 1.5rem;
+}
