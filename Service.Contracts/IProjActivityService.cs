@@ -10,5 +10,7 @@ namespace Service.Contracts
         Task<ProjActivityDto> CreateActivityAsync(int moduleId, CreateProjActivityDto dto);
         Task UpdateActivityAsync(int id, UpdateProjActivityDto dto);
         Task DeleteActivityAsync(int id);
+
+        Task<IEnumerable<ProjActivityDto>> SearchActivitiesAsync(string query, bool trackChanges = false);
     }
 }

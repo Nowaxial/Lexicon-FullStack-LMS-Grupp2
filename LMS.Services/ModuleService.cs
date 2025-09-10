@@ -106,5 +106,14 @@ namespace LMS.Services
             await _unitOfWork.CompleteAsync();
             return true;
         }
+
+        public async Task<IEnumerable<ModuleDto>> SearchModulesAsync(string query, bool trackChanges = false)
+        {
+            var modules = await _unitOfWork.ModuleRepository
+                .FindByCondition(m => m.Name.Contains(query) || (m.Description ?? "").Contains(query), trackChanges)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ModuleDto>>(modules);
+        }
     }
 }

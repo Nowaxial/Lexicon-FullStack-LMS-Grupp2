@@ -21,5 +21,7 @@ namespace Service.Contracts
         Task<bool> UnassignUserAsync(int courseId, string userId);
         Task<bool> IsUserInCourseAsync(int courseId, string userId);
         Task<IEnumerable<UserDto>> GetUsersForCourseAsync(int courseId);
+
+        Task<IEnumerable<CourseDto>> SearchCoursesAsync(string query, bool trackChanges = false);
     }
 }

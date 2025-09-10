@@ -3,7 +3,8 @@
 @using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
 @using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
 @using LMS.Blazor.Client.Services
-<!-- Active Course -->
+
+<!-- Teacher Tools -->
 <div class="accordion mb-4" id="teacherToolsAccordion">
     <!-- Manage Users -->
     <div class="accordion-item">
@@ -40,7 +41,25 @@
             </div>
         </div>
     </div>
+
+    <!--  Search -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingSearch">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseSearch"
+                    aria-expanded="false" aria-controls="collapseSearch">
+                <i class="bi bi-search me-2"></i> Sök
+            </button>
+        </h2>
+        <div id="collapseSearch" class="accordion-collapse collapse"
+             aria-labelledby="headingSearch" data-bs-parent="#teacherToolsAccordion">
+            <div class="accordion-body">
+                <SearchBar OnResultSelected="HandleSearchResult" />
+            </div>
+        </div>
+    </div>
 </div>
+
 @if (selectedCourse != null)
 {
     <div class="active-course mb-4">
@@ -51,19 +70,19 @@
                       OnItemSelected="OnCourseSelected"
                       OnAddCourse="AddCourseAsync"
                       OnDeleteCourse="DeleteCourseAsync"
-                      OnSaveCourse="SaveCourseAsync" 
+                      OnSaveCourse="SaveCourseAsync"
                       IsTeacher="IsTeacher"
                       Id="courseNav" />
         }
 
         <!-- Modules viewer -->
-        <ModuleStrip Modules="selectedCourse?.Modules"
+        <ModuleStrip @ref="moduleStripRef"
+                     Modules="selectedCourse?.Modules"
                      CourseId="selectedCourse?.Id ?? 0"
                      Id="moduleViewer"
                      IsTeacher="IsTeacher"
+                     SelectedModuleId="selectedModuleId"
                      OnEditModuleRequested="HandleEditModule"
                      OnAddModule="HandleAddModule" />
-
-        <!-- Course navigation -->
     </div>
 }

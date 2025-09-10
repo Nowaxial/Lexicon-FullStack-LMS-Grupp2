@@ -18,5 +18,6 @@ namespace Service.Contracts
         Task<bool> UpdateModuleAsync(int id, ModuleUpdateDto dto);
         Task<bool> DeleteModuleAsync(int id);
 
+        Task<IEnumerable<ModuleDto>> SearchModulesAsync(string query, bool trackChanges = false);
     }
 }
