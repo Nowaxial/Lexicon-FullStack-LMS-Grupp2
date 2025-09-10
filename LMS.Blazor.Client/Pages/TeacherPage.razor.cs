@@ -33,20 +33,19 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private List<ModuleDto> modules = new();
 
-        // Feedback properties
-        private string feedbackStatus = "Ej bedömd";
-        private string feedbackText = "";
-        private DocItem? currentDocument;
-        private bool _savingFeedback = false;
-
         private sealed record CourseItem(int Id, string Title, int Students, DateTime StartDate);
         private sealed record ModuleItem(string Title, int Items);
         private sealed record SubmissionItem(int Id, string Assignment, string Student, string Status);
 
+
         private readonly List<CourseItem> Courses = new();
+
         private readonly List<ModuleItem> Modules = new();
+
         private readonly List<ProjActivityDto> Upcoming = new();
+
         private readonly List<ProjDocumentDto> RecentDocs = new();
+
         private readonly Dictionary<int, string> _courseNameCache = new();
 
         // ---- Documents (Nya inlämningar) ----
@@ -83,124 +82,16 @@ namespace LMS.Blazor.Client.Components.Pages
             _ => s.ToString()
         };
 
+
         private static DocumentStatus ParseStatus(string? value)
         {
             var v = (value ?? "").Trim().ToLowerInvariant();
-
-            // Handle feedback format "Status: feedback text"
-            if (v.Contains(":"))
-            {
-                v = v.Split(':')[0].Trim();
-            }
-
             return v switch
             {
                 "ej bedömd" or "pending" => DocumentStatus.Pending,
                 "granskning" or "review" => DocumentStatus.Review,
                 "godkänd" or "approved" => DocumentStatus.Approved,
                 "underkänd" or "rejected" => DocumentStatus.Rejected,
-                _ => DocumentStatus.Pending
-            };
-        }
-
-        // Feedback methods
-        private async Task OpenFeedbackModal(DocItem document)
-        {
-            currentDocument = document;
-
-            if (document.Status.Contains(":"))
-            {
-                var parts = document.Status.Split(':', 2);
-                feedbackStatus = parts[0].Trim();
-                feedbackText = ""; // Töm för ny feedback
-            }
-            else
-            {
-                feedbackStatus = document.Status;
-                feedbackText = "";
-            }
-
-            await JS.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('feedbackModal')).show()");
-        }
-
-
-        private async Task SaveFeedbackAsync()
-        {
-            if (currentDocument == null) return;
-
-            _savingFeedback = true;
-            StateHasChanged();
-
-            try
-            {
-                _savingDocIds.Add(currentDocument.Id);
-
-                // Skapa hela feedback-historiken INNAN API-anropet
-                var existingFeedback = GetExistingFeedback(currentDocument.Status);
-                var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                var newFeedbackEntry = $"[{timestamp}|{feedbackStatus}] {feedbackText}"; // Lägg till status
-
-                var allFeedback = string.IsNullOrEmpty(existingFeedback)
-                    ? newFeedbackEntry
-                    : $"{existingFeedback}\n{newFeedbackEntry}";
-
-                // Skicka hela historiken till backend
-                var dto = new SetDocumentStatusDto
-                {
-                    Status = ParseStatusToEnum(feedbackStatus),
-                    Feedback = string.IsNullOrEmpty(feedbackText) ? null : allFeedback
-                };
-
-                await ApiService.PostAsync<object?>($"api/documents/{currentDocument.Id}/status", dto);
-
-                // Uppdatera lokal visning
-                var displayStatus = string.IsNullOrEmpty(feedbackText)
-                    ? feedbackStatus
-                    : $"{feedbackStatus}: {allFeedback}";
-
-                var index = _latestDocs.FindIndex(d => d.Id == currentDocument.Id);
-                if (index >= 0)
-                {
-                    _latestDocs[index] = currentDocument with { Status = displayStatus };
-                }
-
-                _savingDocIds.Remove(currentDocument.Id);
-                await JS.InvokeVoidAsync("eval", "bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide()");
-            }
-            catch (Exception ex)
-            {
-                await JS.InvokeVoidAsync("console.error", $"SaveFeedback failed: {ex}");
-                await JS.InvokeVoidAsync("alert", "Kunde inte spara feedback. Försök igen.");
-            }
-            finally
-            {
-                _savingFeedback = false;
-                StateHasChanged();
-            }
-        }
-
-
-
-
-
-        private string GetExistingFeedback(string status)
-        {
-            if (!status.Contains(":")) return "";
-            return status.Split(':', 2)[1].Trim();
-        }
-
-
-
-
-        // Lägg till denna hjälpmetod
-        private static DocumentStatus ParseStatusToEnum(string status)
-        {
-            var baseStatus = status.Contains(":") ? status.Split(':')[0].Trim() : status;
-            return baseStatus.ToLowerInvariant() switch
-            {
-                "godkänd" => DocumentStatus.Approved,
-                "underkänd" => DocumentStatus.Rejected,
-                "granskning" => DocumentStatus.Review,
                 _ => DocumentStatus.Pending
             };
         }
@@ -251,6 +142,7 @@ namespace LMS.Blazor.Client.Components.Pages
             }
         }
 
+
         private async Task CallAPIAsync()
         {
             await LoadMyCoursesAsync();
@@ -293,6 +185,10 @@ namespace LMS.Blazor.Client.Components.Pages
             }
         }
 
+
+
+
+
         private async Task LoadUpcomingActivitiesAsync(CancellationToken ct = default)
         {
             Upcoming.Clear();
@@ -300,13 +196,13 @@ namespace LMS.Blazor.Client.Components.Pages
             var moduleFetches = Courses.Select(async course =>
             {
                 var mods = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
-                    $"api/course/{course.Id}/Modules?includeActivities=false"
+                    $"api/course/{course.Id}/Modules?includeActivities=false", ct
                 ) ?? Enumerable.Empty<ModuleDto>();
 
                 var activityFetches = mods.Select(async m =>
                 {
                     var acts = await ApiService.CallApiAsync<IEnumerable<ProjActivityDto>>(
-                        $"api/modules/{m.Id}/activities"
+                        $"api/modules/{m.Id}/activities", ct
                     ) ?? Enumerable.Empty<ProjActivityDto>();
 
                     var now = DateTime.UtcNow;
@@ -339,7 +235,7 @@ namespace LMS.Blazor.Client.Components.Pages
             var moduleFetches = Courses.Select(async course =>
             {
                 var mods = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
-                    $"api/course/{course.Id}/Modules?includeActivities=false"
+                    $"api/course/{course.Id}/Modules?includeActivities=false", ct
                 ) ?? Enumerable.Empty<ModuleDto>();
 
                 foreach (var m in mods)
@@ -350,10 +246,11 @@ namespace LMS.Blazor.Client.Components.Pages
 
             await Task.WhenAll(moduleFetches);
 
+
             var countActivities = modules.Select(async m =>
             {
                 var acts = await ApiService.CallApiAsync<IEnumerable<ProjActivityDto>>(
-                    $"api/modules/{m.Id}/activities"
+                    $"api/modules/{m.Id}/activities", ct
                 ) ?? Enumerable.Empty<ProjActivityDto>();
 
                 return new { Module = m, Count = acts.Count() };
@@ -386,9 +283,9 @@ namespace LMS.Blazor.Client.Components.Pages
                 var perCourseTasks = Courses.Select(async course =>
                 {
                     var docsTask = ApiService.CallApiAsync<IEnumerable<ProjDocumentDto>>(
-                                        $"api/documents/by-course/{course.Id}");
+                                        $"api/documents/by-course/{course.Id}", ct);
                     var usersTask = ApiService.CallApiAsync<IEnumerable<UserDto>>(
-                                        $"api/courses/{course.Id}/users");
+                                        $"api/courses/{course.Id}/users", ct);
 
                     var docs = await docsTask ?? Enumerable.Empty<ProjDocumentDto>();
                     var users = await usersTask ?? Enumerable.Empty<UserDto>();
@@ -411,6 +308,9 @@ namespace LMS.Blazor.Client.Components.Pages
                         names.TryGetValue(studentId, out var studentName);
                         studentName ??= string.IsNullOrWhiteSpace(studentId) ? "Okänd" : studentId;
 
+                        var statusEnum = ParseStatus(d.Status);
+                        var statusStr = statusEnum.ToString();
+
                         items.Add(new DocItem(
                             Id: d.Id,
                             DisplayName: string.IsNullOrWhiteSpace(d.DisplayName) ? "Fil" : d.DisplayName!,
@@ -419,7 +319,7 @@ namespace LMS.Blazor.Client.Components.Pages
                             ActivityId: d.ActivityId ?? 0,
                             StudentId: studentId,
                             StudentName: studentName,
-                            Status: d.Status // Keep original status with potential feedback
+                            Status: statusStr
                         ));
                     }
 
@@ -449,15 +349,17 @@ namespace LMS.Blazor.Client.Components.Pages
             }
         }
 
+
         public Task RefreshLatestDocsAsync() => LoadLatestDocsAsync();
 
         private static string StatusCss(string? status) => (status ?? "").ToLowerInvariant() switch
         {
-            var s when s.StartsWith("godkänd") || s.StartsWith("approved") => "ok",
-            var s when s.StartsWith("granskning") || s.StartsWith("review") => "review",
-            var s when s.StartsWith("underkänd") || s.StartsWith("rejected") => "bad",
+            "godkänd" or "approved" => "ok",
+            "granskning" or "review" => "review",
+            "underkänd" or "rejected" => "bad",
             _ => "pending" // Ej bedömd / Pending
         };
+
 
         private async Task ChangeStatusAsync(DocItem doc, DocumentStatus newStatus)
         {

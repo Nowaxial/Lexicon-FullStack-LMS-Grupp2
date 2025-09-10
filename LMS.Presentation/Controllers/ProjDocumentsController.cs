@@ -150,8 +150,7 @@ namespace LMS.Presentation.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
 
-            // Skicka både status och feedback
-            var ok = await _service.SetStatusAsync(id, dto.Status, dto.Feedback, userId, ct);
+            var ok = await _service.SetStatusAsync(id, dto.Status, userId, ct);
             return ok ? NoContent() : NotFound();
         }
 

@@ -1,12 +1,4 @@
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.IO;
-using System.Net.Http;
-using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
@@ -73,13 +65,6 @@ namespace LMS.Blazor.Client.Components.CourseComponents
         private static DocumentStatus ParseStatus(string? value)
         {
             var v = (value ?? "").Trim().ToLowerInvariant();
-
-            // Handle feedback format "Status: feedback text"
-            if (v.Contains(":"))
-            {
-                v = v.Split(':')[0].Trim();
-            }
-
             return v switch
             {
                 "ej bedömd" or "pending" => DocumentStatus.Pending,
@@ -92,9 +77,9 @@ namespace LMS.Blazor.Client.Components.CourseComponents
 
         private static string StatusCss(string? status) => (status ?? "").ToLowerInvariant() switch
         {
-            var s when s.StartsWith("godkänd") || s.StartsWith("approved") => "ok",
-            var s when s.StartsWith("granskning") || s.StartsWith("review") => "review",
-            var s when s.StartsWith("underkänd") || s.StartsWith("rejected") => "bad",
+            "godkänd" or "approved" => "ok",
+            "granskning" or "review" => "review",
+            "underkänd" or "rejected" => "bad",
             _ => "pending"
         };
 
@@ -317,90 +302,13 @@ namespace LMS.Blazor.Client.Components.CourseComponents
             }
         }
 
-        private static string GetFeedbackCss(string status)
-        {
-            var s = status.ToLowerInvariant();
-            if (s.StartsWith("godkänd") || s.StartsWith("approved"))
-                return "feedback-approved";
-            if (s.StartsWith("underkänd") || s.StartsWith("rejected"))
-                return "feedback-rejected";
-            if (s.StartsWith("granskning") || s.StartsWith("review"))
-                return "feedback-review";
-            return "feedback-pending"; 
-        }
-
-
-        private List<FeedbackEntry> ParseFeedbackHistory(string status)
-        {
-            if (!status.Contains(":")) return new List<FeedbackEntry>();
-
-            var feedbackText = status.Split(':', 2)[1].Trim();
-            var entries = new List<FeedbackEntry>();
-
-            // Split by lines and parse each feedback entry
-            var lines = feedbackText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var line in lines)
-            {
-                var trimmedLine = line.Trim();
-                if (string.IsNullOrEmpty(trimmedLine)) continue;
-
-                // Check if line starts with timestamp format [yyyy-MM-dd HH:mm:ss|Status] or [yyyy-MM-dd HH:mm|Status]
-                if (trimmedLine.StartsWith("[") && trimmedLine.Contains("]"))
-                {
-                    var endBracket = trimmedLine.IndexOf(']');
-                    if (endBracket > 0)
-                    {
-                        var headerStr = trimmedLine.Substring(1, endBracket - 1);
-                        var feedbackContent = trimmedLine.Substring(endBracket + 1).Trim();
-
-                        // Parse timestamp and status
-                        if (headerStr.Contains("|"))
-                        {
-                            var parts = headerStr.Split('|', 2);
-                            var timestampStr = parts[0];
-                            var entryStatus = parts[1];
-
-                            if (DateTime.TryParse(timestampStr, out var timestamp))
-                            {
-                                entries.Add(new FeedbackEntry(timestamp, feedbackContent, entryStatus));
-                            }
-                            else
-                            {
-                                entries.Add(new FeedbackEntry(DateTime.Now, trimmedLine, "Ej bedömd"));
-                            }
-                        }
-                        else
-                        {
-                            // Old format without status
-                            if (DateTime.TryParse(headerStr, out var timestamp))
-                            {
-                                entries.Add(new FeedbackEntry(timestamp, feedbackContent, "Ej bedömd"));
-                            }
-                            else
-                            {
-                                entries.Add(new FeedbackEntry(DateTime.Now, trimmedLine, "Ej bedömd"));
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Old format without timestamp
-                    entries.Add(new FeedbackEntry(DateTime.Now, trimmedLine, "Ej bedömd"));
-                }
-            }
-
-            return entries.OrderByDescending(e => e.Timestamp).ToList();
-        }
-
-        private record FeedbackEntry(DateTime Timestamp, string Content, string Status);
-
 
         public void Dispose()
         {
             _cts?.Cancel();
             _cts?.Dispose();
         }
+
+
     }
 }
