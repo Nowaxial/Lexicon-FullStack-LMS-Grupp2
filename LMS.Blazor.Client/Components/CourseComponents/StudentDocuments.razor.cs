@@ -1,7 +1,10 @@
 ﻿using LMS.Blazor.Client.Services;
+using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
+using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using System.Diagnostics;
 
 namespace LMS.Blazor.Client.Components.CourseComponents
 {
@@ -28,6 +31,27 @@ namespace LMS.Blazor.Client.Components.CourseComponents
         private string? _lastEndpoint;
 
         private readonly HashSet<int> _deleting = new();
+
+        private readonly Dictionary<int, string> _moduleNames = new();
+
+        private readonly Dictionary<int, string> _activityNames = new();
+
+        private string ModuleName(int? moduleId)
+        {
+            if (!moduleId.HasValue) return "Okänd modul";
+            return _moduleNames.TryGetValue(moduleId.Value, out var name)
+                ? name
+                : $"Modul {moduleId.Value}";
+        }
+
+        private string ActivityName(int? activityId)
+        {
+            if (!activityId.HasValue) return "Okänd aktivitet";
+            return _activityNames.TryGetValue(activityId.Value, out var name)
+                ? name
+                : $"Aktivitet {activityId.Value}";
+        }
+
 
         private static string LabelFor(DocumentStatus s) => s switch
         {
@@ -109,6 +133,9 @@ namespace LMS.Blazor.Client.Components.CourseComponents
                     .ThenByDescending(d => d.Id)
                     .Take(50)
                     .ToList();
+
+                await EnsureModuleNamesAsync(_docs, _cts.Token);
+                await EnsureActivityNamesAsync(_docs, _cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -126,6 +153,96 @@ namespace LMS.Blazor.Client.Components.CourseComponents
             }
         }
 
+
+        private async Task EnsureModuleNamesAsync(IEnumerable<ProjDocumentDto> docs, CancellationToken ct = default)
+        {
+            var needed = docs
+                .Select(d => d.ModuleId)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .Where(id => !_moduleNames.ContainsKey(id))
+                .ToList();
+
+            if (needed.Count == 0) return;
+
+            try
+            {
+                if (CourseId.HasValue)
+                {
+                    var mods = await Api.CallApiAsync<IEnumerable<ModuleDto>>(
+                        $"api/course/{CourseId.Value}/Modules?includeActivities=false", ct);
+
+                    foreach (var m in mods ?? Enumerable.Empty<ModuleDto>())
+                        _moduleNames[m.Id] = m.Name;
+                }
+                else
+                {
+                    foreach (var id in needed)
+                    {
+                        var mod = await Api.CallApiAsync<ModuleDto>($"api/modules/{id}", ct);
+                        if (mod is not null)
+                            _moduleNames[id] = mod.Name;
+                    }
+                }
+            }
+            catch
+            {
+              
+            }
+        }
+
+        private async Task EnsureActivityNamesAsync(IEnumerable<ProjDocumentDto> docs, CancellationToken ct = default)
+        {
+            var needed = docs
+                .Select(d => d.ActivityId)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .Where(id => !_activityNames.ContainsKey(id))
+                .ToList();
+
+            if (needed.Count == 0) return;
+
+            try
+            {
+                if (ModuleId.HasValue)
+                {
+                    var acts = await Api.CallApiAsync<IEnumerable<ProjActivityDto>>(
+                        $"api/Modules/{ModuleId.Value}/Activities", ct);
+
+                    foreach (var a in acts ?? Enumerable.Empty<ProjActivityDto>())
+                        _activityNames[a.Id] = a.Title;
+                }
+                else if (CourseId.HasValue)
+                {
+                    var modules = await Api.CallApiAsync<IEnumerable<ModuleDto>>(
+                        $"api/course/{CourseId.Value}/Modules?includeActivities=false", ct);
+
+                    foreach (var m in modules ?? Enumerable.Empty<ModuleDto>())
+                    {
+                        var acts = await Api.CallApiAsync<IEnumerable<ProjActivityDto>>(
+                            $"api/modules/{m.Id}/activities", ct);
+                        foreach (var a in acts ?? Enumerable.Empty<ProjActivityDto>())
+                            if (!_activityNames.ContainsKey(a.Id))
+                                _activityNames[a.Id] = a.Title;
+                    }
+                }
+                else
+                {
+                    foreach (var id in needed)
+                    {
+                        var acts = await Api.CallApiAsync<ProjActivityDto>($"api/activities/{id}", ct);
+                        if (acts is not null)
+                            _activityNames[id] = acts.Title;
+                    }
+                }
+            }
+            catch
+            {
+
+            }
+        }
         private string? BuildEndpoint()
         {
             if (ActivityId.HasValue)
