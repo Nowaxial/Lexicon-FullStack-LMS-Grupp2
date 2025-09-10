@@ -13,5 +13,7 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos
     public sealed class SetDocumentStatusDto
     {
         public DocumentStatus Status { get; set; }
+        public string? Feedback { get; set; } 
     }
+
 }

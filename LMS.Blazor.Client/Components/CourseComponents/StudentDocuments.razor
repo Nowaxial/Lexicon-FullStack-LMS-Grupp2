@@ -3,93 +3,163 @@
 
 <section class="documents-section mt-4">
     <article class="">
-    <div class="docs-head ms-4 my-2">Mina filer</div>
+        <div class="docs-head ms-4 my-2">Mina filer</div>
 
-    @if (_isLoading)
-    {
-        <div class="p-3 text-muted d-flex align-items-center gap-2">
-            <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
-            Laddar…
-        </div>
-    }
-    else if (!string.IsNullOrWhiteSpace(_error))
-    {
-        <div class="alert alert-danger m-3">
-            <i class="bi bi-exclamation-triangle me-1"></i>@_error
-        </div>
-    }
-    else if (_docs is not null && _docs.Any())
+        @if (_isLoading)
+        {
+            <div class="p-3 text-muted d-flex align-items-center gap-2">
+                <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+                Laddar…
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger m-3">
+                <i class="bi bi-exclamation-triangle me-1"></i>@_error
+            </div>
+        }
+        else if (_docs is not null && _docs.Any())
         {
 
             <div class="docs-list">
                 @foreach (var d in _docs)
                 {
-                    <div class="docs-card d-flex flex-column flex-sm-row align-items-start gap-3">
-                        <div class="docs-avatar align-self-center" title="@GetExt(d.FileName)">
-                            <i class="bi bi-file-earmark-text"></i>
-                        </div>
+                    <div class="docs-card d-flex flex-column gap-3">
+                        <div class="d-flex flex-sm-row align-items-start gap-3">
+                            <div class="docs-avatar align-self-center" title="@GetExt(d.FileName)">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
 
-                        <div class="docs-info flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <div class="docs-name">
-                                    @d.DisplayName
-                                    <span class="docs-ext">@GetExt(d.FileName)</span>
+                            <div class="docs-info flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div class="docs-name">
+                                        @d.DisplayName
+                                        <span class="docs-ext">@GetExt(d.FileName)</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            @if (!string.IsNullOrWhiteSpace(d.Description))
-                            {
-                                <div class="docs-desc text-muted my-1">
-                                    <i class="bi bi-chat-left-text me-1"></i>@d.Description
+                                @if (!string.IsNullOrWhiteSpace(d.Description))
+                                {
+                                    <div class="docs-desc text-muted my-1">
+                                        <i class="bi bi-chat-left-text me-1"></i>@d.Description
+                                    </div>
+                                }
+
+                                <div class="docs-meta my-1">
+                                    <i class="bi bi-clock me-1"></i>
+                                    @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
                                 </div>
-                            }
 
-                            <div class="docs-meta my-1">
-                                <i class="bi bi-layers me-1"></i>
-                                Modul: @ModuleName(d.ModuleId)
+                                <div class="docs-meta my-1">
+                                    <i class="bi bi-layers me-1"></i>
+                                    Modul: @ModuleName(d.ModuleId)
+                                </div>
+
+                                <div class="docs-meta my-1">
+                                    <i class="bi bi-check2-circle me-1"></i>
+                                    Aktivitet: @ActivityName(d.ActivityId)
+                                </div>
+
+                                <div class="docs-meta my-1">
+                                    <i class="bi bi-clock me-1"></i>
+                                    @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                                </div>
+
+                                @if (d.IsSubmission)
+                                {
+                                    <span class="subm-status @StatusCss(d.Status)">
+                                        @LabelFor(ParseStatus(d.Status))
+                                    </span>
+                                }
                             </div>
 
-                            <div class="docs-meta my-1">
-                                <i class="bi bi-check2-circle me-1"></i>
-                                Aktivitet: @ActivityName(d.ActivityId)
+                            <div class="docs-actions d-flex gap-2 ms-sm-auto mt-2 mt-sm-0 align-self-center">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="() => Download(d.Id)">
+                                    <i class="bi bi-download me-1"></i>Ladda ned
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-danger"
+                                        disabled="@_deleting.Contains(d.Id)"
+                                        @onclick="() => DeleteAsync(d)">
+                                    <i class="bi bi-trash"></i>
+                                    @(_deleting.Contains(d.Id) ? "Tar bort..." : "Ta bort")
+                                </button>
                             </div>
-
-                            <div class="docs-meta my-1">
-                                <i class="bi bi-clock me-1"></i>
-                                @d.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
-                            </div>
-
-
-                            @if (d.IsSubmission)
-                            {
-                                <span class="subm-status @StatusCss(d.Status)">
-                                    @LabelFor(ParseStatus(d.Status))
-                                </span>
-                            }
                         </div>
 
-                        <div class="docs-actions d-flex gap-2 ms-sm-auto mt-2 mt-sm-0 align-self-center">
-                            <button class="btn btn-sm btn-outline-primary"
-                                    @onclick="() => Download(d.Id)">
-                                <i class="bi bi-download me-1"></i>Ladda ned
-                            </button>
+                        @* FEEDBACK VISNING - med kollapsbar sektion *@
+                        @if (d.IsSubmission && !string.IsNullOrEmpty(d.Status) && d.Status != "Ej bedömd" && d.Status.Contains(":"))
+                        {
+                            <div class="feedback-section">
+                                @{
+                                    var parts = d.Status.Split(':', 2);
+                                    var status = parts[0].Trim();
+                                    var feedbackHistory = ParseFeedbackHistory(d.Status);
+                                    var collapseId = $"feedback-{d.Id}";
+                                }
 
-                            <button class="btn btn-sm btn-outline-danger"
-                                    disabled="@_deleting.Contains(d.Id)"
-                                    @onclick="() => DeleteAsync(d)">
-                                <i class="bi bi-trash"></i>
-                                @(_deleting.Contains(d.Id) ? "Tar bort..." : "Ta bort")
-                            </button>
-                        </div>
+                                <div class="feedback-collapse-header">
+                                    <button class="btn btn-link feedback-toggle p-0"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#@collapseId"
+                                            aria-expanded="false"
+                                            aria-controls="@collapseId">
+                                        <i class="bi bi-chat-text me-2"></i>
+                                        <strong>Feedback</strong>
+                                        <i class="bi bi-chevron-down ms-2"></i>
+                                    </button>
+                                </div>
+
+                                <div class="collapse" id="@collapseId">
+                                    @if (feedbackHistory.Any())
+                                    {
+                                        @foreach (var entry in feedbackHistory)
+                                        {
+                                            <div class="lms-feedback-card @GetFeedbackCss(entry.Status) mb-2">
+                                                <div class="feedback-content">
+                                                    <div class="feedback-entry">
+                                                        <div class="feedback-header-small">
+                                                            <div class="feedback-timestamp">
+                                                                <i class="bi bi-clock me-1"></i>
+                                                                @entry.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")
+                                                            </div>
+                                                            <span class="feedback-status-badge @StatusCss(entry.Status)">
+                                                                @entry.Status
+                                                            </span>
+                                                        </div>
+                                                        <div class="feedback-text">@entry.Content</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="lms-feedback-card @GetFeedbackCss(status)">
+                                            <div class="feedback-content">
+                                                <div class="feedback-entry">
+                                                    <div class="feedback-text">@parts[1].Trim()</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+
+                            </div>
+                        }
+
+
                     </div>
                 }
             </div>
 
-
-    }
-    else
-    {
-        <p class="text-muted p-3 m-0">Inga filer än.</p>
-    }
-</article>
+        }
+        else
+        {
+            <p class="text-muted p-3 m-0">Inga filer än.</p>
+        }
+    </article>
 </section>
