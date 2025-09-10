@@ -193,7 +193,7 @@ public partial class ManageCourses : ComponentBase
             var created = await ApiService.PostAsync<CourseDto>("api/courses", placeholder);
             if (created != null)
             {
-                var newModule = new ModuleCreateDto { Name = "New Module", Description = string.Empty };
+                var newModule = new ModuleCreateDto { Name = "New Module", Description = "New Descritption", Starts = DateOnly.FromDateTime(DateTime.Today), Ends = DateOnly.FromDateTime(DateTime.Today)};
                 var module = await ApiService.PostAsync<ModuleDto>(
                     $"api/course/{created.Id}/Modules", newModule);
 

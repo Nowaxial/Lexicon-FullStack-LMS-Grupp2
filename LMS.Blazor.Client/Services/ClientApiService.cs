@@ -81,7 +81,7 @@ public class ClientApiService(
 
         response.EnsureSuccessStatusCode();
 
-        // ✅ Bail out early if there's nothing to read
+        // Bail out early if there's nothing to read
         if (response.StatusCode == HttpStatusCode.NoContent ||
             response.Content.Headers.ContentLength == 0)
         {
@@ -107,7 +107,7 @@ public class ClientApiService(
 
         response.EnsureSuccessStatusCode();
 
-        // ✅ Bail out early if there's nothing to read
+        //  Bail out early if there's nothing to read
         if (response.StatusCode == HttpStatusCode.NoContent ||
             response.Content.Headers.ContentLength == 0)
         {
