@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.IO;                  
-using System.Net.Http;            
-using LMS.Blazor.Client.Services;                 
+﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -14,19 +7,19 @@ namespace LMS.Blazor.Client.Components.CourseComponents
 {
     public partial class StudentDocuments : IDisposable
     {
-     
+
         [Inject] private IApiService Api { get; set; } = default!;
         [Inject] private DocumentsClient DocsClient { get; set; } = default!;
         [Inject] private IJSRuntime JS { get; set; } = default!;
 
 
-        [Parameter] public int? CourseId { get; set; }    
-        [Parameter] public int? ModuleId { get; set; }    
-        [Parameter] public int? ActivityId { get; set; }  
-        [Parameter] public string? StudentId { get; set; } 
+        [Parameter] public int? CourseId { get; set; }
+        [Parameter] public int? ModuleId { get; set; }
+        [Parameter] public int? ActivityId { get; set; }
+        [Parameter] public string? StudentId { get; set; }
         [Parameter] public bool AutoLoad { get; set; } = true;
 
-        
+
         private bool _isLoading = true;
         private string? _error;
         private List<ProjDocumentDto> _docs = new();
@@ -72,7 +65,7 @@ namespace LMS.Blazor.Client.Components.CourseComponents
                 await ReloadAsync();
         }
 
-   
+
         public Task RefreshAsync() => ReloadAsync(force: true);
 
         public async Task ReloadAsync(bool force = false)
@@ -89,7 +82,7 @@ namespace LMS.Blazor.Client.Components.CourseComponents
             }
 
             if (!force && string.Equals(endpoint, _lastEndpoint, StringComparison.OrdinalIgnoreCase))
-                return; 
+                return;
 
             _lastEndpoint = endpoint;
 
