@@ -17,11 +17,11 @@ public partial class ManageCourses : ComponentBase
     private List<CourseDto>? courses;
     private CourseDto? selectedCourse;
 
-    private int? editingCourseId;
-    private CourseEditModel courseEditModel = new();
-
     private ModuleDto? selectedModuleToEdit;
     private bool expandModulesAccordion = false;
+
+    private ModuleStrip? moduleStripRef;
+    private int? selectedModuleId;
 
     // --- Lifecycle ---
     protected override async Task OnInitializedAsync() => await LoadCoursesAsync();
@@ -45,7 +45,6 @@ public partial class ManageCourses : ComponentBase
 
     private async Task OnCourseSelected(CourseDto course)
     {
-        // ✅ load modules *with activities*
         var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
             $"api/course/{course.Id}/Modules?includeActivities=true");
 
@@ -63,6 +62,85 @@ public partial class ManageCourses : ComponentBase
         if (idx >= 0) courses[idx] = selectedCourse;
     }
 
+    // --- Handle Search ---
+    private async Task HandleSearchResult(SearchBar.SearchResult result)
+    {
+        if (result.Type == "Course")
+        {
+            var course = courses?.FirstOrDefault(c => c.Id == result.Id);
+            if (course != null)
+            {
+                // reload modules with activities
+                var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                    $"api/course/{course.Id}/Modules?includeActivities=true");
+
+                course.Modules = modules?.ToList() ?? new();
+                selectedCourse = course;
+
+                // auto-select first module
+                selectedModuleId = course.Modules.FirstOrDefault()?.Id;
+            }
+        }
+        else if (result.Type == "Module")
+        {
+            selectedCourse = courses?.FirstOrDefault(c => c.Id == result.ParentId);
+
+            if (selectedCourse != null)
+            {
+                var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                    $"api/course/{selectedCourse.Id}/Modules?includeActivities=true");
+
+                selectedCourse.Modules = modules?.ToList() ?? new();
+                selectedModuleId = result.Id;
+            }
+        }
+        else if (result.Type == "Activity")
+        {
+            var module = courses?
+                .SelectMany(c => c.Modules ?? new List<ModuleDto>())
+                .FirstOrDefault(m => m.Id == result.ParentId);
+
+            if (module != null)
+            {
+                selectedCourse = courses?.FirstOrDefault(c => c.Id == module.CourseId);
+
+                if (selectedCourse != null)
+                {
+                    var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                        $"api/course/{selectedCourse.Id}/Modules?includeActivities=true");
+
+                    selectedCourse.Modules = modules?.ToList() ?? new();
+                    selectedModuleId = module.Id;
+                }
+            }
+        }
+
+        // scroll NavStrip to selected course
+        if (selectedCourse != null)
+        {
+            var elementId = $"course-{selectedCourse.Id}";
+            await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+        }
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (selectedModuleId != null && selectedCourse?.Modules != null && moduleStripRef != null)
+        {
+            var moduleId = selectedModuleId.Value;
+            selectedModuleId = null; // ✅ clear first to break any loop
+
+            var module = selectedCourse.Modules.FirstOrDefault(m => m.Id == moduleId);
+            if (module != null)
+            {
+                // don’t force StateHasChanged here, only scroll
+                await moduleStripRef.SelectModuleAsync(module);
+            }
+        }
+    }
+
     // --- Course CRUD ---
     private async Task AddCourseAsync()
     {
@@ -74,11 +152,9 @@ public partial class ManageCourses : ComponentBase
             Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
         };
 
-        // 1. Create the course
         var created = await ApiService.PostAsync<CourseDto>("api/courses", placeholder);
         if (created != null)
         {
-            // 2. Create an empty module for it
             var newModule = new ModuleCreateDto
             {
                 Name = "New Module",
@@ -91,7 +167,6 @@ public partial class ManageCourses : ComponentBase
             if (module != null)
                 created.Modules = new List<ModuleDto> { module };
 
-            // 3. Add to local state
             courses ??= new List<CourseDto>();
             courses.Insert(0, created);
             selectedCourse = created;
@@ -135,6 +210,7 @@ public partial class ManageCourses : ComponentBase
         }
     }
 
+    // --- Module Updates ---
     private async Task HandleModuleUpdated(ModuleDto updatedModule)
     {
         if (selectedCourse?.Modules == null) return;
@@ -148,7 +224,6 @@ public partial class ManageCourses : ComponentBase
         }
 
         selectedModuleToEdit = updatedModule;
-
         StateHasChanged();
     }
 
@@ -181,7 +256,6 @@ public partial class ManageCourses : ComponentBase
     // --- Modules ---
     private async void HandleEditModule(ModuleDto module)
     {
-        // Attach the course reference so ManageModules has access to dates
         selectedModuleToEdit = module with { Course = selectedCourse };
         expandModulesAccordion = true;
 
@@ -215,14 +289,5 @@ public partial class ManageCourses : ComponentBase
 
             StateHasChanged();
         }
-    }
-
-    // --- Helper model ---
-    private class CourseEditModel
-    {
-        public string Name { get; set; } = "";
-        public string? Description { get; set; }
-        public DateOnly Starts { get; set; }
-        public DateOnly Ends { get; set; }
     }
 }

@@ -112,5 +112,15 @@ namespace LMS.Services
                 await _unitOfWork.CompleteAsync();
             }
         }
+
+        public async Task<IEnumerable<ProjActivityDto>> SearchActivitiesAsync(string query, bool trackChanges = false)
+        {
+            var activities = await _unitOfWork.ProjActivityRepository
+                .FindByCondition(a => a.Title.Contains(query) || (a.Description ?? "").Contains(query), trackChanges)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ProjActivityDto>>(activities);
+        }
+
     }
 }

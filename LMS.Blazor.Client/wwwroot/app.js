@@ -244,3 +244,12 @@ window.downloadFile = (dataUrl, fileName) => {
     link.click();
     document.body.removeChild(link);
 };
+
+window.scrollModuleIntoCenter = function (containerSelector, elementId) {
+    const container = document.querySelector(containerSelector);
+    const el = document.getElementById(elementId);
+    if (container && el) {
+        const offset = el.offsetLeft - (container.clientWidth / 2) + (el.clientWidth / 2);
+        container.scrollTo({ left: offset, behavior: "smooth" });
+    }
+};

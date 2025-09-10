@@ -191,6 +191,13 @@ namespace LMS.Services
 
             return users;
         }
+        public async Task<IEnumerable<CourseDto>> SearchCoursesAsync(string query, bool trackChanges = false)
+        {
+            var courses = await _unitOfWork.CourseRepository
+                .FindByCondition(c => c.Name.Contains(query) || (c.Description ?? "").Contains(query), trackChanges)
+                .ToListAsync();
 
+            return _mapper.Map<IEnumerable<CourseDto>>(courses);
+        }
     }
 }

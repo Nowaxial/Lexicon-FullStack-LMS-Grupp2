@@ -78,6 +78,9 @@
     [Parameter] public EventCallback OnAddModule { get; set; }
     [Parameter] public EventCallback<ModuleDto> OnEditModuleRequested { get; set; }
 
+    // 👇 New param to allow parent to set which module should be selected
+    [Parameter] public int? SelectedModuleId { get; set; }
+
     private List<ModuleDto> EditableModules = new();
     private ElementReference modulesStripRef;
     private int ActiveIndex = 0;
@@ -85,6 +88,18 @@
     protected override void OnParametersSet()
     {
         EditableModules = Modules?.ToList() ?? new();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (SelectedModuleId.HasValue)
+        {
+            var module = EditableModules.FirstOrDefault(m => m.Id == SelectedModuleId.Value);
+            if (module != null)
+            {
+                await SelectModuleAsync(module);
+            }
+        }
     }
 
     private string LeftIcon =>
@@ -122,6 +137,20 @@
     {
         ActiveIndex = index;
         await JS.InvokeVoidAsync("scrollStrip", ".modules-strip", 0);
+    }
+
+    public async Task SelectModuleAsync(ModuleDto module)
+    {
+        var index = EditableModules.FindIndex(m => m.Id == module.Id);
+        if (index >= 0)
+        {
+            ActiveIndex = index;
+
+            var elementId = $"module-{module.Id}";
+            await JS.InvokeVoidAsync("scrollModuleIntoCenter", ".modules-strip", elementId);
+
+            // ❌ don’t call StateHasChanged() here
+        }
     }
 
     private async Task OnEditModuleClick(ModuleDto module)

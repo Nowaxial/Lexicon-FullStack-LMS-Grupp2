@@ -129,14 +129,13 @@
     [Parameter] public EventCallback<CourseDto> OnItemSelected { get; set; }
     [Parameter] public EventCallback OnAddCourse { get; set; }
     [Parameter] public EventCallback<CourseDto> OnDeleteCourse { get; set; }
-    [Parameter] public EventCallback<CourseDto> OnSaveCourse { get; set; }   // <--- NEW
+    [Parameter] public EventCallback<CourseDto> OnSaveCourse { get; set; }
     [Parameter] public string Id { get; set; } = "navstrip";
     [Parameter] public bool IsTeacher { get; set; } = false;
 
     private ElementReference navStripRef;
     private bool initialized;
     private int? ExpandedCourseId;
-
     private int? EditingCourseId;
     private CourseEditModel EditModel = new();
 
@@ -162,10 +161,28 @@
         await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
     }
 
+    public async Task SelectCourseAsync(CourseDto course)
+    {
+        if (Items == null) return;
+
+        var index = Items.FindIndex(c => c.Id == course.Id);
+        if (index >= 0)
+        {
+            ActiveItem = course;
+
+            var elementId = $"course-{course.Id}";
+            await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+
+            if (OnItemSelected.HasDelegate)
+                await OnItemSelected.InvokeAsync(course);
+
+            StateHasChanged();
+        }
+    }
+
     private void OnExpandClick(CourseDto course)
     {
         if (IsEditing) return;
-
         ExpandedCourseId = ExpandedCourseId == course.Id ? null : course.Id;
     }
 
@@ -189,13 +206,11 @@
 
     private async Task SaveCourse(CourseDto course)
     {
-        // Update local model
         course.Name = EditModel.Name;
         course.Description = EditModel.Description;
         course.Starts = EditModel.Starts;
         course.Ends = EditModel.Ends;
 
-        // 🔗 Forward to parent (ManageCourses)
         if (OnSaveCourse.HasDelegate)
             await OnSaveCourse.InvokeAsync(course);
 
@@ -213,7 +228,6 @@
         if (OnDeleteCourse.HasDelegate)
             await OnDeleteCourse.InvokeAsync(course);
 
-        // If the deleted course was active, select another one
         if (ActiveItem?.Id == course.Id)
         {
             ActiveItem = Items?.FirstOrDefault();
