@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace LMS.Shared.DTOs.EntitiesDtos.ProjActivity
+﻿namespace LMS.Shared.DTOs.EntitiesDtos.ProjActivity
 {
     public class ProjActivityDto
     {
@@ -14,8 +8,14 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ProjActivity
         public string Type { get; set; } = null!;
         public DateTime Starts { get; set; }
         public DateTime Ends { get; set; }
-        public int ModuleId { get; set; }
 
+        // Foreign keys
+        public int ModuleId { get; set; }
         public int CourseId { get; set; }
+
+        // Enriched fields for display (optional, filled by service layer)
+        public string? ModuleName { get; set; }
+        public string? CourseName { get; set; }
+
     }
 }
