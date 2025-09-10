@@ -126,9 +126,24 @@
 <!-- Main course manager -->
 <AuthorizeView Roles="Teacher">
     <Authorized>
-        <ManageCourses IsTeacher="true" />
+        <ManageCourses IsTeacher="true" CourseId="@selectedCourseId" />
     </Authorized>
 </AuthorizeView>
 <script src="app.js"></script>
 
 
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+    private int? selectedCourseId;
+
+    protected override void OnInitialized()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query)
+            .TryGetValue("courseId", out var courseIdStr) &&
+            int.TryParse(courseIdStr, out var courseId))
+        {
+            selectedCourseId = courseId;
+        }
+    }
+}

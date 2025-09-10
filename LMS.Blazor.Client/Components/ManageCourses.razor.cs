@@ -20,7 +20,7 @@ public partial class ManageCourses : ComponentBase
 
     private List<CourseDto>? courses;
     private CourseDto? selectedCourse;
-
+    [Parameter] public int? CourseId { get; set; }
     private ModuleDto? selectedModuleToEdit;
     private bool expandModulesAccordion = false;
 
@@ -88,7 +88,20 @@ public partial class ManageCourses : ComponentBase
             courses = (await ApiService.CallApiAsync<IEnumerable<CourseDto>>("api/courses"))?.ToList();
 
             if (courses?.Any() == true)
+            {
+                if (CourseId != null)
+                {
+                    var course = courses.FirstOrDefault(c => c.Id == CourseId.Value);
+                    if (course != null)
+                    {
+                        await OnCourseSelected(course);
+                        return;
+                    }
+                }
+
+                // fallback: select first course
                 await OnCourseSelected(courses.First());
+            }
         }
         catch (Exception ex)
         {
