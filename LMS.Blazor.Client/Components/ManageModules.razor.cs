@@ -80,13 +80,23 @@ public partial class ManageModules : ComponentBase
 
         if (created != null)
         {
-            // rebuild module with updated activities
-            activeModule = activeModule with
+            if (activeModule.Activities != null)
             {
-                Activities = (activeModule.Activities ?? new List<ProjActivityDto>())
-                    .Append(created)
-                    .ToList()
-            };
+                activeModule.Activities.Add(created);
+            }
+            else
+            {
+                activeModule = new ModuleDto
+                {
+                    Id = activeModule.Id,
+                    CourseId = activeModule.CourseId,
+                    Name = activeModule.Name,
+                    Description = activeModule.Description,
+                    Starts = activeModule.Starts,
+                    Ends = activeModule.Ends,
+                    Activities = new List<ProjActivityDto> { created }
+                };
+            }
 
             if (OnModuleUpdated.HasDelegate)
                 await OnModuleUpdated.InvokeAsync(activeModule);
