@@ -1,5 +1,4 @@
-﻿using LMS.Blazor.Client.Components.CourseComponents;
-using LMS.Blazor.Client.Services;
+﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
@@ -63,6 +62,7 @@ namespace LMS.Blazor.Client.Components.Pages
 
         private readonly List<DocItem> _latestDocs = new();
         private bool _loadingDocs;
+
 
         private static string BuildDownloadUrl(int id)
             => $"proxy?endpoint={Uri.EscapeDataString($"api/documents/{id}/download")}";

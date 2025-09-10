@@ -49,13 +49,23 @@ namespace LMS.Presentation.Controllers
             int courseId,
             [FromBody] ModuleCreateDto dto)
         {
-            var module = await _serviceManager.ModuleService.CreateModuleAsync(courseId, dto);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            return CreatedAtAction(
-                nameof(GetModule),
-                new { courseId, id = module.Id },
-                module
-            );
+            try
+            {
+                var module = await _serviceManager.ModuleService.CreateModuleAsync(courseId, dto);
+
+                return CreatedAtAction(
+                    nameof(GetModule),
+                    new { courseId, id = module.Id },
+                    module
+                );
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // PUT: api/course/{courseId}/Modules/{id}
@@ -65,15 +75,25 @@ namespace LMS.Presentation.Controllers
             int id,
             [FromBody] ModuleUpdateDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var module = await _serviceManager.ModuleService.GetModuleByIdAsync(id);
             if (module == null || module.CourseId != courseId)
                 return NotFound();
 
-            var result = await _serviceManager.ModuleService.UpdateModuleAsync(id, dto);
-            if (!result)
-                return StatusCode(500, "A problem happened while handling your request.");
+            try
+            {
+                var result = await _serviceManager.ModuleService.UpdateModuleAsync(id, dto);
+                if (!result)
+                    return StatusCode(500, "A problem happened while handling your request.");
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // DELETE: api/course/{courseId}/Modules/{id}

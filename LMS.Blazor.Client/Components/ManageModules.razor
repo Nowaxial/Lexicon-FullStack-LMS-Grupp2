@@ -2,6 +2,7 @@
 @using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
 @using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
 @using LMS.Blazor.Client.Services
+@using System.ComponentModel.DataAnnotations
 
 <div class="row">
     <div class="col-12">
@@ -19,158 +20,153 @@
         }
         else
         {
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    @if (editingModuleId == activeModule.Id)
-                    {
-                        <!-- Edit Module -->
-                        <div class="row g-2 mb-2">
-                            <div class="col-md-6">
-                                <InputText class="form-control" @bind-Value="moduleEditModel.Name" />
-                            </div>
-                            <div class="col-md-6">
-                                <InputText class="form-control" @bind-Value="moduleEditModel.Description" />
-                            </div>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-6">
-                                <InputDate class="form-control" @bind-Value="moduleEditModel.Starts" />
-                            </div>
-                            <div class="col-md-6">
-                                <InputDate class="form-control" @bind-Value="moduleEditModel.Ends" />
-                            </div>
-                        </div>
+            <div class="row">
+                <!-- LEFT COLUMN: Module info + Activity form -->
+                <div class="col-md-5">
+                    <div class="card sticky-top" style="top:1rem;z-index:2;">
+                        <div class="card-body">
+                            @* ---- MODULE HEADER ---- *@
+                            @if (editingModuleId == activeModule.Id)
+                            {
+                                <h6>Edit Module</h6>
+                                <EditForm Model="moduleEditModel" OnValidSubmit="SaveModule">
+                                    <DataAnnotationsValidator />
 
-                        <button class="btn btn-success btn-sm me-2" @onclick="SaveModule">
-                            <i class="bi bi-check2"></i> Save
-                        </button>
-                        <button class="btn btn-secondary btn-sm" @onclick="CancelEditModule">
-                            <i class="bi bi-x-circle"></i> Cancel
-                        </button>
-                    }
-                    else
-                    {
-                        <!-- Display Module -->
-                        <h4>@activeModule.Name</h4>
-                        <p class="text-muted">@activeModule.Starts – @activeModule.Ends</p>
-                        <p>@activeModule.Description</p>
-
-                        <button class="btn btn-sm btn-outline-primary me-2"
-                                @onclick="() => StartEditModule(activeModule)">
-                            <i class="bi bi-pencil"></i> Edit
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger"
-                                @onclick="() => DeleteModule(activeModule.Id)">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                    }
-
-                    <hr />
-
-                    <!-- Activities filter -->
-                    <div class="input-group input-group-sm mb-2">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input class="form-control" placeholder="Filter activities..."
-                               @bind="activityFilter" @bind:event="oninput" />
-                    </div>
-
-                    <div style="max-height: 300px; overflow-y: auto;">
-                        <ul class="list-group list-group-flush">
-
-                            <!-- Add Activity Row -->
-                            <li class="list-group-item d-flex justify-content-between align-items-center bg-light">
-                                <div class="flex-fill">
-                                    <div class="row g-2">
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1">Name</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="moduleEditModel.Name" />
+                                        <ValidationMessage For="@(() => moduleEditModel.Name)" />
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1">Description</label>
+                                        <InputText class="form-control form-control-sm" @bind-Value="moduleEditModel.Description" />
+                                        <ValidationMessage For="@(() => moduleEditModel.Description)" />
+                                    </div>
+                                    <div class="row g-2 mb-3">
                                         <div class="col">
-                                            <InputText class="form-control form-control-sm" placeholder="Title" @bind-Value="addActivityModel.Title" />
+                                            <label class="form-label small mb-1">Starts</label>
+                                            <InputDate class="form-control form-control-sm" @bind-Value="moduleEditModel.Starts" />
+                                            <ValidationMessage For="@(() => moduleEditModel.Starts)" />
                                         </div>
                                         <div class="col">
-                                            <InputText class="form-control form-control-sm" placeholder="Type" @bind-Value="addActivityModel.Type" />
-                                        </div>
-                                        <div class="col">
-                                            <input type="datetime-local" class="form-control form-control-sm"
-                                                   @bind="addActivityModel.Starts"
-                                                   @bind:format="yyyy-MM-ddTHH:mm" />
-                                        </div>
-                                        <div class="col">
-                                            <input type="datetime-local" class="form-control form-control-sm"
-                                                   @bind="addActivityModel.Ends"
-                                                   @bind:format="yyyy-MM-ddTHH:mm" />
+                                            <label class="form-label small mb-1">Ends</label>
+                                            <InputDate class="form-control form-control-sm" @bind-Value="moduleEditModel.Ends" />
+                                            <ValidationMessage For="@(() => moduleEditModel.Ends)" />
                                         </div>
                                     </div>
-                                </div>
-                                <div class="btn-group ms-2">
-                                    <button class="btn btn-sm btn-success" @onclick="SaveNewActivity">
-                                        <i class="bi bi-check2"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary" @onclick="ResetAddActivityForm">
-                                        <i class="bi bi-x-circle"></i>
-                                    </button>
-                                </div>
-                            </li>
 
-                            @if (FilteredActivities?.Any() == true)
-                            {
-                                @foreach (var a in FilteredActivities)
-                                {
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        @if (editingActivityId == a.Id)
-                                        {
-                                            <div class="flex-fill">
-                                                <div class="row g-2">
-                                                    <div class="col">
-                                                        <InputText class="form-control form-control-sm" @bind-Value="activityEditModel.Title" />
-                                                    </div>
-                                                    <div class="col">
-                                                        <InputText class="form-control form-control-sm" @bind-Value="activityEditModel.Type" />
-                                                    </div>
-                                                    <div class="col">
-                                                        <input type="datetime-local" class="form-control form-control-sm"
-                                                               @bind="activityEditModel.Starts"
-                                                               @bind:format="yyyy-MM-ddTHH:mm" />
-                                                    </div>
-                                                    <div class="col">
-                                                        <input type="datetime-local" class="form-control form-control-sm"
-                                                               @bind="activityEditModel.Ends"
-                                                               @bind:format="yyyy-MM-ddTHH:mm" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="btn-group ms-2">
-                                                <button class="btn btn-sm btn-success" @onclick="() => SaveActivity(a.Id)">
-                                                    <i class="bi bi-check2"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-secondary" @onclick="CancelEditActivity">
-                                                    <i class="bi bi-x-circle"></i>
-                                                </button>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <span class="flex-fill">
-                                                <strong>@a.Title</strong> (@a.Type)<br />
-                                                <small>@a.Starts – @a.Ends</small>
-                                            </span>
-                                            <div class="btn-group ms-2">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => StartEditActivity(a)">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteActivity(a.Id)">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        }
-                                    </li>
-                                }
+                                    <div class="d-flex justify-content-end">
+                                        <button class="btn btn-sm btn-success me-2" type="submit">Save</button>
+                                        <button class="btn btn-sm btn-secondary" type="button" @onclick="CancelEditModule">Cancel</button>
+                                    </div>
+                                </EditForm>
                             }
                             else
                             {
-                                <li class="list-group-item">
-                                    <p class="text-muted small mb-0">No activities yet.</p>
+                                <h6>@activeModule.Name</h6>
+                                <p class="text-muted">@activeModule.Starts – @activeModule.Ends</p>
+                                <p>@activeModule.Description</p>
+
+                                <div class="d-flex justify-content-end mb-3">
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => StartEditModule(activeModule)">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteModule(activeModule.Id)">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </div>
+                            }
+
+                            <hr />
+
+                            @* ---- ADD/EDIT ACTIVITY FORM ---- *@
+                            <h6>@(editingActivityId == null ? "Add Activity" : "Update Activity")</h6>
+                            <EditForm Model="activityFormModel" OnValidSubmit="HandleActivitySubmit">
+                                <DataAnnotationsValidator />
+
+                                <div class="mb-2">
+                                    <label class="form-label small mb-1">Title</label>
+                                    <InputText class="form-control form-control-sm" @bind-Value="activityFormModel.Title" />
+                                    <ValidationMessage For="@(() => activityFormModel.Title)" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small mb-1">Type</label>
+                                    <InputText class="form-control form-control-sm" @bind-Value="activityFormModel.Type" />
+                                    <ValidationMessage For="@(() => activityFormModel.Type)" />
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col">
+                                        <label class="form-label small mb-1">Starts</label>
+                                        <input type="datetime-local"
+                                               class="form-control form-control-sm"
+                                               value="@activityFormModel.Starts.ToString("yyyy-MM-ddTHH:mm")"
+                                               @onchange="e => activityFormModel.Starts = DateTime.Parse(e.Value?.ToString() ?? DateTime.Now.ToString())" />
+                                        <ValidationMessage For="@(() => activityFormModel.Starts)" />
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label small mb-1">Ends</label>
+                                        <input type="datetime-local"
+                                               class="form-control form-control-sm"
+                                               value="@activityFormModel.Ends.ToString("yyyy-MM-ddTHH:mm")"
+                                               @onchange="e => activityFormModel.Ends = DateTime.Parse(e.Value?.ToString() ?? DateTime.Now.ToString())" />
+                                        <ValidationMessage For="@(() => activityFormModel.Ends)" />
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button class="btn btn-sm btn-success me-2" type="submit">
+                                        @(editingActivityId == null ? "Add" : "Update")
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" type="button" @onclick="ResetActivityForm">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </EditForm>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Activity List -->
+                <div class="col-md-7">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" placeholder="Filter activities..."
+                               @bind="activityFilter" @bind:event="oninput" />
+                        <button class="btn btn-outline-secondary"
+                                @onclick="() => activityFilter = string.Empty"
+                                disabled="@string.IsNullOrWhiteSpace(activityFilter)">
+                            Clear
+                        </button>
+                    </div>
+
+                    <ul class="list-group" style="max-height:26rem;overflow-y:auto;">
+                        @if (FilteredActivities?.Any() == true)
+                        {
+                            @foreach (var a in FilteredActivities)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span class="flex-fill">
+                                        <strong>@a.Title</strong> (@a.Type)<br />
+                                        <small>@a.Starts – @a.Ends</small>
+                                    </span>
+                                    <div class="btn-group ms-2">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => StartEditActivity(a)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteActivity(a.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </li>
                             }
-                        </ul>
-                    </div>
+                        }
+                        else
+                        {
+                            <li class="list-group-item">
+                                <p class="text-muted small mb-0">No activities yet.</p>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         }

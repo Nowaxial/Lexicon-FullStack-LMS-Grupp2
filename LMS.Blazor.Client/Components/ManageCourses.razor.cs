@@ -1,11 +1,14 @@
 ﻿using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 
 namespace LMS.Blazor.Client.Components;
 
+[Authorize(Roles = "Teacher")] // ✅ Require Teacher role
 public partial class ManageCourses : ComponentBase
 {
     [Parameter] public bool IsTeacher { get; set; }
@@ -13,19 +16,70 @@ public partial class ManageCourses : ComponentBase
 
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private IApiService ApiService { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
     private List<CourseDto>? courses;
     private CourseDto? selectedCourse;
 
-    private int? editingCourseId;
-    private CourseEditModel courseEditModel = new();
-
     private ModuleDto? selectedModuleToEdit;
     private bool expandModulesAccordion = false;
 
-    // --- Lifecycle ---
-    protected override async Task OnInitializedAsync() => await LoadCoursesAsync();
+    private ModuleStrip? moduleStripRef;
+    private int? selectedModuleId;
 
+    // --- State flags ---
+    private bool isLoading = true;
+    private string? error;
+    private bool firstRenderDone;
+
+    // --- Lifecycle ---
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Handle first render (auth + course loading)
+        if (firstRender && !firstRenderDone)
+        {
+            firstRenderDone = true;
+            isLoading = true;
+            error = null;
+
+            try
+            {
+                if (AuthStateTask is not null)
+                {
+                    var auth = await AuthStateTask;
+                    if (!(auth.User.Identity?.IsAuthenticated ?? false))
+                    {
+                        error = "Du måste vara inloggad för att hantera kurser.";
+                        return;
+                    }
+                }
+
+                await LoadCoursesAsync();
+            }
+            catch (Exception ex)
+            {
+                error = $"Fel vid laddning av kurser: {ex.Message}";
+            }
+            finally
+            {
+                isLoading = false;
+                StateHasChanged();
+            }
+        }
+
+        // Handle search bar navigation (select module after render)
+        if (selectedModuleId != null && selectedCourse?.Modules != null && moduleStripRef != null)
+        {
+            var moduleId = selectedModuleId.Value;
+            selectedModuleId = null;
+
+            var module = selectedCourse.Modules.FirstOrDefault(m => m.Id == moduleId);
+            if (module != null)
+            {
+                await moduleStripRef.SelectModuleAsync(module);
+            }
+        }
+    }
     // --- Course Loading ---
     private async Task LoadCoursesAsync()
     {
@@ -39,13 +93,12 @@ public partial class ManageCourses : ComponentBase
         catch (Exception ex)
         {
             courses = new List<CourseDto>();
-            Console.WriteLine($"Failed to load courses: {ex.Message}");
+            error = $"Kunde inte ladda kurser: {ex.Message}";
         }
     }
 
     private async Task OnCourseSelected(CourseDto course)
     {
-        // ✅ load modules *with activities*
         var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
             $"api/course/{course.Id}/Modules?includeActivities=true");
 
@@ -63,6 +116,67 @@ public partial class ManageCourses : ComponentBase
         if (idx >= 0) courses[idx] = selectedCourse;
     }
 
+    // --- Handle Search ---
+    private async Task HandleSearchResult(SearchBar.SearchResult result)
+    {
+        if (result.Type == "Course")
+        {
+            var course = courses?.FirstOrDefault(c => c.Id == result.Id);
+            if (course != null)
+            {
+                var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                    $"api/course/{course.Id}/Modules?includeActivities=true");
+
+                course.Modules = modules?.ToList() ?? new();
+                selectedCourse = course;
+                selectedModuleId = course.Modules.FirstOrDefault()?.Id;
+            }
+        }
+        else if (result.Type == "Module")
+        {
+            selectedCourse = courses?.FirstOrDefault(c => c.Id == result.ParentId);
+
+            if (selectedCourse != null)
+            {
+                var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                    $"api/course/{selectedCourse.Id}/Modules?includeActivities=true");
+
+                selectedCourse.Modules = modules?.ToList() ?? new();
+                selectedModuleId = result.Id;
+            }
+        }
+        else if (result.Type == "Activity")
+        {
+            var module = courses?
+                .SelectMany(c => c.Modules ?? new List<ModuleDto>())
+                .FirstOrDefault(m => m.Id == result.ParentId);
+
+            if (module != null)
+            {
+                selectedCourse = courses?.FirstOrDefault(c => c.Id == module.CourseId);
+
+                if (selectedCourse != null)
+                {
+                    var modules = await ApiService.CallApiAsync<IEnumerable<ModuleDto>>(
+                        $"api/course/{selectedCourse.Id}/Modules?includeActivities=true");
+
+                    selectedCourse.Modules = modules?.ToList() ?? new();
+                    selectedModuleId = module.Id;
+                }
+            }
+        }
+
+        if (selectedCourse != null)
+        {
+            var elementId = $"course-{selectedCourse.Id}";
+            await JS.InvokeVoidAsync("scrollCourseIntoCenter", ".navstrip", elementId);
+        }
+
+        StateHasChanged();
+    }
+
+
+
     // --- Course CRUD ---
     private async Task AddCourseAsync()
     {
@@ -74,42 +188,48 @@ public partial class ManageCourses : ComponentBase
             Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
         };
 
-        // 1. Create the course
-        var created = await ApiService.PostAsync<CourseDto>("api/courses", placeholder);
-        if (created != null)
+        try
         {
-            // 2. Create an empty module for it
-            var newModule = new ModuleCreateDto
+            var created = await ApiService.PostAsync<CourseDto>("api/courses", placeholder);
+            if (created != null)
             {
-                Name = "New Module",
-                Description = string.Empty
-            };
+                var newModule = new ModuleCreateDto { Name = "New Module", Description = "New Descritption", Starts = DateOnly.FromDateTime(DateTime.Today), Ends = DateOnly.FromDateTime(DateTime.Today)};
+                var module = await ApiService.PostAsync<ModuleDto>(
+                    $"api/course/{created.Id}/Modules", newModule);
 
-            var module = await ApiService.PostAsync<ModuleDto>(
-                $"api/course/{created.Id}/Modules", newModule);
+                if (module != null)
+                    created.Modules = new List<ModuleDto> { module };
 
-            if (module != null)
-                created.Modules = new List<ModuleDto> { module };
+                courses ??= new List<CourseDto>();
+                courses.Insert(0, created);
+                selectedCourse = created;
 
-            // 3. Add to local state
-            courses ??= new List<CourseDto>();
-            courses.Insert(0, created);
-            selectedCourse = created;
-
-            StateHasChanged();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Fel vid skapande av kurs: {ex.Message}";
         }
     }
 
     private async Task DeleteCourseAsync(CourseDto course)
     {
-        var success = await ApiService.DeleteAsync($"api/courses/{course.Id}");
-        if (success && courses != null)
+        try
         {
-            courses = courses.Where(c => c.Id != course.Id).ToList();
-            if (selectedCourse?.Id == course.Id)
-                selectedCourse = null;
+            var success = await ApiService.DeleteAsync($"api/courses/{course.Id}");
+            if (success && courses != null)
+            {
+                courses = courses.Where(c => c.Id != course.Id).ToList();
+                if (selectedCourse?.Id == course.Id)
+                    selectedCourse = null;
 
-            StateHasChanged();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Fel vid borttagning av kurs: {ex.Message}";
         }
     }
 
@@ -123,18 +243,26 @@ public partial class ManageCourses : ComponentBase
             Ends = course.Ends
         };
 
-        var success = await ApiService.PutAsync($"api/courses/{course.Id}", dto);
-        if (success)
+        try
         {
-            var idx = courses!.FindIndex(c => c.Id == course.Id);
-            if (idx >= 0)
-                courses[idx] = course;
+            var success = await ApiService.PutAsync($"api/courses/{course.Id}", dto);
+            if (success)
+            {
+                var idx = courses!.FindIndex(c => c.Id == course.Id);
+                if (idx >= 0)
+                    courses[idx] = course;
 
-            selectedCourse = course;
-            StateHasChanged();
+                selectedCourse = course;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Fel vid sparande av kurs: {ex.Message}";
         }
     }
 
+    // --- Module Updates ---
     private async Task HandleModuleUpdated(ModuleDto updatedModule)
     {
         var idx = selectedCourse?.Modules?.FindIndex(m => m.Id == updatedModule.Id) ?? -1;
@@ -179,24 +307,22 @@ public partial class ManageCourses : ComponentBase
             Ends = DateOnly.FromDateTime(DateTime.Today.AddMonths(1))
         };
 
-        var created = await ApiService.PostAsync<ModuleDto>(
-            $"api/course/{selectedCourse.Id}/Modules", newModule);
-
-        if (created != null)
+        try
         {
-            selectedCourse.Modules ??= new List<ModuleDto>();
-            selectedCourse.Modules.Insert(0, created);
+            var created = await ApiService.PostAsync<ModuleDto>(
+                $"api/course/{selectedCourse.Id}/Modules", newModule);
 
-            StateHasChanged();
+            if (created != null)
+            {
+                selectedCourse.Modules ??= new List<ModuleDto>();
+                selectedCourse.Modules.Insert(0, created);
+
+                StateHasChanged();
+            }
         }
-    }
-
-    // --- Helper model ---
-    private class CourseEditModel
-    {
-        public string Name { get; set; } = "";
-        public string? Description { get; set; }
-        public DateOnly Starts { get; set; }
-        public DateOnly Ends { get; set; }
+        catch (Exception ex)
+        {
+            error = $"Fel vid skapande av modul: {ex.Message}";
+        }
     }
 }

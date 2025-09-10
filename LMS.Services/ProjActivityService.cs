@@ -4,6 +4,7 @@ using Domain.Models.Entities;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
 using Microsoft.EntityFrameworkCore;
 using Service.Contracts;
+using System.ComponentModel.DataAnnotations;
 
 namespace LMS.Services
 {
@@ -40,10 +41,30 @@ namespace LMS.Services
 
         public async Task<ProjActivityDto> CreateActivityAsync(int moduleId, CreateProjActivityDto dto)
         {
+            var module = await _unitOfWork.ModuleRepository
+                .FindByCondition(m => m.Id == moduleId, trackChanges: false)
+                .FirstOrDefaultAsync();
+
+            if (module == null)
+                throw new InvalidOperationException($"Module with id {moduleId} not found");
+
+            // ✅ Business validation
+            if (dto.Starts > dto.Ends)
+                throw new ValidationException("Activity start date must be before end date");
+
+            if (dto.Starts < module.Starts.ToDateTime(TimeOnly.MinValue) ||
+                dto.Ends > module.Ends.ToDateTime(TimeOnly.MaxValue))
+            {
+                throw new ValidationException(
+                    $"Activity must fit within module period {module.Starts:d} – {module.Ends:d}");
+            }
+
             var activity = _mapper.Map<ProjActivity>(dto);
             activity.ModuleId = moduleId;
+
             _unitOfWork.ProjActivityRepository.Create(activity);
             await _unitOfWork.CompleteAsync();
+
             return _mapper.Map<ProjActivityDto>(activity);
         }
 
@@ -53,11 +74,30 @@ namespace LMS.Services
                 .FindByCondition(a => a.Id == id, trackChanges: true)
                 .FirstOrDefaultAsync();
 
-            if (activity != null)
+            if (activity == null)
+                throw new InvalidOperationException($"Activity with id {id} not found");
+
+            var module = await _unitOfWork.ModuleRepository
+                .FindByCondition(m => m.Id == activity.ModuleId, trackChanges: false)
+                .FirstOrDefaultAsync();
+
+            if (module == null)
+                throw new InvalidOperationException($"Module for activity {id} not found");
+
+            // ✅ Business validation
+            if (dto.Starts > dto.Ends)
+                throw new ValidationException("Activity start date must be before end date");
+
+            if (dto.Starts < module.Starts.ToDateTime(TimeOnly.MinValue) ||
+                dto.Ends > module.Ends.ToDateTime(TimeOnly.MaxValue))
             {
-                _mapper.Map(dto, activity);
-                await _unitOfWork.CompleteAsync();
+                throw new ValidationException(
+                    $"Activity must fit within module period {module.Starts:d} – {module.Ends:d}");
             }
+
+            // ✅ Apply changes
+            _mapper.Map(dto, activity);
+            await _unitOfWork.CompleteAsync();
         }
 
         public async Task DeleteActivityAsync(int id)
@@ -72,5 +112,15 @@ namespace LMS.Services
                 await _unitOfWork.CompleteAsync();
             }
         }
+
+        public async Task<IEnumerable<ProjActivityDto>> SearchActivitiesAsync(string query, bool trackChanges = false)
+        {
+            var activities = await _unitOfWork.ProjActivityRepository
+                .FindByCondition(a => a.Title.Contains(query) || (a.Description ?? "").Contains(query), trackChanges)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ProjActivityDto>>(activities);
+        }
+
     }
 }

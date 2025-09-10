@@ -1,7 +1,8 @@
-﻿using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
+﻿using LMS.Blazor.Client.Services;
+using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
-using LMS.Blazor.Client.Services;
 using Microsoft.AspNetCore.Components;
+using System.ComponentModel.DataAnnotations;
 
 namespace LMS.Blazor.Client.Components;
 
@@ -9,20 +10,16 @@ public partial class ManageModules : ComponentBase
 {
     [Inject] private IApiService ApiService { get; set; } = default!;
     [Parameter] public ModuleDto? SelectedModule { get; set; }
-
-    // 🔔 notify parent when module changes
     [Parameter] public EventCallback<ModuleDto> OnModuleUpdated { get; set; }
-
-    // 🔔 notify parent when module is deleted
     [Parameter] public EventCallback<int> OnModuleDeleted { get; set; }
 
     private ModuleDto? activeModule;
     private int? editingModuleId;
     private ModuleEditModel moduleEditModel = new();
 
-    private int? editingActivityId;
-    private ActivityEditModel activityEditModel = new();
-    private ActivityEditModel addActivityModel = new();
+    // unified activity form
+    private int? editingActivityId; // null = add mode, value = editing
+    private ActivityEditModel activityFormModel = new();
 
     private string activityFilter = string.Empty;
     private bool isLoading = false;
@@ -30,26 +27,24 @@ public partial class ManageModules : ComponentBase
 
     protected override Task OnParametersSetAsync()
     {
-        if (SelectedModule != null)
-        {
-            activeModule = SelectedModule;
+        activeModule = SelectedModule;
 
+        if (activeModule != null)
+        {
             moduleEditModel = new ModuleEditModel
             {
                 Name = activeModule.Name,
                 Description = activeModule.Description,
                 Starts = activeModule.Starts,
-                Ends = activeModule.Ends
+                Ends = activeModule.Ends,
+
+                CourseStarts = activeModule.Course?.Starts ?? DateOnly.MinValue,
+                CourseEnds = activeModule.Course?.Ends ?? DateOnly.MaxValue
             };
-
-            editingModuleId = null;
-        }
-        else
-        {
-            activeModule = null;
-            editingModuleId = null;
         }
 
+        editingModuleId = null;
+        ResetActivityForm();
         return Task.CompletedTask;
     }
 
@@ -58,17 +53,26 @@ public partial class ManageModules : ComponentBase
             .Where(a => string.IsNullOrWhiteSpace(activityFilter) ||
                         (a.Title ?? "").Contains(activityFilter, StringComparison.OrdinalIgnoreCase));
 
-    // --- Add activity ---
+    // ----------------- ACTIVITY CRUD -----------------
+
+    private async Task HandleActivitySubmit()
+    {
+        if (editingActivityId == null)
+            await SaveNewActivity();
+        else
+            await SaveActivity(editingActivityId.Value);
+    }
+
     private async Task SaveNewActivity()
     {
         if (activeModule == null) return;
 
         var dto = new CreateProjActivityDto
         {
-            Title = addActivityModel.Title,
-            Type = addActivityModel.Type,
-            Starts = addActivityModel.Starts,
-            Ends = addActivityModel.Ends
+            Title = activityFormModel.Title,
+            Type = activityFormModel.Type,
+            Starts = activityFormModel.Starts,
+            Ends = activityFormModel.Ends
         };
 
         var created = await ApiService.PostAsync<ProjActivityDto>(
@@ -98,22 +102,7 @@ public partial class ManageModules : ComponentBase
                 await OnModuleUpdated.InvokeAsync(activeModule);
         }
 
-        ResetAddActivityForm();
-    }
-
-    private void ResetAddActivityForm() => addActivityModel = new();
-
-    // --- Edit activity ---
-    private void StartEditActivity(ProjActivityDto activity)
-    {
-        editingActivityId = activity.Id;
-        activityEditModel = new ActivityEditModel
-        {
-            Title = activity.Title,
-            Type = activity.Type,
-            Starts = activity.Starts,
-            Ends = activity.Ends
-        };
+        ResetActivityForm();
     }
 
     private async Task SaveActivity(int id)
@@ -122,54 +111,83 @@ public partial class ManageModules : ComponentBase
 
         var dto = new UpdateProjActivityDto
         {
-            Title = activityEditModel.Title,
-            Type = activityEditModel.Type,
-            Starts = activityEditModel.Starts,
-            Ends = activityEditModel.Ends
+            Title = activityFormModel.Title,
+            Type = activityFormModel.Type,
+            Starts = activityFormModel.Starts,
+            Ends = activityFormModel.Ends
         };
 
-        var success = await ApiService.PutAsync($"api/activities/{id}", dto);
-        if (success)
+        var success = await ApiService.PutAsync(
+            $"api/modules/{activeModule.Id}/activities/{id}", dto);
+
+        if (success && activeModule.Activities != null)
         {
-            var idx = activeModule.Activities?.FindIndex(a => a.Id == id) ?? -1;
-            if (idx >= 0)
+            var updated = await ApiService.CallApiAsync<ProjActivityDto>(
+                $"api/modules/{activeModule.Id}/activities/{id}");
+
+            if (updated != null)
             {
-                activeModule!.Activities![idx] = new ProjActivityDto
+                var idx = activeModule.Activities.FindIndex(a => a.Id == id);
+                if (idx >= 0)
                 {
-                    Id = id,
-                    Title = dto.Title,
-                    Type = dto.Type,
-                    Starts = dto.Starts,
-                    Ends = dto.Ends
-                };
+                    // ✅ Replace in-place to persist
+                    activeModule.Activities[idx] = updated;
+                }
             }
 
             if (OnModuleUpdated.HasDelegate)
                 await OnModuleUpdated.InvokeAsync(activeModule);
         }
 
-        editingActivityId = null;
-        activityEditModel = new();
+        ResetActivityForm();
     }
 
-    private void CancelEditActivity()
+    private void StartEditActivity(ProjActivityDto activity)
+    {
+        editingActivityId = activity.Id;
+        activityFormModel = new ActivityEditModel
+        {
+            Title = activity.Title,
+            Type = activity.Type,
+            Starts = activity.Starts,
+            Ends = activity.Ends,
+            ModuleStarts = activeModule?.Starts.ToDateTime(TimeOnly.MinValue) ?? DateTime.MinValue,
+            ModuleEnds = activeModule?.Ends.ToDateTime(TimeOnly.MaxValue) ?? DateTime.MaxValue
+        };
+    }
+
+    private void ResetActivityForm()
     {
         editingActivityId = null;
-        activityEditModel = new();
+        activityFormModel = new ActivityEditModel
+        {
+            ModuleStarts = activeModule?.Starts.ToDateTime(TimeOnly.MinValue) ?? DateTime.MinValue,
+            ModuleEnds = activeModule?.Ends.ToDateTime(TimeOnly.MaxValue) ?? DateTime.MaxValue
+        };
     }
 
     private async Task DeleteActivity(int id)
     {
-        if (await ApiService.DeleteAsync($"api/activities/{id}"))
-        {
-            activeModule?.Activities?.RemoveAll(a => a.Id == id);
+        if (activeModule is null) return;
 
-            if (OnModuleUpdated.HasDelegate && activeModule != null)
+        var success = await ApiService.DeleteAsync(
+            $"api/modules/{activeModule.Id}/activities/{id}");
+
+        if (success && activeModule.Activities != null)
+        {
+            var idx = activeModule.Activities.FindIndex(a => a.Id == id);
+            if (idx >= 0)
+                activeModule.Activities.RemoveAt(idx);
+
+            if (OnModuleUpdated.HasDelegate)
                 await OnModuleUpdated.InvokeAsync(activeModule);
         }
+
+        ResetActivityForm();
     }
 
-    // --- Module editing ---
+    // ----------------- MODULE CRUD -----------------
+
     private void StartEditModule(ModuleDto module)
     {
         editingModuleId = module.Id;
@@ -178,7 +196,9 @@ public partial class ManageModules : ComponentBase
             Name = module.Name,
             Description = module.Description,
             Starts = module.Starts,
-            Ends = module.Ends
+            Ends = module.Ends,
+            CourseStarts = module.Course?.Starts ?? DateOnly.MinValue,
+            CourseEnds = module.Course?.Ends ?? DateOnly.MaxValue
         };
     }
 
@@ -193,7 +213,7 @@ public partial class ManageModules : ComponentBase
             Description = moduleEditModel.Description,
             Starts = moduleEditModel.Starts,
             Ends = moduleEditModel.Ends,
-            CourseId = activeModule.CourseId,
+            CourseId = activeModule.CourseId
         };
 
         var success = await ApiService.PutAsync(
@@ -201,11 +221,11 @@ public partial class ManageModules : ComponentBase
 
         if (success)
         {
-            activeModule = await ApiService.CallApiAsync<ModuleDto>(
+            var updated = await ApiService.CallApiAsync<ModuleDto>(
                 $"api/course/{activeModule.CourseId}/Modules/{activeModule.Id}?includeActivities=true");
 
-            if (OnModuleUpdated.HasDelegate && activeModule != null)
-                await OnModuleUpdated.InvokeAsync(activeModule);
+            if (updated != null && OnModuleUpdated.HasDelegate)
+                await OnModuleUpdated.InvokeAsync(updated);
         }
 
         editingModuleId = null;
@@ -217,8 +237,10 @@ public partial class ManageModules : ComponentBase
     {
         if (activeModule is null) return;
 
-        if (await ApiService.DeleteAsync(
-            $"api/course/{activeModule.CourseId}/Modules/{id}"))
+        var success = await ApiService.DeleteAsync(
+            $"api/course/{activeModule.CourseId}/Modules/{id}");
+
+        if (success)
         {
             var deletedId = activeModule.Id;
             activeModule = null;
@@ -228,20 +250,61 @@ public partial class ManageModules : ComponentBase
         }
     }
 
-    // --- Helper models ---
-    private class ModuleEditModel
+    // ----------------- ViewModels -----------------
+
+    private class ModuleEditModel : IValidatableObject
     {
+        [Required, StringLength(100)]
         public string Name { get; set; } = "";
+
+        [Required, StringLength(500)]
         public string? Description { get; set; }
+
+        [Required]
         public DateOnly Starts { get; set; }
+
+        [Required]
         public DateOnly Ends { get; set; }
+
+        public DateOnly CourseStarts { get; set; }
+        public DateOnly CourseEnds { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Starts > Ends)
+                yield return new ValidationResult("Module start must be before end", new[] { nameof(Starts), nameof(Ends) });
+
+            if (Starts < CourseStarts || Ends > CourseEnds)
+                yield return new ValidationResult($"Module dates must fit within course {CourseStarts:d} – {CourseEnds:d}",
+                    new[] { nameof(Starts), nameof(Ends) });
+        }
     }
 
-    private class ActivityEditModel
+    private class ActivityEditModel : IValidatableObject
     {
+        [Required, StringLength(100)]
         public string Title { get; set; } = "";
+
+        [Required, StringLength(50)]
         public string Type { get; set; } = "";
+
+        [Required]
         public DateTime Starts { get; set; } = DateTime.Today;
+
+        [Required]
         public DateTime Ends { get; set; } = DateTime.Today.AddDays(1);
+
+        public DateTime ModuleStarts { get; set; }
+        public DateTime ModuleEnds { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Starts > Ends)
+                yield return new ValidationResult("Activity start must be before end", new[] { nameof(Starts), nameof(Ends) });
+
+            if (Starts < ModuleStarts || Ends > ModuleEnds)
+                yield return new ValidationResult($"Activity dates must fit within module {ModuleStarts:g} – {ModuleEnds:g}",
+                    new[] { nameof(Starts), nameof(Ends) });
+        }
     }
 }

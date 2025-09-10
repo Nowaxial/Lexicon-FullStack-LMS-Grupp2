@@ -1,0 +1,114 @@
+﻿@using LMS.Shared.DTOs.Common
+@using LMS.Shared.DTOs.EntitiesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
+@using LMS.Shared.DTOs.EntitiesDtos.ProjActivity
+
+<div class="card p-2 mb-3">
+    <div class="input-group">
+        <input type="text" class="form-control" placeholder="Search..."
+               @bind="searchTerm" @bind:event="oninput" />
+        <button class="btn btn-outline-secondary" @onclick="SearchAsync">
+            <i class="bi bi-search"></i>
+        </button>
+    </div>
+
+    <div class="form-check form-check-inline mt-2">
+        <input class="form-check-input" type="checkbox" id="searchCourses" @bind="searchCourses" />
+        <label class="form-check-label" for="searchCourses">Courses</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="searchModules" @bind="searchModules" />
+        <label class="form-check-label" for="searchModules">Modules</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="searchActivities" @bind="searchActivities" />
+        <label class="form-check-label" for="searchActivities">Activities</label>
+    </div>
+
+    <ul class="list-group mt-2" style="max-height:200px;overflow-y:auto;">
+        @foreach (var r in results)
+        {
+            <li class="list-group-item list-group-item-action"
+                @onclick="() => NavigateTo(r)">
+                <strong>@r.Label</strong>
+                <span class="badge bg-secondary">@r.Type</span>
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    private string searchTerm = string.Empty;
+    private bool searchCourses = true;
+    private bool searchModules = true;
+    private bool searchActivities = true;
+
+    private List<SearchResult> results = new();
+
+    [Inject] public IApiService ApiService { get; set; } = default!;
+    [Parameter] public EventCallback<SearchResult> OnResultSelected { get; set; }
+
+    private async Task SearchAsync()
+    {
+        results.Clear();
+        if (string.IsNullOrWhiteSpace(searchTerm)) return;
+
+        // Build query string
+        var url = $"api/search?query={Uri.EscapeDataString(searchTerm)}" +
+                  $"&includeCourses={searchCourses}" +
+                  $"&includeModules={searchModules}" +
+                  $"&includeActivities={searchActivities}";
+
+        var response = await ApiService.CallApiAsync<SearchResultDto>(url);
+        if (response == null) return;
+
+        if (response.Courses != null)
+        {
+            results.AddRange(response.Courses.Select(c => new SearchResult
+            {
+                Id = c.Id,
+                Label = c.Name,
+                Type = "Course"
+            }));
+        }
+
+        if (response.Modules != null)
+        {
+            results.AddRange(response.Modules.Select(m => new SearchResult
+            {
+                Id = m.Id,
+                Label = m.Name ?? "(No name)",
+                Type = "Module",
+                ParentId = m.CourseId
+            }));
+        }
+
+        if (response.Activities != null)
+        {
+            results.AddRange(response.Activities.Select(a => new SearchResult
+            {
+                Id = a.Id,
+                Label = a.Title,
+                Type = "Activity",
+                ParentId = a.ModuleId // make sure ProjActivityDto exposes ModuleId
+            }));
+        }
+    }
+
+    private async Task NavigateTo(SearchResult result)
+    {
+        if (OnResultSelected.HasDelegate)
+            await OnResultSelected.InvokeAsync(result);
+
+        results.Clear();
+        searchTerm = string.Empty;
+    }
+
+    public class SearchResult
+    {
+        public int Id { get; set; }
+        public int? ParentId { get; set; } // for linking Modules → Course, Activities → Module
+        public string Label { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+    }
+}

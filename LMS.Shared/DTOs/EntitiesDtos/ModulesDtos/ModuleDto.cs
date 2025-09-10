@@ -20,7 +20,7 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
         public int ActivitiesCount { get; init; }
         public int DocumentsCount { get; init; }
 
-        public IEnumerable<CourseDto>? Courses { get; init; }
+        public CourseDto? Course { get; init; }
         public List<ProjActivityDto> Activities { get; init; } = new();
 
 
