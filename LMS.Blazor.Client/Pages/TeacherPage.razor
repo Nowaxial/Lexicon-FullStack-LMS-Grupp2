@@ -11,6 +11,92 @@
 
 <PageTitle>Lärare</PageTitle>
 
+<!-- Feedback Modal - flyttad högst upp -->
+<div class="modal fade" id="feedbackModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content lms-modal">
+            <div class="modal-header lms-modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-chat-text me-2"></i>Ge feedback
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body lms-modal-body">
+                <div class="lms-form-group">
+                    <label class="lms-label">Fil:</label>
+                    <p class="lms-text-muted">@currentDocument?.DisplayName</p>
+                </div>
+                <div class="lms-form-group">
+                    <label class="lms-label">Student:</label>
+                    <p class="lms-text-muted">@currentDocument?.StudentName</p>
+                </div>
+                <div class="lms-form-group">
+                    <label class="lms-label">Tidigare feedback:</label>
+                    @if (currentDocument?.Status.Contains(":") == true)
+                    {
+                        <div class="previous-feedback">
+                            @{
+                                var previousFeedback = currentDocument.Status.Split(':', 2)[1].Trim();
+                            }
+                            <pre class="lms-previous-feedback">@previousFeedback</pre>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="lms-text-muted">Ingen tidigare feedback</p>
+                    }
+                </div>
+                <div class="lms-form-group">
+                    <label class="lms-label">Status:</label>
+                    <div class="dropdown">
+                        <span class="dropdown-toggle subm-status @StatusCss(feedbackStatus)"
+                              role="button"
+                              id="dd-modal-@currentDocument?.Id"
+                              data-bs-toggle="dropdown"
+                              aria-expanded="false"
+                              style="cursor: pointer;">
+                            @feedbackStatus
+                            @if (currentDocument != null && _savingDocIds.Contains(currentDocument.Id))
+                            {
+                                <span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>
+                            }
+                        </span>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dd-modal-@currentDocument?.Id">
+                            @foreach (var opt in _statusOptions)
+                            {
+                                var optLabel = LabelFor(opt);
+                                var isActive = feedbackStatus == optLabel;
+                                <li>
+                                    <button class="dropdown-item @(isActive ? "active" : null)"
+                                            @onclick="() => feedbackStatus = optLabel"
+                                            disabled="@(currentDocument != null && _savingDocIds.Contains(currentDocument.Id))">
+                                        @optLabel
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="lms-form-group">
+                    <label class="lms-label">Ny feedback:</label>
+                    <textarea @bind="feedbackText" class="lms-textarea" rows="4" placeholder="Skriv din nya feedback här..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer lms-modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-hero" @onclick="SaveFeedbackAsync" disabled="@_savingFeedback">
+                    @if (_savingFeedback)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    }
+                    Spara
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @if (isLoading)
 {
     <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
@@ -35,23 +121,24 @@ else
                         </a>
                     </div>
                 </div>
-            <div class="row g-4">
-                <div class="col-12 col-lg-8">
-                    <article class="dash-card">
-                        <div class="d-flex flex-column">
-                            <div class="dash-card__head">Mina kurser</div>
+                <div class="row g-4">
+                    <div class="col-12 col-lg-8">
+                        <article class="dash-card">
+                            <div class="d-flex flex-column">
+                                <div class="dash-card__head">Mina kurser</div>
 
-                            @foreach (var c in Courses)
-                            {
-                                <div class="course-row">
-                                    <div class="course-row__title">@c.Title</div>
-                                    <div class="course-row__meta">
-                                        <div><span class="label">Elever</span><span>@c.Students</span></div>
-                                        <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
-                                    </div>
-                                    <div class="course-row__actions">
-                                        <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
+                                @foreach (var c in Courses)
+                                {
+                                    <div class="course-row">
+                                        <div class="course-row__title">@c.Title</div>
+                                        <div class="course-row__meta">
+                                            <div><span class="label">Elever</span><span>@c.Students</span></div>
+                                            <div><span class="label">Startdatum</span><span>@c.StartDate.ToString("dd MMM")</span></div>
+                                        </div>
+                                        <div class="course-row__actions">
+                                            <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
                                             <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="courses">Hantera</NavLink>
+                                        </div>
                                     </div>
                                 }
                             </div>
@@ -339,70 +426,6 @@ else
                     </div>
                 </div>
             </section>
-
-            <!-- Feedback Modal -->
-            <div class="modal fade" id="feedbackModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content lms-modal">
-                        <div class="modal-header lms-modal-header">
-                            <h5 class="modal-title">
-                                <i class="bi bi-chat-text me-2"></i>Ge feedback
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body lms-modal-body">
-                            <div class="lms-form-group">
-                                <label class="lms-label">Fil:</label>
-                                <p class="lms-text-muted">@currentDocument?.DisplayName</p>
-                            </div>
-                            <div class="lms-form-group">
-                                <label class="lms-label">Student:</label>
-                                <p class="lms-text-muted">@currentDocument?.StudentName</p>
-                            </div>
-                            <div class="lms-form-group">
-                                <label class="lms-label">Tidigare feedback:</label>
-                                @if (currentDocument?.Status.Contains(":") == true)
-                                {
-                                    <div class="previous-feedback">
-                                        @{
-                                            var previousFeedback = currentDocument.Status.Split(':', 2)[1].Trim();
-                                        }
-                                        <pre class="lms-previous-feedback">@previousFeedback</pre>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <p class="lms-text-muted">Ingen tidigare feedback</p>
-                                }
-                            </div>
-                            <div class="lms-form-group">
-                                <label class="lms-label">Status:</label>
-                                <select @bind="feedbackStatus" class="lms-select">
-                                    <option value="Godkänd">Godkänd</option>
-                                    <option value="Underkänd">Underkänd</option>
-                                    <option value="Granskning">Granskning</option>
-                                    <option value="Ej bedömd">Ej bedömd</option>
-                                </select>
-                            </div>
-
-                            <div class="lms-form-group">
-                                <label class="lms-label">Ny feedback:</label>
-                                <textarea @bind="feedbackText" class="lms-textarea" rows="4" placeholder="Skriv din nya feedback här..."></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer lms-modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Avbryt</button>
-                            <button type="button" class="btn btn-hero" @onclick="SaveFeedbackAsync" disabled="@_savingFeedback">
-                                @if (_savingFeedback)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                }
-                                Spara
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
         </Authorized>
 

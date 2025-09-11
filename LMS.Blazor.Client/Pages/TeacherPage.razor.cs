@@ -63,7 +63,6 @@ namespace LMS.Blazor.Client.Components.Pages
         private readonly List<DocItem> _latestDocs = new();
         private bool _loadingDocs;
 
-
         private static string BuildDownloadUrl(int id)
             => $"proxy?endpoint={Uri.EscapeDataString($"api/documents/{id}/download")}";
 
@@ -123,7 +122,6 @@ namespace LMS.Blazor.Client.Components.Pages
             await JS.InvokeVoidAsync("eval", "new bootstrap.Modal(document.getElementById('feedbackModal')).show()");
         }
 
-
         private async Task SaveFeedbackAsync()
         {
             if (currentDocument == null) return;
@@ -135,33 +133,32 @@ namespace LMS.Blazor.Client.Components.Pages
             {
                 _savingDocIds.Add(currentDocument.Id);
 
-                // Skapa hela feedback-historiken INNAN API-anropet
-                var existingFeedback = GetExistingFeedback(currentDocument.Status);
-                var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                var newFeedbackEntry = $"[{timestamp}|{feedbackStatus}] {feedbackText}"; // Lägg till status
+                var status = ParseStatusToEnum(feedbackStatus);
 
-                var allFeedback = string.IsNullOrEmpty(existingFeedback)
-                    ? newFeedbackEntry
-                    : $"{existingFeedback}\n{newFeedbackEntry}";
-
-                // Skicka hela historiken till backend
-                var dto = new SetDocumentStatusDto
+                if (!string.IsNullOrEmpty(feedbackText))
                 {
-                    Status = ParseStatusToEnum(feedbackStatus),
-                    Feedback = string.IsNullOrEmpty(feedbackText) ? null : allFeedback
-                };
+                    // Hantera feedback
+                    var existingFeedback = GetExistingFeedback(currentDocument.Status);
+                    var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    var newFeedbackEntry = $"[{timestamp}|{feedbackStatus}] {feedbackText}";
 
-                await ApiService.PostAsync<object?>($"api/documents/{currentDocument.Id}/status", dto);
+                    var allFeedback = string.IsNullOrEmpty(existingFeedback)
+                        ? newFeedbackEntry
+                        : $"{existingFeedback}\n{newFeedbackEntry}";
 
-                // Uppdatera lokal visning
-                var displayStatus = string.IsNullOrEmpty(feedbackText)
-                    ? feedbackStatus
-                    : $"{feedbackStatus}: {allFeedback}";
+                    // Sätt statusen först
+                    await ChangeStatusAsync(currentDocument, status);
 
-                var index = _latestDocs.FindIndex(d => d.Id == currentDocument.Id);
-                if (index >= 0)
-                {
-                    _latestDocs[index] = currentDocument with { Status = displayStatus };
+                    // Använd SetStatusAsync MED feedback
+                    await SetStatusWithFeedbackAsync(currentDocument.Id, status, allFeedback);
+
+                    // Uppdatera lokal visning
+                    var displayStatus = $"{feedbackStatus}: {allFeedback}";
+                    var index = _latestDocs.FindIndex(d => d.Id == currentDocument.Id);
+                    if (index >= 0)
+                    {
+                        _latestDocs[index] = currentDocument with { Status = displayStatus };
+                    }
                 }
 
                 _savingDocIds.Remove(currentDocument.Id);
@@ -179,18 +176,22 @@ namespace LMS.Blazor.Client.Components.Pages
             }
         }
 
-
-
-
+        // Lägg till denna nya metod
+        private async Task SetStatusWithFeedbackAsync(int documentId, DocumentStatus status, string feedback)
+        {
+            var dto = new SetDocumentStatusDto
+            {
+                Status = status,
+                Feedback = feedback
+            };
+            await ApiService.PostAsync<object?>($"api/documents/{documentId}/status", dto);
+        }
 
         private string GetExistingFeedback(string status)
         {
             if (!status.Contains(":")) return "";
             return status.Split(':', 2)[1].Trim();
         }
-
-
-
 
         // Lägg till denna hjälpmetod
         private static DocumentStatus ParseStatusToEnum(string status)
@@ -204,7 +205,6 @@ namespace LMS.Blazor.Client.Components.Pages
                 _ => DocumentStatus.Pending
             };
         }
-
 
         private string CourseTitle(int courseId)
         {
@@ -472,7 +472,7 @@ namespace LMS.Blazor.Client.Components.Pages
             var old = doc.Status;
 
             _savingDocIds.Add(doc.Id);
-            _latestDocs[index] = doc with { Status = newStatus.ToString() };
+            _latestDocs[index] = doc with { Status = LabelFor(newStatus) };
             StateHasChanged();
 
             try
@@ -497,6 +497,5 @@ namespace LMS.Blazor.Client.Components.Pages
             var dto = new SetDocumentStatusDto { Status = status };
             await ApiService.PostAsync<object?>($"api/documents/{documentId}/status", dto);
         }
-
     }
 }
