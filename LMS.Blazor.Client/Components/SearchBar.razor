@@ -30,8 +30,28 @@
         {
             <li class="list-group-item list-group-item-action"
                 @onclick="() => NavigateTo(r)">
-                <strong>@r.Label</strong>
-                <span class="badge bg-secondary">@r.Type</span>
+
+                @if (r.Type == "Course")
+                {
+                    <strong>@r.Label</strong>
+                    <span class="badge bg-primary ms-2">Course</span>
+                }
+                else if (r.Type == "Module")
+                {
+                    <div>
+                        <small class="text-muted">@r.ParentName - </small>
+                        <strong>@r.Label</strong>
+                    </div>
+                    <span class="badge bg-success ms-2">Module</span>
+                }
+                else if (r.Type == "Activity")
+                {
+                    <div>
+                        <small class="text-muted">@r.GrandParentName - @r.ParentName - </small>
+                        <strong>@r.Label</strong>
+                    </div>
+                    <span class="badge bg-warning text-dark ms-2">Activity</span>
+                }
             </li>
         }
     </ul>
@@ -53,7 +73,6 @@
         results.Clear();
         if (string.IsNullOrWhiteSpace(searchTerm)) return;
 
-        // Build query string
         var url = $"api/search?query={Uri.EscapeDataString(searchTerm)}" +
                   $"&includeCourses={searchCourses}" +
                   $"&includeModules={searchModules}" +
@@ -62,6 +81,7 @@
         var response = await ApiService.CallApiAsync<SearchResultDto>(url);
         if (response == null) return;
 
+        // Courses
         if (response.Courses != null)
         {
             results.AddRange(response.Courses.Select(c => new SearchResult
@@ -72,6 +92,7 @@
             }));
         }
 
+        // Modules
         if (response.Modules != null)
         {
             results.AddRange(response.Modules.Select(m => new SearchResult
@@ -79,10 +100,12 @@
                 Id = m.Id,
                 Label = m.Name ?? "(No name)",
                 Type = "Module",
-                ParentId = m.CourseId
+                ParentId = m.CourseId,
+                ParentName = m.CourseName
             }));
         }
 
+        // Activities
         if (response.Activities != null)
         {
             results.AddRange(response.Activities.Select(a => new SearchResult
@@ -90,7 +113,10 @@
                 Id = a.Id,
                 Label = a.Title,
                 Type = "Activity",
-                ParentId = a.ModuleId // make sure ProjActivityDto exposes ModuleId
+                ParentId = a.ModuleId,
+                ParentName = a.ModuleName,
+                GrandParentId = a.CourseId,
+                GrandParentName = a.CourseName
             }));
         }
     }
@@ -107,8 +133,13 @@
     public class SearchResult
     {
         public int Id { get; set; }
-        public int? ParentId { get; set; } // for linking Modules → Course, Activities → Module
         public string Label { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; // "Course", "Module", "Activity"
+
+        public int? ParentId { get; set; }
+        public string? ParentName { get; set; }
+
+        public int? GrandParentId { get; set; }
+        public string? GrandParentName { get; set; }
     }
 }

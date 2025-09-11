@@ -54,7 +54,9 @@ else
                                     </div>
                                     <div class="course-row__actions">
                                         <NavLink class="btn btn-sm btn-outline-light" href="@($"courses/{c.Id}")">Visa</NavLink>
-                                            <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="courses">Hantera</NavLink>
+                                            <NavLink class="btn btn-sm btn-outline-secondary btn-light" href="@($"courses?courseId={c.Id}")">
+                                                Hantera
+                                            </NavLink>
                                     </div>
                                 </div>
                             }

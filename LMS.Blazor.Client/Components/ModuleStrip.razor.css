@@ -68,7 +68,10 @@
 .module-card {
     position: relative; /* allow absolute positioning inside */
 }
-
+/* Gray out and disable non-active modules */
+.disabled-module {
+    pointer-events: none; /* prevent all clicks inside */
+}
 .module-edit-btn {
     position: absolute;
     top: 0.75rem;

@@ -29,10 +29,56 @@ namespace LMS.Presentation.Controllers
                 result.Courses = (await _serviceManager.CourseService.SearchCoursesAsync(query)).ToList();
 
             if (includeModules)
-                result.Modules = (await _serviceManager.ModuleService.SearchModulesAsync(query)).ToList();
+            {
+                var modules = (await _serviceManager.ModuleService.SearchModulesAsync(query)).ToList();
+
+                foreach (var module in modules)
+                {
+                    // Load course info for module
+                    var course = await _serviceManager.CourseService.GetCourseByIdAsync(
+                        module.CourseId,
+                        includeModules: false,
+                        includeActivities: false);
+
+                    if (course != null)
+                        module.CourseName = course.Name;
+                }
+
+                result.Modules = modules;
+            }
 
             if (includeActivities)
-                result.Activities = (await _serviceManager.ProjActivityService.SearchActivitiesAsync(query)).ToList();
+            {
+                var activities = (await _serviceManager.ProjActivityService.SearchActivitiesAsync(query)).ToList();
+
+                foreach (var activity in activities)
+                {
+                    // Load module info for activity
+                    var module = await _serviceManager.ModuleService.GetModuleByIdAsync(
+                        activity.ModuleId,
+                        includeActivities: false);
+
+                    if (module != null)
+                    {
+                        activity.ModuleName = module.Name;
+                        activity.CourseId = module.CourseId;
+                    }
+
+                    // Load course info for activity
+                    if (activity.CourseId != 0)
+                    {
+                        var course = await _serviceManager.CourseService.GetCourseByIdAsync(
+                            activity.CourseId,
+                            includeModules: false,
+                            includeActivities: false);
+
+                        if (course != null)
+                            activity.CourseName = course.Name;
+                    }
+                }
+
+                result.Activities = activities;
+            }
 
             return Ok(result);
         }
