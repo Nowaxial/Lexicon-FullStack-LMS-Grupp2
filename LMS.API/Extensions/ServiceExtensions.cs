@@ -18,11 +18,9 @@ public static class ServiceExtensions
         {
             options.AddPolicy("AllowAll", p =>
                 p.WithOrigins(
-                    "https://localhost:7224",  // Local Blazor
-                    "https://lexicon-lms.azurewebsites.net",  // Azure Blazor
-                    "https://lms-api-se.azurewebsites.net", // Azure API
-                    "https://lms-api.runasp.net", // MonsterASP API
-                    "https://simplilearn.azurewebsites.net"
+                    "https://localhost:7224"  // Local Blazor
+                                                    // Azure Blazor
+                  
                 )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
