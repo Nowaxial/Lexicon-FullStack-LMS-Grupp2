@@ -361,3 +361,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/LMS.Blazor/Properties/ServiceDependencies/SimpliLearn - Web Deploy
+/LMS.Blazor/Properties/serviceDependencies.json
+/LMS.Blazor/Properties/serviceDependencies.SimpliLearn - Web Deploy.json
+/LMS.Blazor/appsettings.Production.json
+/LMS.API/.config
+/LMS.API/appsettings.Production.json
+/LMS.Blazor/.config
+/LMS.Blazor.Client/wwwroot/appsettings.Production.json
