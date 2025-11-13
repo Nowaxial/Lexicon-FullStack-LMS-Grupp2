@@ -3,7 +3,6 @@
 @using Microsoft.JSInterop
 @inject INotificationService NotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject HttpClient HttpClient
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 @rendermode InteractiveServer
@@ -22,7 +21,6 @@
     </button>
 }
 
-<!-- Notification List Modal -->
 @if (showNotificationModal)
 {
     <div class="modal fade show rounded" style="display: block;" tabindex="-1">
@@ -40,17 +38,20 @@
                             <div class="notification-item @(notification.IsRead ? "" : "unread") p-3 border-bottom rounded"
                                  style="cursor: pointer;" @onclick="() => ShowNotification(notification)">
                                 <div class="mb-1">
-                                    @if (notification.Message.Contains("kontaktmeddelande från"))
-                                    {
-                                        @notification.Message.Replace("Nytt kontaktmeddelande från", "Nytt meddelande från")
-                                    }
-                                    else if (notification.Message.Contains("laddade upp"))
-                                    {
-                                        @notification.Message.Split('|')[0]
-                                    }
-                                    else
-                                    {
-                                        @notification.Message
+                                    @{
+                                        var messageLower = notification.Message.ToLower();
+                                        if (messageLower.Contains("kontaktmeddelande från"))
+                                        {
+                                            @notification.Message.Replace("kontaktmeddelande från", "Meddelande från")
+                                        }
+                                        else if (messageLower.Contains("laddade upp"))
+                                        {
+                                            @notification.Message.Split('|')[0]
+                                        }
+                                        else
+                                        {
+                                            @notification.Message
+                                        }
                                     }
                                 </div>
                                 <small class="text-muted">@notification.Timestamp.ToString("yyyy-MM-dd HH:mm")</small>
@@ -68,7 +69,6 @@
     <div class="modal-backdrop fade show"></div>
 }
 
-<!-- Message Detail Modal -->
 @if (selectedNotification != null)
 {
     <div class="modal fade show lms-notification-modal" style="display: block;" tabindex="-1">
@@ -76,7 +76,7 @@
             <div class="modal-content">
                 <div class="modal-header lms-notification-modal-header">
                     <h5 class="modal-title">
-                        @if (selectedNotification.Message.Contains("laddade upp"))
+                        @if (selectedNotification.Message.ToLower().Contains("laddade upp"))
                         {
                             <text>Filuppladdning</text>
                         }
@@ -88,7 +88,7 @@
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body p-3 p-md-4">
-                    @if (selectedNotification.Message.Contains("laddade upp"))
+                    @if (selectedNotification.Message.ToLower().Contains("laddade upp"))
                     {
                         <div class="lms-field-group">
                             <div class="d-flex align-items-center mb-3">

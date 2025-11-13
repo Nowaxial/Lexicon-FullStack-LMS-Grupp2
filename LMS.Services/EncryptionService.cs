@@ -26,7 +26,7 @@ public class EncryptionService
         return JsonSerializer.Deserialize<T>(json)!;
     }
 
-    private string Encrypt(string plainText)
+    public string Encrypt(string plainText)
     {
         using var aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(_key[..32]);
@@ -43,7 +43,7 @@ public class EncryptionService
         return Convert.ToBase64String(result);
     }
 
-    private string Decrypt(string encryptedText)
+    public string Decrypt(string encryptedText)
     {
         var fullCipher = Convert.FromBase64String(encryptedText);
 

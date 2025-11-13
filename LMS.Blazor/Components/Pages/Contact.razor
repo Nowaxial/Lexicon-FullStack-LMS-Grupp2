@@ -32,7 +32,7 @@
             {
                 <div class="alert @(isSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show">
                     @message
-                    <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+                    @* <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button> *@
                 </div>
             }
 
@@ -55,7 +55,7 @@
                             <div class="stat">
                                 <i class="bi bi-telephone"></i>
                                 <div class="stat__num">Telefon</div>
-                                <div class="stat__label">01-234 56 78</div>
+                                <div class="stat__label">+46 (0)8 123 45 67</div>
                             </div>
                         </div>
                     </div>
@@ -121,65 +121,4 @@
     </div>
 </div>
 
-@code {
-    [SupplyParameterFromForm]
-    private ContactFormModel Input { get; set; } = new();
 
-    private string message = string.Empty;
-    private bool isSuccess = false;
-    private bool isSubmitting = false;
-
-    private async Task SendMessage()
-    {
-        try
-        {
-            isSubmitting = true;
-
-            var dto = new ContactMessageDto
-            {
-                Name = Input.Name,
-                Email = Input.Email,
-                Subject = Input.Subject,
-                Message = Input.Message
-            };
-
-            var json = JsonSerializer.Serialize(dto);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var apiBaseUrl = Configuration["LmsAPIBaseAddress"];
-            var response = await Http.PostAsync($"{apiBaseUrl}/api/contact", content);
-
-            response.EnsureSuccessStatusCode();
-
-            Input = new ContactFormModel();
-            message = "Ditt meddelande har skickats! Vi återkommer så snart som möjligt.";
-            isSuccess = true;
-        }
-        catch (Exception ex)
-        {
-            message = $"Fel: {ex.Message}";
-            isSuccess = false;
-        }
-        finally
-        {
-            isSubmitting = false;
-        }
-    }
-
-    public class ContactFormModel
-    {
-        [Required(ErrorMessage = "Namn är obligatoriskt")]
-        public string Name { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "E-post är obligatoriskt")]
-        [EmailAddress(ErrorMessage = "Ogiltig e-postadress")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Ämne är obligatoriskt")]
-        public string Subject { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Meddelande är obligatoriskt")]
-        [MinLength(10, ErrorMessage = "Meddelandet måste vara minst 10 tecken")]
-        public string Message { get; set; } = string.Empty;
-    }
-}

@@ -25,6 +25,6 @@ namespace LMS.Shared.DTOs.UsersDtos
         public string LastName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "At least one role is required")]
-        public List<string> Roles { get; set; } = new();
+        public List<string> Roles { get; set; } = [];
     }
 }

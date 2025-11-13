@@ -1,18 +1,9 @@
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.IO;
-using System.Net.Http;
 using LMS.Blazor.Client.Services;
 using LMS.Shared.DTOs.EntitiesDtos.ModulesDtos;
 using LMS.Shared.DTOs.EntitiesDtos.ProjActivity;
 using LMS.Shared.DTOs.EntitiesDtos.ProjDocumentDtos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using System.Diagnostics;
 
 namespace LMS.Blazor.Client.Components.CourseComponents
 {
@@ -203,7 +194,7 @@ namespace LMS.Blazor.Client.Components.CourseComponents
             }
             catch
             {
-              
+
             }
         }
 
@@ -326,7 +317,7 @@ namespace LMS.Blazor.Client.Components.CourseComponents
                 return "feedback-rejected";
             if (s.StartsWith("granskning") || s.StartsWith("review"))
                 return "feedback-review";
-            return "feedback-pending"; 
+            return "feedback-pending";
         }
 
 

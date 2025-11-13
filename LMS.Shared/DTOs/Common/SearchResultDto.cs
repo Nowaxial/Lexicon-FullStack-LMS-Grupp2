@@ -11,8 +11,8 @@ namespace LMS.Shared.DTOs.Common
 {
     public class SearchResultDto
     {
-        public List<CourseDto> Courses { get; set; } = new();
-        public List<ModuleDto> Modules { get; set; } = new();
-        public List<ProjActivityDto> Activities { get; set; } = new();
+        public List<CourseDto> Courses { get; set; } = [];
+        public List<ModuleDto> Modules { get; set; } = [];
+        public List<ProjActivityDto> Activities { get; set; } = [];
     }
 }

@@ -65,21 +65,29 @@ namespace LMS.Services
             string uploaderUserId,
             CancellationToken ct = default)
         {
+            _logger.LogInformation("[ProjDocumentService] Starting upload for {FileName} by user {UserId}", originalFileName, uploaderUserId);
+
             // 1) Save the binary
             var relativePath = await _storage.SaveAsync(content, originalFileName, ct);
+            _logger.LogInformation("[ProjDocumentService] File saved to {RelativePath}", relativePath);
 
             // 2) Persist metadata
             var entity = _mapper.Map<ProjDocument>(meta);
-            entity.FileName = relativePath;                   // store relative path
+            entity.FileName = relativePath;
             entity.UploadedAt = DateTime.UtcNow;
             entity.UploadedByUserId = uploaderUserId;
 
             _uow.ProjDocumentRepository.Create(entity);
             await _uow.CompleteAsync();
 
+            _logger.LogInformation("[ProjDocumentService] Document saved with ID {DocumentId}, IsSubmission: {IsSubmission}, ActivityId: {ActivityId}",
+                entity.Id, entity.IsSubmission, entity.ActivityId);
+
             // 3) Send notification
             if (entity.IsSubmission && entity.ActivityId.HasValue)
             {
+                _logger.LogInformation("[ProjDocumentService] Fetching document details for notification...");
+
                 var doc = await _uow.ProjDocumentRepository.GetByIdWithDetailsAsync(entity.Id, trackChanges: false);
 
                 var user = await _userService.GetUserByIdAsync(uploaderUserId);
@@ -88,7 +96,25 @@ namespace LMS.Services
                 var moduleName = doc?.Module?.Name ?? "Okänd modul";
                 var activityTitle = doc?.Activity?.Title ?? "Okänd aktivitet";
 
-                await _notificationService.NotifyFileUploadAsync(studentName, courseName, moduleName, activityTitle, entity.DisplayName, entity.Id, meta.CourseId ?? 0);
+                _logger.LogInformation("[ProjDocumentService] Calling NotifyFileUploadAsync with student: {Student}, course: {Course}, module: {Module}, activity: {Activity}, documentId: {DocId}, courseId: {CourseId}",
+                    studentName, courseName, moduleName, activityTitle, entity.Id, meta.CourseId ?? 0);
+
+                await _notificationService.NotifyFileUploadAsync(
+                    studentName,
+                    courseName,
+                    moduleName,
+                    activityTitle,
+                    entity.DisplayName,
+                    entity.Id,
+                    meta.CourseId ?? 0
+                );
+
+                _logger.LogInformation("[ProjDocumentService] Notification sent successfully!");
+            }
+            else
+            {
+                _logger.LogInformation("[ProjDocumentService] Skipping notification - IsSubmission: {IsSubmission}, HasActivityId: {HasActivity}",
+                    entity.IsSubmission, entity.ActivityId.HasValue);
             }
 
             return _mapper.Map<ProjDocumentDto>(entity);

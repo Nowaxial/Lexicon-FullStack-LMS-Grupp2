@@ -25,8 +25,8 @@ public class NotificationItem
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public bool IsRead { get; set; }
-    public List<string> ReadBy { get; set; } = new();
-    public List<string> TargetTeachers { get; set; } = new();
+    public List<string> ReadBy { get; set; } = [];
+    public List<string> TargetTeachers { get; set; } = [];
 }
 
 public class ContactMessageItem

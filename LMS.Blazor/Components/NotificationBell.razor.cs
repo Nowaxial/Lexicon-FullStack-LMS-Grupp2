@@ -16,7 +16,7 @@ namespace LMS.Blazor.Components
         private bool isTeacher = false;
         private string? userId;
 
-        private string GetStudentName(string message)
+        private static string GetStudentName(string message)
         {
             var parts = message.Split(" laddade upp '");
             return parts[0];
@@ -69,40 +69,70 @@ namespace LMS.Blazor.Components
 
         protected override async Task OnInitializedAsync()
         {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            isTeacher = authState.User.IsInRole("Teacher");
-            userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Console.WriteLine("[NotificationBell] OnInitializedAsync starting...");
 
-            if (isTeacher && !string.IsNullOrEmpty(userId))
+            try
             {
-                await LoadNotifications();
-                _timer = new Timer(async _ =>
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                isTeacher = authState.User.IsInRole("Teacher");
+                userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                Console.WriteLine($"[NotificationBell] isTeacher: {isTeacher}");
+                Console.WriteLine($"[NotificationBell] userId: {userId}");
+
+                if (isTeacher && !string.IsNullOrEmpty(userId))
                 {
-                    try
+                    await LoadNotifications();
+                    _timer = new Timer(async _ =>
                     {
-                        await InvokeAsync(LoadNotifications);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Timer error: {ex.Message}");
-                    }
-                }, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+                        try
+                        {
+                            await InvokeAsync(LoadNotifications);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[NotificationBell] Timer error: {ex.Message}");
+                        }
+                    }, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+                }
+                else
+                {
+                    Console.WriteLine("[NotificationBell] Not loading notifications - either not teacher or no userId");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NotificationBell] OnInitializedAsync ERROR: {ex.Message}");
+                Console.WriteLine($"[NotificationBell] Stack trace: {ex.StackTrace}");
             }
         }
 
         private async Task LoadNotifications()
         {
-            try
-            {
-                if (string.IsNullOrEmpty(userId)) return;
+            Console.WriteLine($"[NotificationBell] Startar laddning av notifikationer fÃ¶r userId: {userId}");
 
-                notifications = await NotificationService.GetNotificationsForUserAsync(userId);
-                await InvokeAsync(StateHasChanged);
-            }
-            catch (Exception ex)
+            if (string.IsNullOrEmpty(userId))
             {
-                Console.WriteLine($"LoadNotifications ERROR: {ex.Message}");
+                Console.WriteLine("[NotificationBell] userId Ã¤r null eller tom, avbryter.");
+                return;
             }
+
+            notifications = await NotificationService.GetNotificationsForUserAsync(userId);
+
+            if (notifications == null || !notifications.Any())
+            {
+                Console.WriteLine("[NotificationBell] Inga notifikationer funna.");
+            }
+            else
+            {
+                Console.WriteLine($"[NotificationBell] Fann {notifications.Count} notifikationer.");
+                foreach (var n in notifications)
+                {
+                    Console.WriteLine($"Notifikation: {n.Message}");
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
         }
 
         private async Task ShowNotification(NotificationItem notification)
@@ -112,32 +142,47 @@ namespace LMS.Blazor.Components
             decryptedMessage = null;
             errorMessage = null;
 
-            if (notification.Message.Contains("kontaktmeddelande från"))
+            if (notification.Message.Contains("kontaktmeddelande frÃ¥n", StringComparison.CurrentCultureIgnoreCase))
             {
                 try
                 {
-                    var parts = notification.Message.Split(": ");
-                    if (parts.Length >= 2)
-                    {
-                        var subject = parts[1];
-                        var contactMessages = await NotificationService.GetAllContactMessagesAsync();
-                        var matchingMessage = contactMessages
-                            .Where(m => m.Subject == subject)
-                            .OrderByDescending(m => m.Timestamp)
-                            .FirstOrDefault();
+                    var parts = notification.Message.Split('|');
 
-                        if (matchingMessage != null)
+                    // Nytt format med ID
+                    if (parts.Length >= 2 && Guid.TryParse(parts[1], out var messageId))
+                    {
+                        decryptedMessage = await NotificationService.DecryptMessageAsync(messageId);
+                        if (decryptedMessage == null)
                         {
-                            decryptedMessage = await NotificationService.DecryptMessageAsync(matchingMessage.Id);
+                            errorMessage = $"Kunde inte hitta kontaktmeddelande med ID: {messageId}";
+                        }
+                    }
+                    // Gammalt format utan ID - matcha pÃ¥ Subject
+                    else
+                    {
+                        var subjectParts = notification.Message.Split(": ");
+                        if (subjectParts.Length >= 2)
+                        {
+                            var subject = subjectParts[1];
+                            var contactMessages = await NotificationService.GetAllContactMessagesAsync();
+                            var matchingMessage = contactMessages
+                                .Where(m => m.Subject == subject)
+                                .OrderByDescending(m => m.Timestamp)
+                                .FirstOrDefault();
+
+                            if (matchingMessage != null)
+                            {
+                                decryptedMessage = await NotificationService.DecryptMessageAsync(matchingMessage.Id);
+                            }
+                            else
+                            {
+                                errorMessage = $"Kunde inte hitta kontaktmeddelande med Ã¤mne: {subject}";
+                            }
                         }
                         else
                         {
-                            errorMessage = $"Kunde inte hitta kontaktmeddelande med ämne: {subject}";
+                            errorMessage = "Kunde inte extrahera Ã¤mne frÃ¥n notifikationen";
                         }
-                    }
-                    else
-                    {
-                        errorMessage = "Kunde inte extrahera ämne från notifikationen";
                     }
                 }
                 catch (Exception ex)
@@ -145,14 +190,14 @@ namespace LMS.Blazor.Components
                     errorMessage = $"Fel vid dekryptering: {ex.Message}";
                 }
             }
-            else if (notification.Message.Contains("laddade upp"))
+            else if (notification.Message.Contains("laddade upp", StringComparison.CurrentCultureIgnoreCase))
             {
                 StateHasChanged();
                 return;
             }
             else
             {
-                errorMessage = "Okänd notifikationstyp";
+                errorMessage = "OkÃ¤nd notifikationstyp";
             }
 
             StateHasChanged();
@@ -173,7 +218,7 @@ namespace LMS.Blazor.Components
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"DeleteNotification error: {ex.Message}");
+                Console.WriteLine($"[NotificationBell] DeleteNotification error: {ex.Message}");
             }
         }
 
@@ -197,7 +242,7 @@ namespace LMS.Blazor.Components
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"MarkAsRead error: {ex.Message}");
+                Console.WriteLine($"[NotificationBell] MarkAsRead error: {ex.Message}");
             }
         }
 
@@ -213,10 +258,14 @@ namespace LMS.Blazor.Components
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"MarkAsUnread error: {ex.Message}");
+                Console.WriteLine($"[NotificationBell] MarkAsUnread error: {ex.Message}");
             }
         }
 
-        public void Dispose() => _timer?.Dispose();
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            _timer?.Dispose();
+        }
     }
 }

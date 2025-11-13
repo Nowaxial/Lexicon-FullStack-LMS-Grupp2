@@ -21,7 +21,7 @@ namespace LMS.Shared.DTOs.EntitiesDtos.ModulesDtos
         public int DocumentsCount { get; init; }
 
         public CourseDto? Course { get; init; }
-        public List<ProjActivityDto> Activities { get; init; } = new();
+        public List<ProjActivityDto> Activities { get; init; } = [];
 
 
     }

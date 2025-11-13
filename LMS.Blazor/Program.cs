@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Service.Contracts;
 
-await Task.Delay(5000);
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -28,9 +26,6 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 
 // AuthenticationStateProvider for persistent authentication
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
-
-// API service
-builder.Services.AddScoped<IApiService, ClientApiService>();
 
 // Authentication setup
 builder.Services.AddAuthentication(options =>
@@ -78,7 +73,6 @@ builder.Services.AddScoped(sp => new HttpClient
 builder.Services.AddScoped<EncryptionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
-
 // Password hashing configuration
 builder.Services.Configure<PasswordHasherOptions>(options => options.IterationCount = 10000);
 
@@ -89,9 +83,7 @@ builder.Services.AddSingleton<ITokenStorage, TokenStorageService>();
 builder.Services.AddScoped<IApiService, ClientApiService>();
 builder.Services.AddScoped<IAuthReadyService, AuthReadyService>();
 
-
 var app = builder.Build();
-
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -105,7 +97,6 @@ else
 }
 
 app.UseHttpsRedirection();
-
 
 app.UseStaticFiles();
 app.MapStaticAssets();

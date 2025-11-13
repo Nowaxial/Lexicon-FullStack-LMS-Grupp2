@@ -17,6 +17,9 @@ builder.Services.AddHttpClient("BffClient", cfg =>
 
 builder.Services.AddHttpClient("ApiDirect", cfg =>
 {
+    /*cfg.BaseAddress = new Uri(
+        builder.Configuration["LmsAPIBaseAddress"] ?? " Azure API ");*/
+
     cfg.BaseAddress = new Uri(
         builder.Configuration["LmsAPIBaseAddress"] ?? "https://localhost:7213/");
 });

@@ -1,15 +1,14 @@
 ﻿using LMS.API.Extensions;
 using LMS.API.Services;
 using LMS.Infractructure.Data;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Http;
 
 namespace LMS.API;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -42,7 +41,7 @@ public class Program
         builder.Services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "LMS API", Version = "v1" });
-     
+
             c.ResolveConflictingActions(api => api.First());
             c.CustomSchemaIds(t => t.FullName);
 
@@ -60,15 +59,39 @@ public class Program
         // --- Middleware ---
         app.ConfigureExceptionHandler();                           // global error handler
 
-        if (app.Environment.IsDevelopment())
+        /*if (app.Environment.IsProduction())
         {
-            app.UseSwagger();
+
+
+            using var scope = app.Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            // Tillämpa pending migrations
+            await context.Database.MigrateAsync();
+        }*/
+
+        app.UseSwagger();
+
+        app.UseSwaggerUI(opt =>
+        {
+            opt.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+
+        });
+
+        /*if (app.Environment.IsDevelopment())
+        {
             app.UseSwaggerUI(opt =>
             {
                 opt.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
 
             });
-        }
+        }*/
+
+
+
+
+
+
 
         app.UseHttpsRedirection();
 
@@ -80,5 +103,6 @@ public class Program
         app.MapControllers();
 
         app.Run();
+        return Task.CompletedTask;
     }
 }

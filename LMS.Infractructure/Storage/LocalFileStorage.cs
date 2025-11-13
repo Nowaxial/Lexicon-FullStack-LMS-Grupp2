@@ -22,6 +22,9 @@ namespace LMS.Infractructure.Storage
             _publicBase = options.Value.PublicBasePath.Trim().TrimStart('/').TrimEnd('/');
 
             Directory.CreateDirectory(_root);
+
+            // DEBUG: Logga var filerna sparas
+            _logger.LogInformation("FileStorage initialized with root: {Root}", _root);
         }
 
         public async Task<string> SaveAsync(Stream content, string originalFileName, CancellationToken ct = default)
@@ -42,14 +45,25 @@ namespace LMS.Infractructure.Storage
             }
 
             var relative = $"{_publicBase}/{subDir.Replace('\\', '/')}/{fileName}";
-            _logger.LogInformation("Saved file at {RelativePath}", relative);
+            _logger.LogInformation("Saved file at full path: {FullPath}, returning relative: {RelativePath}", fullPath, relative);
             return relative;
         }
 
         public Task<Stream> OpenReadAsync(string relativePath, CancellationToken ct = default)
         {
+            // ÄNDRAT: Använd _root istället för "wwwroot"
             var rel = relativePath.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
-            var full = Path.Combine("wwwroot", rel); // assumes PublicBasePath lives under wwwroot
+
+            // Ta bort publicBase från början om det finns där
+            if (rel.StartsWith(_publicBase + Path.DirectorySeparatorChar) || rel.StartsWith(_publicBase + '/'))
+            {
+                rel = rel.Substring(_publicBase.Length + 1);
+            }
+
+            var full = Path.Combine(_root, rel);
+
+            _logger.LogInformation("Reading file from: {FullPath}, exists: {Exists}", full, File.Exists(full));
+
             Stream s = File.OpenRead(full);
             return Task.FromResult(s);
         }
@@ -58,12 +72,21 @@ namespace LMS.Infractructure.Storage
         {
             try
             {
+                // ÄNDRAT: Använd _root istället för "wwwroot"
                 var rel = relativePath.Replace('/', Path.DirectorySeparatorChar).TrimStart(Path.DirectorySeparatorChar);
-                var full = Path.Combine("wwwroot", rel);
+
+                // Ta bort publicBase från början om det finns där
+                if (rel.StartsWith(_publicBase + Path.DirectorySeparatorChar) || rel.StartsWith(_publicBase + '/'))
+                {
+                    rel = rel.Substring(_publicBase.Length + 1);
+                }
+
+                var full = Path.Combine(_root, rel);
+
                 if (File.Exists(full))
                 {
                     File.Delete(full);
-                    _logger.LogInformation("Deleted file {RelativePath}", relativePath);
+                    _logger.LogInformation("Deleted file {FullPath}", full);
                 }
             }
             catch (Exception ex)

@@ -16,21 +16,20 @@ public static class ServiceExtensions
     {
         services.AddCors(options =>
         {
-            //ToDo: Restrict access to your BlazorApp only!
-            options.AddDefaultPolicy(policy =>
-            {
-                //..
-                //..
-                //..
-            });
-
-            //Can be used during development
             options.AddPolicy("AllowAll", p =>
-               p.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader());
+                p.WithOrigins(
+                    "https://localhost:7224",  // Local Blazor
+                    "https://lexicon-lms.azurewebsites.net",  // Azure Blazor
+                    "https://lms-api-se.azurewebsites.net", // Azure API
+                    "https://lms-api.runasp.net", // MonsterASP API
+                    "https://simplilearn.azurewebsites.net"
+                )
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
         });
     }
+
 
     public static void ConfigureOpenApi(this IServiceCollection services) =>
        services.AddEndpointsApiExplorer()

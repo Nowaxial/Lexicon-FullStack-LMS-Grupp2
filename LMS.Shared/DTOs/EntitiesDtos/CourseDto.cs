@@ -15,6 +15,6 @@ namespace LMS.Shared.DTOs.EntitiesDtos
         public DateOnly Starts { get; set; }
         public DateOnly Ends { get; set; }
 
-        public List<ModuleDto> Modules { get; set; } = new();
+        public List<ModuleDto> Modules { get; set; } = [];
     }
 }

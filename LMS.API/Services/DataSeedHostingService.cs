@@ -1,14 +1,11 @@
-﻿using Bogus;
+using Bogus;
 using LMS.Infractructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace LMS.API.Services;
 
-//Add in secret.json
-//{
-//   "password" :  "YourSecretPasswordHere"
-//}
+
 public class DataSeedHostingService : IHostedService
 {
     private readonly IServiceProvider serviceProvider;
@@ -32,7 +29,7 @@ public class DataSeedHostingService : IHostedService
         using var scope = serviceProvider.CreateScope();
 
         var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-        if (!env.IsDevelopment()) return;
+        //if (!env.IsDevelopment()) return;
 
         dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 

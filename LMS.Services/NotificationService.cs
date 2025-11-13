@@ -1,233 +1,276 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 using LMS.Shared.DTOs;
+using Microsoft.Extensions.Configuration;
 using Service.Contracts;
-using Domain.Contracts.Repositories;
 
-namespace LMS.Services;
-
-public class NotificationService : INotificationService
+namespace LMS.Services
 {
-    private static readonly string DataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LMS");
-    private static readonly string NotificationsFilePath = Path.Combine(DataFolder, "notifications.json");
-    private static readonly string ContactFilePath = Path.Combine(DataFolder, "contact-messages.json");
-    private readonly EncryptionService _encryptionService;
-    private readonly IUnitOfWork? _uow;
-
-    // Konstruktor för Blazor (utan UnitOfWork)
-    public NotificationService(EncryptionService encryptionService)
+    public class NotificationService : INotificationService
     {
-        _encryptionService = encryptionService;
-        _uow = null;
-        Directory.CreateDirectory(DataFolder);
-    }
+        private readonly BlobNotificationRepository _blobRepo;
+        private readonly EncryptionService _encryptionService;
+        private const string NotificationsFileName = "notifications.json";
+        private const string ContactMessagesFileName = "contact-messages.json";
 
-    // Konstruktor för API (med UnitOfWork)
-    public NotificationService(EncryptionService encryptionService, IUnitOfWork uow)
-    {
-        _encryptionService = encryptionService;
-        _uow = uow;
-        Directory.CreateDirectory(DataFolder);
-    }
+        private class StoredContactMessage
+        {
+            public Guid Id { get; set; }
+            public DateTime Timestamp { get; set; }
+            public string Name { get; set; } = string.Empty;
+            public string Email { get; set; } = string.Empty;
+            public string Subject { get; set; } = string.Empty;
 
-    public async Task SaveContactMessageAsync(ContactMessageDto message)
-    {
-        await SaveContactToFileAsync(message);
-        await AddNotificationAsync($"Nytt kontaktmeddelande från {message.Name}: {message.Subject}");
-    }
+            // Stödjer både gammalt och nytt format
+            public string? Message { get; set; } // Nytt format
+            public string? EncryptedData { get; set; } // Gammalt format
+        }
 
-    public async Task<List<NotificationItem>> GetNotificationsForUserAsync(string userId)
-    {
-        var notifications = await GetAllNotificationsAsync();
-        return notifications
-            .Where(n => n.TargetTeachers.Count == 0 || n.TargetTeachers.Contains(userId))
-            .Select(n => new NotificationItem
+        public NotificationService(IConfiguration config, EncryptionService encryptionService)
+        {
+            var connectionString = config["AzureBlob:ConnectionString"];
+            var containerName = config["AzureBlob:ContainerName"];
+            _blobRepo = new BlobNotificationRepository(connectionString, containerName);
+            _encryptionService = encryptionService;
+
+            Console.WriteLine("[NotificationService] Initierad med Azure Blob Storage och EncryptionService.");
+        }
+
+        private async Task<List<NotificationItem>> LoadAllNotificationsAsync()
+        {
+            var json = await _blobRepo.LoadAsync(NotificationsFileName);
+            if (string.IsNullOrEmpty(json))
             {
-                Id = n.Id,
-                Message = n.Message,
-                Timestamp = n.Timestamp,
-                IsRead = n.ReadBy.Contains(userId),
-                ReadBy = n.ReadBy,
-                TargetTeachers = n.TargetTeachers
+                Console.WriteLine("[NotificationService] Inga notifikationer funna i blob.");
+                return new List<NotificationItem>();
+            }
+
+            var notifications = JsonSerializer.Deserialize<List<NotificationItem>>(json) ?? new List<NotificationItem>();
+            Console.WriteLine($"[NotificationService] Laddade {notifications.Count} notifikationer från blob.");
+            return notifications;
+        }
+
+        private async Task SaveNotificationsAsync(List<NotificationItem> notifications)
+        {
+            var json = JsonSerializer.Serialize(notifications, new JsonSerializerOptions { WriteIndented = true });
+            await _blobRepo.SaveAsync(NotificationsFileName, json);
+            Console.WriteLine($"[NotificationService] Sparade {notifications.Count} notifikationer till blob.");
+        }
+
+        private async Task<List<StoredContactMessage>> LoadAllStoredContactMessagesAsync()
+        {
+            var json = await _blobRepo.LoadAsync(ContactMessagesFileName);
+            if (string.IsNullOrEmpty(json))
+            {
+                Console.WriteLine("[NotificationService] Inga kontaktmeddelanden funna i blob.");
+                return new List<StoredContactMessage>();
+            }
+
+            var messages = JsonSerializer.Deserialize<List<StoredContactMessage>>(json) ?? new List<StoredContactMessage>();
+            Console.WriteLine($"[NotificationService] Laddade {messages.Count} kontaktmeddelanden från blob.");
+            return messages;
+        }
+
+        private async Task SaveStoredContactMessagesAsync(List<StoredContactMessage> messages)
+        {
+            var json = JsonSerializer.Serialize(messages, new JsonSerializerOptions { WriteIndented = true });
+            await _blobRepo.SaveAsync(ContactMessagesFileName, json);
+            Console.WriteLine($"[NotificationService] Sparade {messages.Count} kontaktmeddelanden till blob.");
+        }
+
+        public async Task SaveContactMessageAsync(ContactMessageDto message)
+        {
+            var storedMessages = await LoadAllStoredContactMessagesAsync();
+
+            var serializedMessage = JsonSerializer.Serialize(message);
+            var encryptedMessage = _encryptionService.Encrypt(serializedMessage);
+
+            var storedMessage = new StoredContactMessage
+            {
+                Id = Guid.NewGuid(),
+                Timestamp = DateTime.UtcNow,
+                Name = message.Name,
+                Email = message.Email,
+                Subject = message.Subject,
+                Message = encryptedMessage
+            };
+
+            storedMessages.Insert(0, storedMessage);
+            await SaveStoredContactMessagesAsync(storedMessages);
+
+            // På exakt detta format beroende på frontendmatchning
+            var notificationMessage = $"kontaktmeddelande från {storedMessage.Name}: {storedMessage.Subject}|{storedMessage.Id}";
+
+            Console.WriteLine($"[NotificationService] Skapar notifikation med meddelande: '{notificationMessage}'");
+
+            var notifications = await LoadAllNotificationsAsync();
+            var newNotification = new NotificationItem
+            {
+                Id = Guid.NewGuid().ToString(),
+                Message = notificationMessage,
+                Timestamp = storedMessage.Timestamp,
+                ReadBy = new List<string>(),
+                TargetTeachers = new List<string>()
+            };
+            notifications.Insert(0, newNotification);
+            await SaveNotificationsAsync(notifications);
+
+            Console.WriteLine($"[NotificationService] Ny notifikation skapad med ID: {newNotification.Id} och meddelande: '{newNotification.Message}'");
+        }
+
+
+        public async Task<List<ContactMessageItem>> GetAllContactMessagesAsync()
+        {
+            var storedMessages = await LoadAllStoredContactMessagesAsync();
+            return storedMessages.Select(m => new ContactMessageItem
+            {
+                Id = m.Id,
+                Timestamp = m.Timestamp,
+                Subject = m.Subject
             }).ToList();
-    }
-
-    public async Task MarkAsReadAsync(string notificationId, string userId)
-    {
-        var notifications = await GetAllNotificationsAsync();
-        var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
-
-        if (notification != null && !notification.ReadBy.Contains(userId))
-        {
-            notification.ReadBy.Add(userId);
-            await SaveNotificationsAsync(notifications);
-        }
-    }
-
-    public async Task<List<ContactMessageItem>> GetAllContactMessagesAsync()
-    {
-        if (!File.Exists(ContactFilePath))
-            return new List<ContactMessageItem>();
-
-        var json = await File.ReadAllTextAsync(ContactFilePath);
-        var messages = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? new();
-
-        return messages.Select(m => new ContactMessageItem
-        {
-            Id = m.GetProperty("Id").GetGuid(),
-            Timestamp = m.GetProperty("Timestamp").GetDateTime(),
-            Subject = m.GetProperty("Subject").GetString() ?? ""
-        }).ToList();
-    }
-
-    public async Task<ContactMessageDto?> DecryptMessageAsync(Guid id)
-    {
-        if (!File.Exists(ContactFilePath))
-            return null;
-
-        var json = await File.ReadAllTextAsync(ContactFilePath);
-        var messages = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? new();
-
-        var message = messages.FirstOrDefault(m => m.GetProperty("Id").GetGuid() == id);
-
-        if (message.ValueKind == JsonValueKind.Undefined)
-            return null;
-
-        return _encryptionService.DecryptObject<ContactMessageDto>(
-            message.GetProperty("EncryptedData").GetString()!);
-    }
-
-    private async Task SaveContactToFileAsync(ContactMessageDto message)
-    {
-        var encryptedMessage = _encryptionService.EncryptObject(message);
-
-        var contactMessage = new
-        {
-            Id = Guid.NewGuid(),
-            Timestamp = DateTime.Now,
-            Subject = message.Subject,
-            EncryptedData = encryptedMessage
-        };
-
-        var messages = new List<object>();
-
-        if (File.Exists(ContactFilePath))
-        {
-            var json = await File.ReadAllTextAsync(ContactFilePath);
-            if (!string.IsNullOrEmpty(json))
-                messages = JsonSerializer.Deserialize<List<object>>(json) ?? new();
         }
 
-        messages.Insert(0, contactMessage);
-
-        var newJson = JsonSerializer.Serialize(messages, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(ContactFilePath, newJson);
-    }
-
-    private async Task AddNotificationAsync(string message)
-    {
-        var notifications = await GetAllNotificationsAsync();
-
-        var newNotification = new NotificationItem
+        public async Task<ContactMessageDto?> DecryptMessageAsync(Guid id)
         {
-            Id = Guid.NewGuid().ToString(),
-            Message = message,
-            Timestamp = DateTime.Now,
-            ReadBy = new List<string>(),
-            TargetTeachers = new List<string>()
-        };
+            var storedMessages = await LoadAllStoredContactMessagesAsync();
+            var storedMessage = storedMessages.FirstOrDefault(m => m.Id == id);
+            if (storedMessage == null) return null;
 
-        notifications.Insert(0, newNotification);
-        await SaveNotificationsAsync(notifications);
-    }
+            var encryptedData = storedMessage.EncryptedData ?? storedMessage.Message;
+            if (string.IsNullOrEmpty(encryptedData)) return null;
 
-    private async Task<List<NotificationItem>> GetAllNotificationsAsync()
-    {
-        if (!File.Exists(NotificationsFilePath)) return new();
-
-        var json = await File.ReadAllTextAsync(NotificationsFilePath);
-        return JsonSerializer.Deserialize<List<NotificationItem>>(json) ?? new();
-    }
-
-    private async Task SaveNotificationsAsync(List<NotificationItem> notifications)
-    {
-        var json = JsonSerializer.Serialize(notifications, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(NotificationsFilePath, json);
-    }
-
-    public async Task MarkAsUnreadAsync(string notificationId, string userId)
-    {
-        var notifications = await GetAllNotificationsAsync();
-        var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
-
-        if (notification != null && notification.ReadBy.Contains(userId))
-        {
-            notification.ReadBy.Remove(userId);
-            await SaveNotificationsAsync(notifications);
+            try
+            {
+                var decryptedJson = _encryptionService.Decrypt(encryptedData);
+                return JsonSerializer.Deserialize<ContactMessageDto>(decryptedJson);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NotificationService] Fel vid dekryptering av meddelande: {ex.Message}");
+                return null;
+            }
         }
-    }
 
-    public async Task<ContactMessageDto?> DecryptContactMessageDirectAsync(string encryptedData)
-    {
-        try
+        public async Task<List<NotificationItem>> GetNotificationsForUserAsync(string userId)
         {
-            return _encryptionService.DecryptObject<ContactMessageDto>(encryptedData);
+            Console.WriteLine($"[NotificationService] Hämtar notifikationer för användare {userId}...");
+            var notifications = await LoadAllNotificationsAsync();
+            Console.WriteLine($"[NotificationService] Totalt {notifications.Count} notifikationer laddade från blob.");
+            
+            foreach (var n in notifications)
+            {
+                Console.WriteLine($"[NotificationService] Notifikation: ID={n.Id}, Message='{n.Message}', TargetTeachers.Count={n.TargetTeachers.Count}");
+            }
+
+            var filtered = notifications.Where(n => n.TargetTeachers.Count == 0 || n.TargetTeachers.Contains(userId))
+                .Select(n => new NotificationItem
+                {
+                    Id = n.Id,
+                    Message = n.Message,
+                    Timestamp = n.Timestamp,
+                    IsRead = n.ReadBy.Contains(userId),
+                    ReadBy = n.ReadBy,
+                    TargetTeachers = n.TargetTeachers
+                }).ToList();
+
+            Console.WriteLine($"[NotificationService] Returnerar {filtered.Count} notifikationer för användare {userId}.");
+            return filtered;
         }
-        catch (Exception ex)
+
+        public async Task MarkAsReadAsync(string notificationId, string userId)
         {
-            Console.WriteLine($"Error decrypting contact message: {ex.Message}");
-            return null;
+            var notifications = await LoadAllNotificationsAsync();
+            var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
+
+            if (notification != null && !notification.ReadBy.Contains(userId))
+            {
+                notification.ReadBy.Add(userId);
+                await SaveNotificationsAsync(notifications);
+                Console.WriteLine($"[NotificationService] Notifikation {notificationId} markerad som läst av {userId}.");
+            }
         }
-    }
 
-    public async Task DeleteNotificationAsync(string notificationId)
-    {
-        var notifications = await GetAllNotificationsAsync();
-        var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
-
-        if (notification != null)
+        public async Task MarkAsUnreadAsync(string notificationId, string userId)
         {
-            notifications.Remove(notification);
-            await SaveNotificationsAsync(notifications);
+            var notifications = await LoadAllNotificationsAsync();
+            var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
+
+            if (notification != null && notification.ReadBy.Contains(userId))
+            {
+                notification.ReadBy.Remove(userId);
+                await SaveNotificationsAsync(notifications);
+                Console.WriteLine($"[NotificationService] Notifikation {notificationId} markerad som oläst av {userId}.");
+            }
         }
-    }
 
-    public async Task NotifyFileUploadAsync(string studentName, string courseName, string moduleName, string activityTitle, string fileName, int documentId, int courseId)
-    {
-        if (_uow != null)
+        public async Task DeleteNotificationAsync(string notificationId)
         {
-            var teacherIds = await _uow.CourseUserRepository.GetTeacherUserIdsByCourseAsync(courseId);
+            var notifications = await LoadAllNotificationsAsync();
+            var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
 
+            if (notification != null)
+            {
+                notifications.Remove(notification);
+                await SaveNotificationsAsync(notifications);
+                Console.WriteLine($"[NotificationService] Notifikation {notificationId} borttagen.");
+            }
+        }
+
+        public async Task DeleteNotificationByDocumentIdAsync(int documentId)
+        {
+            var notifications = await LoadAllNotificationsAsync();
+            var toRemove = notifications.Where(n => n.Message.Contains($"|{documentId}")).ToList();
+
+            foreach (var notification in toRemove)
+            {
+                notifications.Remove(notification);
+            }
+
+            if (toRemove.Any())
+            {
+                await SaveNotificationsAsync(notifications);
+                Console.WriteLine($"[NotificationService] Notifikationer relaterade till dokument {documentId} borttagna.");
+            }
+        }
+
+        public async Task NotifyFileUploadAsync(string studentName, string courseName, string moduleName, string activityTitle, string fileName, int documentId, int courseId)
+        {
             var message = $"{studentName} laddade upp '{fileName}' i {courseName} > {moduleName} > {activityTitle}|{documentId}";
-
             var newNotification = new NotificationItem
             {
                 Id = Guid.NewGuid().ToString(),
                 Message = message,
                 Timestamp = DateTime.Now,
                 ReadBy = new List<string>(),
-                TargetTeachers = teacherIds.ToList()
+                TargetTeachers = new List<string>()
             };
 
-            var notifications = await GetAllNotificationsAsync();
+            var notifications = await LoadAllNotificationsAsync();
             notifications.Insert(0, newNotification);
             await SaveNotificationsAsync(notifications);
-        }
-    }
 
-    public async Task DeleteNotificationByDocumentIdAsync(int documentId)
-    {
-        var notifications = await GetAllNotificationsAsync();
-        var notificationsToRemove = notifications.Where(n =>
-            n.Message.Contains($"|{documentId}")).ToList();
-
-        foreach (var notification in notificationsToRemove)
-        {
-            notifications.Remove(notification);
+            Console.WriteLine($"[NotificationService] Filuppladdningsnotifikation skapad: {message}");
         }
 
-        if (notificationsToRemove.Any())
+        public async Task<ContactMessageDto?> DecryptContactMessageDirectAsync(string encryptedData)
         {
-            await SaveNotificationsAsync(notifications);
+            if (string.IsNullOrEmpty(encryptedData))
+                return null;
+
+            try
+            {
+                var decryptedJson = _encryptionService.Decrypt(encryptedData);
+                var contactMessage = JsonSerializer.Deserialize<ContactMessageDto>(decryptedJson);
+                return await Task.FromResult(contactMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NotificationService] Fel vid direkt dekryptering: {ex.Message}");
+                return null;
+            }
         }
     }
 }
