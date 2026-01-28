@@ -2,6 +2,40 @@
 
 Ett modernt och fullständigt Learning Management System byggt med .NET 9, Blazor WebAssembly och ASP.NET Core. Systemet stödjer kurshantering, moduler, aktiviteter, dokumenthantering och krypterade realtidsnotifieringar.
 
+![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-12.0-239120?style=for-the-badge&logo=csharp&logoColor=white)
+![Blazor](https://img.shields.io/badge/Blazor-WebAssembly-512BD4?style=for-the-badge&logo=blazor&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)
+
+
+
+
+
+
+## Funktioner & Achievements
+
+![Clean Architecture](https://img.shields.io/badge/✓-Clean%20Architecture-success?style=flat-square)
+![JWT Auth](https://img.shields.io/badge/✓-JWT%20Authentication-success?style=flat-square)
+![AES Encryption](https://img.shields.io/badge/✓-AES--256%20Encryption-success?style=flat-square)
+![Blazor Hybrid](https://img.shields.io/badge/✓-Blazor%20Hybrid-success?style=flat-square)
+![EF Core](https://img.shields.io/badge/✓-EF%20Core%20Migrations-success?style=flat-square)
+![Responsive](https://img.shields.io/badge/✓-Responsive%20Design-success?style=flat-square)
+![Swagger](https://img.shields.io/badge/✓-API%20Documentation-success?style=flat-square)
+![Auto Seeding](https://img.shields.io/badge/✓-Auto%20Data%20Seeding-success?style=flat-square)
+
+
+## Projektstatistik
+
+
+
+![GitHub repo size](https://img.shields.io/github/repo-size/Nowaxial/Lexicon-FullStack-LMS-Grupp2?style=flat-square&logo=github)
+![GitHub language count](https://img.shields.io/github/languages/count/Nowaxial/Lexicon-FullStack-LMS-Grupp2?style=flat-square)
+![GitHub top language](https://img.shields.io/github/languages/top/Nowaxial/Lexicon-FullStack-LMS-Grupp2?style=flat-square&logo=csharp)
+
+
+
+
 
 
 
