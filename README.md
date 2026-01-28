@@ -3,6 +3,25 @@
 Ett modernt och fullständigt Learning Management System byggt med .NET 9, Blazor WebAssembly och ASP.NET Core. Systemet stödjer kurshantering, moduler, aktiviteter, dokumenthantering och krypterade realtidsnotifieringar.
 
 
+
+
+
+## 📋 Innehåll
+
+- [Översikt](#-översikt)
+- [Screenshot](#screenshot)
+- [Funktioner](#-funktioner)
+- [Teknisk Stack](#-teknisk-stack)
+- [Projektstruktur](#-projektstruktur)
+- [Installation](#-installation)
+- [API Dokumentation](#api-dokumentation)
+- [Användarroller](#-användarroller)
+- [Säkerhet](#-säkerhet)
+
+## 🎯 Översikt
+
+Detta LMS är utvecklat som ett gruppprojekt för att demonstrera fullstack .NET-utveckling med moderna designmönster och arkitektur. Systemet hanterar kurser, moduler, aktiviteter och dokumentinlämningar med rollbaserad åtkomstkontroll och krypterade notifieringar.
+
 ## Screenshots
 
 ### Desktop
@@ -16,22 +35,6 @@ Ett modernt och fullständigt Learning Management System byggt med .NET 9, Blazo
 
 
 
-
-
-## 📋 Innehåll
-
-- [Översikt](#översikt)
-- [Funktioner](#funktioner)
-- [Teknisk Stack](#teknisk-stack)
-- [Projektstruktur](#projektstruktur)
-- [Installation](#installation)
-- [API Dokumentation](#api-dokumentation)
-- [Användarroller](#användarroller)
-- [Säkerhet](#säkerhet)
-
-## 🎯 Översikt
-
-Detta LMS är utvecklat som ett gruppprojekt för att demonstrera fullstack .NET-utveckling med moderna designmönster och arkitektur. Systemet hanterar kurser, moduler, aktiviteter och dokumentinlämningar med rollbaserad åtkomstkontroll och krypterade notifieringar.
 
 ## ✨ Funktioner
 
