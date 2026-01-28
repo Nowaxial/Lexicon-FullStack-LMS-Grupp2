@@ -17,6 +17,8 @@ Ett modernt och fullständigt Learning Management System byggt med .NET 9, Blazo
 - [API Dokumentation](#api-dokumentation)
 - [Användarroller](#-användarroller)
 - [Säkerhet](#-säkerhet)
+- [Felsökning](#-felsökning)
+- [Gruppmedlemmar](#-gruppmedlemmar)
 
 ## 🎯 Översikt
 
